@@ -1,0 +1,67 @@
+// Definir paleta de colores violeta
+$purple-light: #e1d4e9;
+$purple-medium: #c3a8d4;
+$purple-dark: #a57cb9;
+
+// Definir paleta de colores azul
+$blue-light: #b3d7f2;
+$blue-medium: #67a7e6;  // Color de las tarjetas del dashboard
+$blue-dark: #3884c7;
+
+// Sobrescribir las variables de Bootstrap
+$primary: $blue-medium;  // Cambiado a azul
+$secondary: $purple-light;
+$success: #28a745;
+$info: #17a2b8;
+$warning: #ffc107;
+$danger: #dc3545;
+$light: #f8f9fa;
+$dark: $blue-dark;  // Cambiado a azul oscuro
+
+// Tipografía
+$font-family-sans-serif: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+$font-weight-normal: 400;
+$font-weight-bold: 700;
+$headings-font-weight: 600;
+
+// Bordes
+$border-radius: .5rem;
+$border-radius-lg: 1rem;
+$border-radius-sm: .25rem;
+$card-radius: 1.2rem;  // Nuevo radio para tarjetas del dashboard
+
+// Sombras
+$box-shadow: 0 .5rem 1rem rgba($dark, .15);
+$box-shadow-sm: 0 .125rem .25rem rgba($dark, .075);
+$box-shadow-lg: 0 1rem 3rem rgba($dark, .175);
+
+// Personalización de botones
+$btn-font-weight: 500;
+$btn-border-radius: $border-radius;
+$btn-border-radius-lg: $border-radius-lg;
+$btn-border-radius-sm: $border-radius-sm;
+
+// Personalización de tarjetas
+$card-border-radius: $border-radius;
+$card-border-color: rgba($dark, .125);
+$card-cap-bg: rgba($primary, .03);
+
+// Personalización de modales
+$modal-content-border-radius: $border-radius-lg;
+$modal-header-border-color: rgba($dark, .1);
+$modal-footer-border-color: $modal-header-border-color;
+
+// Personalización de inputs
+$input-border-radius: $border-radius;
+$input-focus-border-color: tint-color($primary, 50%);
+$input-focus-box-shadow: 0 0 0 .25rem rgba($primary, .25);
+
+// Exportar las variables para usarlas en otros archivos
+:export {
+  primaryColor: $primary;
+  secondaryColor: $secondary;
+  darkColor: $dark;
+  lightColor: $light;
+  cardBg: $blue-medium;
+  cardRadius: $card-radius;
+}
