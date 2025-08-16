@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const API_URL = 'https://mozoqr.com/api'
+const API_URL = import.meta.env.VITE_API_URL || 'https://mozoqr.com/api'
 
 const api = axios.create({
   baseURL: API_URL,
@@ -123,7 +123,18 @@ const apiService = {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   setDefaultMenu: (data) => api.post('menus/default', data),
-  generateQRCode: (tableId) => api.post(`admin/qr/generate/${tableId}`),
+  generateQRCode: (tableId) => {
+    const qrBaseUrl = import.meta.env.VITE_QR_BASE_URL || window.location.origin;
+    console.log('🔍 Generating QR with base URL:', qrBaseUrl);
+    console.log('📋 Environment vars:', {
+      VITE_QR_BASE_URL: import.meta.env.VITE_QR_BASE_URL,
+      VITE_URL_API: import.meta.env.VITE_URL_API,
+      window_origin: window.location.origin
+    });
+    return api.post(`admin/qr/generate/${tableId}`, { 
+      base_url: qrBaseUrl 
+    });
+  },
   exportQR: (data) => api.post('admin/qr/export', data),
   getSettings: () => api.get('admin/settings'),
   updateSettings: (data) => api.post('admin/settings', data),
@@ -168,8 +179,119 @@ const apiService = {
   updateAdminMenu: (menuId, data) => api.post(`admin/menus/update/${menuId}`, data),
   deleteAdminMenu: (menuId) => api.delete(`admin/menus/${menuId}`),
   getAdminRequests: () => api.get('admin/requests'),
+  
+  // Notificaciones FCM - Envío
+  sendNotificationToAll: (data) => api.post('admin/notifications/send-to-all', data),
+  sendNotificationToUser: (data) => api.post('admin/notifications/send-to-user', data),
+  sendNotificationToDevice: (data) => api.post('admin/notifications/send-to-device', data),
+  sendNotificationToTopic: (data) => api.post('admin/notifications/send-to-topic', data),
+  
+  // Notificaciones FCM - Gestión de Topics
+  subscribeToTopic: (data) => api.post('admin/notifications/subscribe-to-topic', data),
+  unsubscribeFromTopic: (data) => api.post('admin/notifications/unsubscribe-from-topic', data),
+  
+  // Device Tokens - Gestión
+  storeDeviceToken: (data) => api.post('device-token', data),
+  getDeviceTokens: (userId) => api.get(`device-tokens/${userId}`),
+  deleteDeviceToken: (tokenId) => api.delete(`device-token/${tokenId}`),
+  
+  // Compatibilidad con endpoints existentes
   sendPushToUser: (data) => api.post('admin/notifications/send-to-user', data),
-  healthCheck: () => api.get('health-check')
+  
+  healthCheck: () => api.get('health-check'),
+
+  // ===== WAITER CALLS APIs =====
+  
+  // Mozo - Gestión de llamadas
+  getPendingCalls: () => api.get('waiter/calls/pending'),
+  acknowledgeCall: (callId) => api.post(`waiter/calls/${callId}/acknowledge`),
+  completeCall: (callId) => api.post(`waiter/calls/${callId}/complete`),
+  
+  // Historial de llamadas
+  getWaiterCallHistory: (params = {}) => api.get('waiter/calls/history', { params }),
+  getAdminCallHistory: (params = {}) => api.get('admin/calls/history', { params }),
+  
+  // ===== WAITER TABLE MANAGEMENT APIs =====
+  
+  // Gestión individual de mesas
+  activateTable: (tableId) => {
+    console.log('🌐 API: POST waiter/tables/' + tableId + '/activate')
+    return api.post(`waiter/tables/${tableId}/activate`)
+  },
+  deactivateTable: (tableId) => {
+    console.log('🌐 API: DELETE waiter/tables/' + tableId + '/activate')
+    return api.delete(`waiter/tables/${tableId}/activate`)
+  },
+  
+  // Gestión múltiple de mesas
+  activateMultipleTables: (data) => {
+    console.log('🌐 API: POST waiter/tables/activate/multiple', data)
+    return api.post('waiter/tables/activate/multiple', data)
+  },
+  deactivateMultipleTables: (data) => {
+    console.log('🌐 API: POST waiter/tables/deactivate/multiple', data)
+    return api.post('waiter/tables/deactivate/multiple', data)
+  },
+  
+  // Silenciado de mesas
+  silenceTable: (tableId, data) => {
+    console.log('🌐 API: POST waiter/tables/' + tableId + '/silence', data)
+    return api.post(`waiter/tables/${tableId}/silence`, data)
+  },
+  unsilenceTable: (tableId) => {
+    console.log('🌐 API: DELETE waiter/tables/' + tableId + '/silence')
+    return api.delete(`waiter/tables/${tableId}/silence`)
+  },
+  silenceMultipleTables: (data) => api.post('waiter/tables/silence/multiple', data),
+  unsilenceMultipleTables: (data) => api.post('waiter/tables/unsilence/multiple', data),
+  getSilencedTables: () => api.get('waiter/tables/silenced'),
+  
+  // Consulta de mesas  
+  getAssignedTables: () => api.get('waiter/tables/assigned'),
+  getAvailableTables: () => api.get('waiter/tables/available'),
+  
+  // Admin - Mesas silenciadas
+  getAdminSilencedTables: () => api.get('admin/tables/silenced'),
+  adminUnsilenceTable: (tableId) => api.delete(`admin/tables/${tableId}/silence`),
+  
+  // ===== TABLE PROFILES APIs =====
+  
+  // Perfiles de mesa para mozos
+  getWaiterTableProfiles: () => api.get('waiter/table-profiles'),
+  getWaiterTableProfile: (profileId) => api.get(`waiter/table-profiles/${profileId}`),
+  createWaiterTableProfile: (data) => api.post('waiter/table-profiles', data),
+  updateWaiterTableProfile: (profileId, data) => api.put(`waiter/table-profiles/${profileId}`, data),
+  deleteWaiterTableProfile: (profileId) => api.delete(`waiter/table-profiles/${profileId}`),
+  activateWaiterTableProfile: (profileId) => api.post(`waiter/table-profiles/${profileId}/activate`),
+  deactivateWaiterTableProfile: (profileId) => api.post(`waiter/table-profiles/${profileId}/deactivate`),
+  getWaiterTableProfileNotifications: () => api.get('waiter/table-profiles/notifications'),
+  
+  // Dashboard de mozo - Estado de mesas
+  getWaiterDashboard: () => api.get('waiter/dashboard'),
+  getWaiterTableStatus: () => api.get('waiter/tables/status'),
+  
+  // ===== BUSINESS/WORKPLACE MANAGEMENT =====
+  
+  // Obtener negocios donde el mozo trabaja
+  getWaiterBusinesses: () => api.get('waiter/businesses'),
+  
+  // Seleccionar negocio activo para trabajar
+  setActiveWaiterBusiness: (businessId) => api.post('waiter/set-active-business', { business_id: businessId }),
+  
+  // Obtener negocio actualmente activo
+  getActiveWaiterBusiness: () => api.get('waiter/businesses/active'),
+  
+  // Obtener mesas de un negocio específico
+  getWaiterBusinessTables: (businessId) => {
+    console.log('🌐 API: GET waiter/businesses/' + businessId + '/tables')
+    return api.get(`waiter/businesses/${businessId}/tables`)
+  },
+  
+  // Unirse a un negocio con código
+  joinBusinessWithCode: (code) => api.post('waiter/join-business', { business_code: code }),
+  
+  // Salir de un negocio
+  leaveWaiterBusiness: (businessId) => api.delete(`waiter/businesses/${businessId}/leave`)
 }
 
 export { api, apiService }

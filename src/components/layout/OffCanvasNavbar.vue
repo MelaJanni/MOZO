@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useUiStore } from '@/stores/ui';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
@@ -7,7 +7,17 @@ const uiStore = useUiStore();
 const authStore = useAuthStore();
 const router = useRouter();
 const isOpen = computed(() => uiStore.isOffCanvasOpen);
-const userRole = computed(() => authStore.user?.role);
+// Use the store's `currentRole` computed (selectedRole || user.role)
+const userRole = computed(() => authStore.currentRole);
+
+onMounted(() => {
+  // Helpful debug info when running on device (Android) to see why items may be hidden
+  try {
+    console.log('OffCanvasNavbar - mounted - isAuthenticated:', authStore.isAuthenticated, 'currentRole:', authStore.currentRole)
+  } catch (e) {
+    /* no-op */
+  }
+});
 const handleLogout = async () => {
   uiStore.closeOffCanvas();
   await authStore.logout();
@@ -33,7 +43,7 @@ const navigate = (routeName) => {
               <i class="bi bi-speedometer2"></i> Dashboard
             </a>
           </li>
-          <li v-if="userRole === 'admin'">
+          <li>
             <a @click="navigate('admin-notification-debug')">
               <i class="bi bi-bug"></i> Debug Notificaciones
             </a>

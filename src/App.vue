@@ -4,10 +4,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { App } from '@capacitor/app'
 import Navbar from '@/components/UI/Navbar.vue'
 import OffCanvasNavbar from '@/components/layout/OffCanvasNavbar.vue'
-import DebugPanel from '@/components/UI/DebugPanel.vue'
 import { useAuthStore } from './stores/auth'
 import { useNotificationsStore } from './stores/notifications'
-import { initializePushNotifications } from './services/pushNotifications'
+import { getFormattedVersion } from '@/utils/version'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,9 +18,12 @@ const showNavigationUI = computed(() => {
   return !hiddenRoutes.includes(route.name)
 })
 
-const showDebugPanel = computed(() => {
-  return import.meta.env.DEV
+// Esperar a que authStore haya intentado restaurar sesión en dispositivos donde
+// la lectura de localStorage o inicialización puede ser asíncrona (ej. Android webview)
+const canShowNavigation = computed(() => {
+  return authStore.initialized === undefined ? true : authStore.initialized
 })
+
 
 const handleBackButton = () => {
   const exitRoutes = ['login', 'register', 'forgot-password', 'reset-password', 'role-selection']
@@ -58,21 +60,28 @@ const cleanupBackButton = async () => {
 onMounted(async () => {
   setupBackButton()
   await authStore.tryToLogin()
+  
+  // Auto-cargar notificaciones si está autenticado
   if (authStore.isAuthenticated) {
-    initializePushNotifications()
+    notificationsStore.loadNotifications()
+    // Inicializar listeners de Firestore para tiempo real
     notificationsStore.initializeRealTimeNotifications()
   }
 })
 
 onUnmounted(() => {
   cleanupBackButton()
+  // Desconectar listeners de Firestore
+  if (authStore.isAuthenticated) {
+    notificationsStore.disconnectRealTimeNotifications()
+  }
 })
 </script>
 
 <template>
   <div class="app-container">
-    <Navbar v-if="showNavigationUI" />
-    <OffCanvasNavbar v-if="showNavigationUI" />
+  <Navbar v-if="showNavigationUI && canShowNavigation" />
+  <OffCanvasNavbar v-if="showNavigationUI && canShowNavigation" />
     
     <main :class="{ 'with-navbar': showNavigationUI }">
       <router-view v-slot="{ Component }">
@@ -82,7 +91,14 @@ onUnmounted(() => {
       </router-view>
     </main>
 
-    <DebugPanel v-if="showDebugPanel" />
+    <!-- Footer global -->
+    <footer v-if="showNavigationUI && canShowNavigation" class="app-footer">
+      <div class="footer-content">
+        <span class="app-name">MozoApp</span>
+        <span class="version">{{ getFormattedVersion() }}</span>
+      </div>
+    </footer>
+
   </div>
 </template>
 
@@ -110,5 +126,37 @@ main {
 
 main.with-navbar {
   padding-top: 60px;
+  padding-bottom: 50px;
+}
+
+.app-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #2c3e50;
+  color: white;
+  padding: 8px 16px;
+  z-index: 999;
+  border-top: 1px solid #34495e;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-size: 12px;
+}
+
+.footer-content .app-name {
+  color: #007bff;
+  font-weight: 600;
+}
+
+.footer-content .version {
+  color: #adb5bd;
+  font-weight: 400;
 }
 </style> 

@@ -1,5 +1,7 @@
 <script setup>
 import { useUiStore } from '@/stores/ui';
+import { useAuthStore } from '@/stores/auth';
+import NotificationBell from '@/components/UI/NotificationBell.vue';
 
 defineProps({
   title: {
@@ -9,15 +11,22 @@ defineProps({
 });
 
 const uiStore = useUiStore();
+const authStore = useAuthStore();
 </script>
 
 <template>
   <div class="navbar-container">
     <header class="top-bar">
-      <button class="menu-toggle" @click="uiStore.toggleOffCanvas" aria-label="Abrir menú">
-        <i class="bi bi-list"></i>
-      </button>
-      <h1 class="app-title">{{ title }}</h1>
+      <div class="navbar-left">
+        <button class="menu-toggle" @click="uiStore.toggleOffCanvas" aria-label="Abrir menú">
+          <i class="bi bi-list"></i>
+        </button>
+        <h1 class="app-title">{{ title }}</h1>
+      </div>
+      
+      <div class="navbar-right" v-if="authStore.isAuthenticated">
+        <NotificationBell />
+      </div>
     </header>
   </div>
 </template>
@@ -30,6 +39,7 @@ const uiStore = useUiStore();
 .top-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 1rem;
   background-color: #6A3FEA;
   color: white;
@@ -52,6 +62,16 @@ const uiStore = useUiStore();
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
 }
 
 .app-title {

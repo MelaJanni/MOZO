@@ -1,22 +1,29 @@
 {
   "name": "mozo",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.13",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "npm run version:patch && vite build",
+    "build:minor": "npm run version:minor && vite build",
+    "build:major": "npm run version:major && vite build",
+    "preview": "vite preview",
+    "version:patch": "npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version"
   },
   "dependencies": {
-    "@capacitor/android": "^7.4.0",
+    "@capacitor/android": "^7.4.2",
     "@capacitor/app": "^7.0.1",
     "@capacitor/core": "^7.4.0",
+    "@capacitor/local-notifications": "^7.0.1",
     "@capacitor/push-notifications": "^7.0.1",
     "@popperjs/core": "^2.11.8",
     "axios": "^1.9.0",
     "bootstrap": "^5.3.6",
     "bootstrap-icons": "^1.13.1",
+    "firebase": "^12.1.0",
     "laravel-echo": "^2.1.7",
     "pinia": "^2.1.7",
     "pusher-js": "^8.4.0",

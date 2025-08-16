@@ -25,7 +25,9 @@
     <div v-if="error && !isLoading" class="alert alert-danger">
       {{ error }}
     </div>
-    <div v-else class="qr-content">
+    
+    
+    <div class="qr-content">
       <div v-if="activeTab === 'tables'" class="qr-layout">
          <div class="tables-panel">
            <h2 class="panel-title">Selecciona una mesa</h2>

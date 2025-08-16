@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { useAuthStore } from './auth'
-import { initializeEcho, disconnectEcho } from '../services/echo'
 import notificationsService from '../services/notifications'
 import { showSuccessToast, showErrorToast } from '../utils/notifications'
 
@@ -28,8 +27,7 @@ export const useNotificationsStore = defineStore('notifications', {
     globalNotificationsEnabled: true,
     tableNotificationsEnabled: {},
     
-    // WebSocket/Echo para notificaciones en tiempo real
-    echo: null,
+    // Firestore para notificaciones en tiempo real
     isConnected: false
   }),
 
@@ -315,75 +313,107 @@ export const useNotificationsStore = defineStore('notifications', {
       }
     },
 
-    // ===== NOTIFICACIONES EN TIEMPO REAL =====
+    // ===== NOTIFICACIONES EN TIEMPO REAL (FIREBASE) =====
     
-    initializeRealTimeNotifications() {
+    async initializeRealTimeNotifications() {
       const authStore = useAuthStore()
-      console.log('🔍 Inicializando notificaciones en tiempo real...')
-      console.log('🔍 Usuario autenticado:', authStore.user)
+      console.log('🔥 Notificaciones en tiempo real delegadas a Firebase Realtime')
+      console.log('ℹ️ Las notificaciones de mozo se manejan directamente con Firebase')
       
-      if (!authStore.user) {
-        console.error('No se puede inicializar Echo sin un usuario autenticado.')
-        return
-      }
-
-      try {
-        console.log('🔍 Creando instancia de Echo...')
-        this.echo = initializeEcho()
-        console.log('🔍 Echo creado:', !!this.echo)
-
-        this.echo.connector.pusher.connection.bind('connected', () => {
-          this.isConnected = true
-          console.log('🔍 WebSocket Conectado!');
-        });
-
-        this.echo.connector.pusher.connection.bind('disconnected', () => {
-          this.isConnected = false;
-          console.log('🔍 WebSocket Desconectado!');
-        });
-
-        this.echo.connector.pusher.connection.bind('error', (error) => {
-          console.error('🔍 Error en WebSocket:', error);
-        });
-
-        this.echo.connector.pusher.connection.bind('connecting', () => {
-          console.log('🔍 WebSocket conectando...');
-        });
-
-        console.log('🔍 Suscribiendo al canal privado del usuario:', authStore.user.id);
-        this.echo.private(`App.Models.User.${authStore.user.id}`)
-          .notification((notification) => {
-            console.log('🔍 Notificación en tiempo real recibida:', notification);
-            this.addNewNotification(notification)
-          });
-          
-        console.log('🔍 Notificaciones en tiempo real inicializadas correctamente');
-      } catch (error) {
-        console.error('🔍 Error inicializando notificaciones en tiempo real:', error);
-        throw error;
-      }
+      // Las notificaciones en tiempo real ahora se manejan por:
+      // - Firebase Realtime Notifications para mozos
+      // - Firebase Cloud Messaging para notificaciones generales
+      
+      this.isConnected = true
+      return true
     },
 
-    disconnectRealTimeNotifications() {
-      disconnectEcho()
+    async disconnectRealTimeNotifications() {
+      console.log('🔥 Desconectando notificaciones en tiempo real...')
       this.isConnected = false
+      console.log('✅ Notificaciones desconectadas')
     },
     
     /**
-     * Agregar nueva notificación (para WebSocket/Echo)
+     * Agregar nueva notificación (para Firestore y FCM)
      */
     addNewNotification(notification) {
+      // Verificar si ya existe para evitar duplicados
+      const existsInUnread = this.unreadNotifications.find(n => n.id === notification.id)
+      const existsInWaiterUnread = this.waiterUnreadNotifications.find(n => n.id === notification.id)
+      
+      if (existsInUnread || existsInWaiterUnread) {
+        console.log('🔍 Notificación ya existe, actualizando...', notification.id)
+        this.updateExistingNotification(notification)
+        return
+      }
+
       // Determinar el tipo de notificación y agregarla a la lista correspondiente
-      if (notification.type === 'table_call') {
+      if (notification.type === 'waiter_call' || notification.type === 'table_call') {
         this.waiterUnreadNotifications.unshift(notification)
         this.waiterUnreadCount++
+        console.log('🍽️ Nueva notificación de mozo agregada:', notification.title || notification.body)
       } else {
         this.unreadNotifications.unshift(notification)
         this.unreadCount++
+        console.log('🔔 Nueva notificación general agregada:', notification.title || notification.body)
       }
       
       // Mostrar notificación toast
-      showSuccessToast(`Nueva notificación: ${notification.message || 'Tienes una nueva notificación'}`)
+      const message = notification.title || notification.body || notification.message || 'Tienes una nueva notificación'
+      showSuccessToast(`Nueva notificación: ${message}`)
+    },
+
+    /**
+     * Actualizar notificación existente
+     */
+    updateExistingNotification(notification) {
+      // Buscar en notificaciones no leídas
+      const unreadIndex = this.unreadNotifications.findIndex(n => n.id === notification.id)
+      if (unreadIndex !== -1) {
+        this.unreadNotifications[unreadIndex] = notification
+        
+        // Si fue marcada como leída, moverla
+        if (notification.read_at) {
+          const movedNotification = this.unreadNotifications.splice(unreadIndex, 1)[0]
+          this.readNotifications.unshift(movedNotification)
+          this.unreadCount = Math.max(0, this.unreadCount - 1)
+        }
+        return
+      }
+
+      // Buscar en notificaciones de mozo no leídas
+      const waiterUnreadIndex = this.waiterUnreadNotifications.findIndex(n => n.id === notification.id)
+      if (waiterUnreadIndex !== -1) {
+        this.waiterUnreadNotifications[waiterUnreadIndex] = notification
+        
+        // Si fue marcada como leída, moverla
+        if (notification.read_at) {
+          const movedNotification = this.waiterUnreadNotifications.splice(waiterUnreadIndex, 1)[0]
+          this.waiterReadNotifications.unshift(movedNotification)
+          this.waiterUnreadCount = Math.max(0, this.waiterUnreadCount - 1)
+        }
+        return
+      }
+
+      console.log('⚠️ No se encontró la notificación para actualizar:', notification.id)
+    },
+
+    /**
+     * Eliminar notificación
+     */
+    removeNotification(notificationId) {
+      // Eliminar de todas las listas
+      this.unreadNotifications = this.unreadNotifications.filter(n => n.id !== notificationId)
+      this.readNotifications = this.readNotifications.filter(n => n.id !== notificationId)
+      this.waiterUnreadNotifications = this.waiterUnreadNotifications.filter(n => n.id !== notificationId)
+      this.waiterReadNotifications = this.waiterReadNotifications.filter(n => n.id !== notificationId)
+      
+      // Recalcular contadores
+      this.unreadCount = this.unreadNotifications.length
+      this.waiterUnreadCount = this.waiterUnreadNotifications.length
+      
+      console.log('🗑️ Notificación eliminada:', notificationId)
     },
 
     /**

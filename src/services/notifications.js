@@ -85,9 +85,13 @@ export default {
   },
 
   
-  async storeDeviceToken(token, platform = 'web') {
+  async storeDeviceToken(token, platform = 'web', userId = null) {
     try {
-      const response = await apiService.storeDeviceToken({ token, platform })
+      const payload = { token, platform }
+      if (userId) {
+        payload.user_id = userId
+      }
+      const response = await apiService.storeDeviceToken(payload)
       return response.data
     } catch (error) {
       console.error('Error guardando token de dispositivo:', error)
@@ -95,12 +99,97 @@ export default {
     }
   },
 
-  async deleteDeviceToken(token) {
+  async deleteDeviceToken(tokenId) {
     try {
-      const response = await apiService.deleteDeviceToken({ token })
+      const response = await apiService.deleteDeviceToken(tokenId)
       return response.data
     } catch (error) {
       console.error('Error eliminando token de dispositivo:', error)
+      throw error
+    }
+  },
+
+  async getDeviceTokens(userId) {
+    try {
+      const response = await apiService.getDeviceTokens(userId)
+      return response.data
+    } catch (error) {
+      console.error('Error obteniendo tokens de dispositivo:', error)
+      throw error
+    }
+  },
+
+  // Nuevas funciones para envío de notificaciones FCM
+  async sendNotificationToAll(title, body, data = null) {
+    try {
+      const payload = { title, body }
+      if (data) payload.data = data
+      
+      const response = await apiService.sendNotificationToAll(payload)
+      return response.data
+    } catch (error) {
+      console.error('Error enviando notificación a todos:', error)
+      throw error
+    }
+  },
+
+  async sendNotificationToUser(userId, title, body, data = null) {
+    try {
+      const payload = { user_id: userId, title, body }
+      if (data) payload.data = data
+      
+      const response = await apiService.sendNotificationToUser(payload)
+      return response.data
+    } catch (error) {
+      console.error('Error enviando notificación a usuario:', error)
+      throw error
+    }
+  },
+
+  async sendNotificationToDevice(token, title, body, data = null) {
+    try {
+      const payload = { token, title, body }
+      if (data) payload.data = data
+      
+      const response = await apiService.sendNotificationToDevice(payload)
+      return response.data
+    } catch (error) {
+      console.error('Error enviando notificación a dispositivo:', error)
+      throw error
+    }
+  },
+
+  async sendNotificationToTopic(topic, title, body, data = null) {
+    try {
+      const payload = { topic, title, body }
+      if (data) payload.data = data
+      
+      const response = await apiService.sendNotificationToTopic(payload)
+      return response.data
+    } catch (error) {
+      console.error('Error enviando notificación a topic:', error)
+      throw error
+    }
+  },
+
+  async subscribeToTopic(tokens, topic) {
+    try {
+      const payload = { tokens: Array.isArray(tokens) ? tokens : [tokens], topic }
+      const response = await apiService.subscribeToTopic(payload)
+      return response.data
+    } catch (error) {
+      console.error('Error suscribiendo a topic:', error)
+      throw error
+    }
+  },
+
+  async unsubscribeFromTopic(tokens, topic) {
+    try {
+      const payload = { tokens: Array.isArray(tokens) ? tokens : [tokens], topic }
+      const response = await apiService.unsubscribeFromTopic(payload)
+      return response.data
+    } catch (error) {
+      console.error('Error desuscribiendo de topic:', error)
       throw error
     }
   },

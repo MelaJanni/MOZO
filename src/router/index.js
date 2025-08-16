@@ -7,19 +7,23 @@ import ForgotPassword from '@/views/auth/ForgotPassword.vue'
 import ResetPassword from '@/views/auth/ResetPassword.vue'
 import RoleSelection from '@/views/auth/RoleSelection.vue'
 
-import WaiterDashboard from '@/views/waiter/Dashboard.vue'
-import UserProfile from '@/views/waiter/Profile.vue'
-import WaiterOnboarding from '@/views/waiter/Onboarding.vue'
+import WaiterDashboard from '@/views/Waiter/Dashboard.vue'
+import UserProfile from '@/views/Waiter/Profile.vue'
+import WaiterOnboarding from '@/views/Waiter/Onboarding.vue'
 
-import AdminDashboard from '@/views/admin/Dashboard.vue'
-import AdminHome from '@/views/admin/Home.vue'
-import AdminQR from '@/views/admin/QR.vue'
-import AdminStats from '@/views/admin/Stats.vue'
-import AdminStaff from '@/views/admin/Staff.vue'
-import AdminStaffDetail from '@/views/admin/StaffDetail.vue'
-import AdminProfile from '@/views/admin/Profile.vue'
-import AdminSettings from '@/views/admin/Settings.vue'
-import AdminNotificationDebug from '@/views/admin/NotificationDebug.vue'
+import AdminDashboard from '@/views/Admin/Dashboard.vue'
+import AdminHome from '@/views/Admin/Home.vue'
+import AdminQR from '@/views/Admin/QR.vue'
+import AdminStats from '@/views/Admin/Stats.vue'
+import AdminStaff from '@/views/Admin/Staff.vue'
+import AdminStaffDetail from '@/views/Admin/StaffDetail.vue'
+import AdminProfile from '@/views/Admin/Profile.vue'
+import AdminSettings from '@/views/Admin/Settings.vue'
+import AdminNotificationDebug from '@/views/Admin/NotificationDebug.vue'
+
+// Public views (no authentication required)
+import MenuTable from '@/views/Public/MenuTable.vue'
+
 import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
 
@@ -146,6 +150,14 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'admin' }
     },
     
+    // Public routes (no authentication required)
+    {
+      path: '/menu/mesa/:tableId',
+      name: 'menu-table',
+      component: MenuTable,
+      meta: { isPublic: true }
+    },
+    
     {
       path: '/:pathMatch(.*)*',
       redirect: '/'
@@ -156,6 +168,11 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
   const { isAuthenticated } = storeToRefs(authStore);
+  
+  // Allow public routes without authentication
+  if (to.meta.isPublic) {
+    return next();
+  }
   
   if (isAuthenticated.value && !authStore.user) {
     await authStore.fetchUser();
