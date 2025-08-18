@@ -126,12 +126,12 @@ const loading = ref(false)
 // Métodos principales
 const loadBusinesses = async () => {
   loading.value = true
-  console.log('🏢 Cargando negocios del mozo...')
+  //console.log('🏢 Cargando negocios del mozo...')
   
   try {
     const response = await waiterCallsService.getWaiterBusinesses()
-    console.log('📋 Respuesta de negocios:', response)
-    
+    //console.log('📋 Respuesta de negocios:', response)
+
     if (response.success) {
       businesses.value = response.businesses || []
       
@@ -142,9 +142,9 @@ const loadBusinesses = async () => {
         currentBusiness.value = response.active_business || null
       }
       
-      console.log('✅ Negocios cargados:', businesses.value.length, businesses.value)
-      console.log('🔍 active_business_id desde API:', response.active_business_id)
-      console.log('🎯 Negocio activo encontrado:', currentBusiness.value)
+      //console.log('✅ Negocios cargados:', businesses.value.length, businesses.value)
+      //console.log('🔍 active_business_id desde API:', response.active_business_id)
+      //console.log('🎯 Negocio activo encontrado:', currentBusiness.value)
       
       // Emitir eventos
       emit('businesses-loaded', {

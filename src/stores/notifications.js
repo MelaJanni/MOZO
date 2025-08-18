@@ -71,6 +71,17 @@ export const useNotificationsStore = defineStore('notifications', {
         ...state.waiterReadNotifications
       ]
       return allNotifications.filter(notification => notification.type === type)
+    },
+    /**
+     * Verificar si existe una notificación por id (para dedupe externo)
+     */
+    hasNotification: (state) => (id) => {
+      return !!(
+        state.unreadNotifications.find(n => n.id === id) ||
+        state.readNotifications.find(n => n.id === id) ||
+        state.waiterUnreadNotifications.find(n => n.id === id) ||
+        state.waiterReadNotifications.find(n => n.id === id)
+      )
     }
   },
 

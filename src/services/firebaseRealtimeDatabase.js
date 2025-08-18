@@ -25,6 +25,7 @@ class UltraFastWaiterNotifications {
         this.waiterId = waiterId;
         this.listeners = new Map();
         this.activeCalls = new Map();
+    this.initializing = false; // evitar notificaciones durante el seed inicial
         // console.log(`⚡ ULTRA FAST listener inicializado para mozo ${waiterId}`);
     }
 
@@ -36,7 +37,9 @@ class UltraFastWaiterNotifications {
         const callsRef = ref(database, `waiters/${this.waiterId}/calls`);
         // console.log(`🔍 DEBUG: Escuchando en ruta: waiters/${this.waiterId}/calls`);
 
-        const unsubscribe = onValue(callsRef, 
+    // Marcar inicialización para evitar reproducir sonidos/notifs por llamadas ya existentes
+    this.initializing = true;
+    const unsubscribe = onValue(callsRef, 
             (snapshot) => {
                 // console.log(`🔍 DEBUG: Snapshot recibido - exists: ${snapshot.exists()}, size: ${snapshot.size}`);
                 // console.log(`🔍 DEBUG: Snapshot key: ${snapshot.key}`);
@@ -61,6 +64,8 @@ class UltraFastWaiterNotifications {
         if (!data) {
             // No hay llamadas - limpiar UI
             this.clearAllCalls();
+            // Si este fue el primer snapshot, desactivar modo inicialización
+            if (this.initializing) this.initializing = false;
             return;
         }
 
@@ -94,31 +99,30 @@ class UltraFastWaiterNotifications {
                 this.activeCalls.delete(callId);
             }
         });
+
+        // Primer snapshot procesado, terminar modo inicialización
+        if (this.initializing) {
+            this.initializing = false;
+        }
     }
 
     // 🆕 NUEVA LLAMADA (ULTRA RÁPIDA)
     onNewCall(callData) {
     console.debug('⚡ NUEVA LLAMADA ULTRA RÁPIDA (onNewCall):', callData && callData.id, callData);
-        
-        // SOLO enviar notificaciones push si es una llamada NUEVA (pending)
-        // NO enviar para acknowledged/completed que son solo actualizaciones de estado
-        if (callData.status === 'pending') {
+
+        // Solo enviar sonido/pendientes si no estamos en el seed inicial
+        if (!this.initializing && callData.status === 'pending') {
             console.log('🔔 Enviando notificaciones push para llamada nueva (pending)');
-            
             // 🔊 NOTIFICACIÓN INMEDIATA
             this.playUltraFastSound();
-            
             // 📳 VIBRACIÓN INMEDIATA
             this.vibrateUltraFast();
-            
-            // Programar notificación nativa (Android) pero NO crear la tarjeta DOM
-            // La UI visual debe ser únicamente la gestionada por Vue (pending notifications)
+            // Programar notificación nativa (Android)
             this.scheduleNativeNotification(callData);
-
             // 🔔 BROWSER NOTIFICATION INMEDIATA (opcional)
             this.showBrowserNotification(callData);
         } else {
-            console.log('🚫 NO enviando notificaciones push para status:', callData.status);
+            console.log('ℹ️ Nueva llamada agregada en modo inicial o status no-pending:', callData.status);
         }
 
         // 🎨 UI INMEDIATA - Emitir eventos para que Dashboard se actualice
@@ -148,7 +152,7 @@ class UltraFastWaiterNotifications {
                                 extra: { callId: callData.id, source: 'ultra-fast-realtime' },
                                 schedule: null,
                                 smallIcon: undefined,
-                                // channelId: androidChannel // Usar canal por defecto
+                                channelId: androidChannel
                             }
                         ]
                     }).then(() => {
@@ -295,25 +299,50 @@ class UltraFastWaiterNotifications {
     }
 
     // 🔔 NOTIFICACIÓN BROWSER ULTRA RÁPIDA
-    showBrowserNotification(callData) {
-        if (Notification.permission === 'granted') {
-            const notification = new Notification(`⚡ Mesa ${callData.table_number}`, {
-                body: `${callData.message || 'Solicita atención'} (ULTRA FAST)`,
-                icon: '/favicon.ico',
-                tag: `ultra-fast-call-${callData.id}`,
-                requireInteraction: true
-            });
-            
-            notification.onclick = () => {
-                window.focus();
-                notification.close();
-                // Scroll to call in UI
-                const callElement = document.getElementById(`call-${callData.id}`);
-                if (callElement) {
-                    callElement.scrollIntoView({ behavior: 'smooth' });
-                    callElement.classList.add('highlight');
+    async showBrowserNotification(callData) {
+        try {
+            if (typeof Notification === 'undefined') {
+                // Browser does not support Notifications API - fallback to in-app UI
+                this.showUltraFastNotification(callData);
+                return;
+            }
+
+            // Solicitar permiso si el estado es 'default'
+            if (Notification.permission === 'default') {
+                try {
+                    const perm = await Notification.requestPermission();
+                    console.log('Notification.requestPermission result:', perm);
+                } catch (e) {
+                    console.warn('Error requesting Notification permission:', e);
                 }
-            };
+            }
+
+            if (Notification.permission === 'granted') {
+                const notification = new Notification(`⚡ Mesa ${callData.table_number}`, {
+                    body: `${callData.message || 'Solicita atención'} (ULTRA FAST)`,
+                    icon: '/favicon.ico',
+                    tag: `ultra-fast-call-${callData.id}`,
+                    requireInteraction: true
+                });
+
+                notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                    // Scroll to call in UI
+                    const callElement = document.getElementById(`call-${callData.id}`);
+                    if (callElement) {
+                        callElement.scrollIntoView({ behavior: 'smooth' });
+                        callElement.classList.add('highlight');
+                    }
+                };
+            } else {
+                // Permiso denegado o no disponible - usar fallback visual en la app
+                console.log('Notification permission not granted, using in-app fallback');
+                this.showUltraFastNotification(callData);
+            }
+        } catch (err) {
+            console.warn('Error showing browser notification, fallback to in-app UI:', err);
+            this.showUltraFastNotification(callData);
         }
     }
 

@@ -12,9 +12,13 @@
       "Bash(find:*)",
       "Bash(mkdir:*)",
       "Bash(npx cap:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(adb:*)"
     ],
     "deny": [],
-    "defaultMode": "acceptEdits"
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": [
+      "C:\\c\\Users\\USUARIO\\Documents\\GitHub"
+    ]
   }
 }

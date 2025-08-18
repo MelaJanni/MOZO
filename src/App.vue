@@ -43,7 +43,7 @@ const handleBackButton = () => {
 const setupBackButton = async () => {
   try {
     await App.addListener('backButton', handleBackButton)
-    console.log('Back button listener configurado')
+    //console.log('Back button listener configurado')
   } catch (error) {
     console.warn('No se pudo configurar el listener del botón atrás:', error)
   }
@@ -66,6 +66,24 @@ onMounted(async () => {
     notificationsStore.loadNotifications()
     // Inicializar listeners de Firestore para tiempo real
     notificationsStore.initializeRealTimeNotifications()
+    // Asegurar token FCM web si aún no existe (fallback por si no se llamó initializePushNotifications en login)
+    try {
+      const isNative = !!window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web'
+      const existingToken = localStorage.getItem('fcm_token')
+      if (!isNative && !existingToken && !window.__pushInitStarted) {
+        window.__pushInitStarted = true
+        console.log('🔔 (Fallback) Inicializando push porque fcm_token está vacío tras login restaurado...')
+        const { initializePushNotifications } = await import('@/services/pushNotifications')
+        await initializePushNotifications()
+        const newToken = localStorage.getItem('fcm_token')
+        console.log('🔔 (Fallback) Resultado obtención token:', newToken ? newToken.substring(0,25)+'...' : 'NO TOKEN')
+        if (!newToken) {
+          console.warn('⚠️ (Fallback) No se pudo obtener token FCM en inicialización tardía.')
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ (Fallback) Error asegurando token FCM:', e)
+    }
   }
 })
 

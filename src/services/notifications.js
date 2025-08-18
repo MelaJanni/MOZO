@@ -268,17 +268,17 @@ export default {
 
   async testWebSocketConnection() {
     try {
-      console.log('🔍 Probando conexión WebSocket...')
+      //console.log('🔍 Probando conexión WebSocket...')
       
       const pusherKey = import.meta.env.VITE_PUSHER_APP_KEY
       const pusherCluster = import.meta.env.VITE_PUSHER_APP_CLUSTER
-      
-      console.log('🔍 Variables de entorno:', {
-        pusherKey: pusherKey ? 'Definida' : 'No definida',
-        pusherCluster: pusherCluster ? 'Definida' : 'No definida',
-        pusherKeyValue: pusherKey ? `${pusherKey.substring(0, 8)}...` : 'undefined',
-        pusherClusterValue: pusherCluster || 'undefined'
-      })
+
+      //console.log('🔍 Variables de entorno:', {
+      //  pusherKey: pusherKey ? 'Definida' : 'No definida',
+      //  pusherCluster: pusherCluster ? 'Definida' : 'No definida',
+      //  pusherKeyValue: pusherKey ? `${pusherKey.substring(0, 8)}...` : 'undefined',
+      //  pusherClusterValue: pusherCluster || 'undefined'
+      //})
       
       if (!pusherKey || !pusherCluster) {
         throw new Error('Variables de entorno de Pusher no configuradas')
@@ -289,20 +289,20 @@ export default {
         throw new Error('No hay token de autenticación')
       }
       
-      console.log('🔍 Token de autenticación:', token ? 'Presente' : 'Ausente')
-      console.log('🔍 Token value:', token ? `${token.substring(0, 20)}...` : 'undefined')
+      //console.log('🔍 Token de autenticación:', token ? 'Presente' : 'Ausente')
+      //console.log('🔍 Token value:', token ? `${token.substring(0, 20)}...` : 'undefined')
       
       const user = localStorage.getItem('user')
       const userData = user ? JSON.parse(user) : null
-      console.log('🔍 Usuario:', userData ? `ID: ${userData.id}, Nombre: ${userData.name}` : 'No encontrado')
+      //console.log('🔍 Usuario:', userData ? `ID: ${userData.id}, Nombre: ${userData.name}` : 'No encontrado')
       
-      console.log('🔍 Importando módulo echo...')
+      //console.log('🔍 Importando módulo echo...')
       const { initializeEcho } = await import('./echo')
-      console.log('🔍 Módulo echo importado correctamente')
-      
-      console.log('🔍 Inicializando Echo...')
+      // console.log('🔍 Módulo echo importado correctamente')
+
+      // console.log('🔍 Inicializando Echo...')
       const echo = initializeEcho()
-      console.log('🔍 Echo inicializado:', !!echo)
+      // console.log('🔍 Echo inicializado:', !!echo)
       
       if (!echo) {
         throw new Error('No se pudo inicializar Echo')
@@ -312,18 +312,18 @@ export default {
         throw new Error('Pusher no está disponible en Echo')
       }
       
-      console.log('🔍 Pusher disponible en Echo')
+      // console.log('🔍 Pusher disponible en Echo')
       
-      console.log('🔍 Esperando conexión WebSocket...')
+      // console.log('🔍 Esperando conexión WebSocket...')
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
-          console.log('🔍 Timeout en la conexión WebSocket')
+          // console.log('🔍 Timeout en la conexión WebSocket')
           reject(new Error('Timeout en la conexión WebSocket (5 segundos)'))
         }, 5000)
         
         echo.connector.pusher.connection.bind('connected', () => {
           clearTimeout(timeout)
-          console.log('🔍 WebSocket conectado exitosamente')
+        // console.log('🔍 WebSocket conectado exitosamente')
           resolve()
         })
         
@@ -334,15 +334,15 @@ export default {
         })
         
         echo.connector.pusher.connection.bind('disconnected', () => {
-          console.log('🔍 WebSocket desconectado')
+          // console.log('🔍 WebSocket desconectado')
         })
         
         echo.connector.pusher.connection.bind('connecting', () => {
-          console.log('🔍 WebSocket conectando...')
+          // console.log('🔍 WebSocket conectando...')
         })
       })
-      
-      console.log('🔍 Conexión WebSocket exitosa')
+
+      // console.log('🔍 Conexión WebSocket exitosa')
       return { success: true, message: 'Conexión WebSocket exitosa' }
     } catch (error) {
       console.error('🔍 Error en testWebSocketConnection:', error)

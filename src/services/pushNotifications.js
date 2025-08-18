@@ -23,9 +23,11 @@ const fcmStatus = ref({ configured: false, tokenExists: false })
 const register = async () => {
   console.log('🔔 Starting push notification registration...')
   const platform = Capacitor.getPlatform()
+  const isNative = Capacitor.isNativePlatform()
+  console.log('🔔 DETECTED - Platform:', platform, 'Native:', isNative)
 
-  // Web (Firebase FCM)
-  if (platform === 'web') {
+  // Web (Firebase FCM) - Solo usar si realmente es web, no WebView nativo
+  if (platform === 'web' && !isNative) {
     try {
       console.log('🔔 Web platform detected, using Firebase FCM...')
 
@@ -67,25 +69,36 @@ const register = async () => {
 
   // Mobile platforms (Capacitor native)
   try {
+    console.log('🔔 MOBILE: Starting Capacitor push notification registration...')
+    console.log('🔔 MOBILE: Platform:', Capacitor.getPlatform())
+    console.log('🔔 MOBILE: Native platform:', Capacitor.isNativePlatform())
+    
     if (!Capacitor.isPluginAvailable('PushNotifications')) {
       console.warn('⚠️ Plugin PushNotifications no disponible para registro (móvil)')
       return { success: false, error: 'PushNotifications plugin not available' }
     }
 
+    console.log('✅ MOBILE: PushNotifications plugin available')
+
     // Request permissions first (Android/iOS may auto-grant or require explicit request)
     try {
+      console.log('🔔 MOBILE: Requesting push permissions...')
       const perm = await PushNotifications.requestPermissions()
-      console.log('🔔 Push permission result:', perm)
+      console.log('🔔 MOBILE: Push permission result:', perm)
       if (perm && perm.receive === 'denied') {
+        console.error('❌ MOBILE: Push permissions DENIED')
         return { success: false, error: 'Push permissions denied' }
       }
+      console.log('✅ MOBILE: Push permissions OK')
     } catch (permErr) {
-      console.warn('⚠️ Error requesting push permissions:', permErr)
+      console.warn('⚠️ MOBILE: Error requesting push permissions:', permErr)
       // continue to try register - some platforms don't require explicit permission
     }
 
     // Call register to trigger native registration and emit the 'registration' event
+    console.log('🔔 MOBILE: Calling PushNotifications.register()...')
     await PushNotifications.register()
+    console.log('✅ MOBILE: PushNotifications.register() completed')
 
     // The actual token will be received in the 'registration' listener added in addListeners
     return { success: true, token: null }
@@ -117,7 +130,7 @@ const addListeners = async () => {
           
           // Create notification structure compatible with store
           // Prefer using a canonical id when available (e.g. callId) so we can dedupe
-          const canonicalCallId = processedNotification.data?.callId || processedNotification.data?.call_id || null
+          const canonicalCallId = processedNotification.data?.call_id || processedNotification.data?.callId || processedNotification.data?.callID || null
           const storeNotification = {
             id: canonicalCallId || `fcm-${Date.now()}`,
             type: processedNotification.data?.type || (canonicalCallId ? 'waiter_call' : 'FCMNotification'),
@@ -148,6 +161,14 @@ const addListeners = async () => {
           console.log('📨 Adding notification to store:', storeNotification)
           
           // Add to store - this will trigger reactive watchers
+          // Dedupe adicional: si ya existe no añadir
+          if (canonicalCallId) {
+            const existing = notificationsStore.waiterUnreadNotifications.find(n => n.id === canonicalCallId) || notificationsStore.unreadNotifications.find(n => n.id === canonicalCallId)
+            if (existing) {
+              console.log('🔁 Duplicate notification skipped (canonicalCallId):', canonicalCallId)
+              return
+            }
+          }
           notificationsStore.addNewNotification(storeNotification)
           
           console.log('✅ Notification added to reactive store!')
@@ -340,6 +361,33 @@ export const checkFirebaseConfig = () => {
     }
   }
 }
+
+// Crear canal Android de notificaciones tan pronto como se importe el módulo
+(async () => {
+  try {
+    if (Capacitor.isPluginAvailable && Capacitor.isPluginAvailable('LocalNotifications')) {
+      const mod = await import('@capacitor/local-notifications')
+      const LocalNotifications = mod.LocalNotifications
+      try {
+        if (LocalNotifications && LocalNotifications.createChannel) {
+          await LocalNotifications.createChannel({
+            id: 'mozo_waiter',
+            name: 'Mozo - Llamadas',
+            importance: 5,
+            visibility: 1,
+            description: 'Notificaciones de llamadas y eventos importantes para mozos'
+          })
+          console.log('✅ Canal mozo_waiter creado al importar pushNotifications')
+        }
+      } catch (err) {
+        console.warn('⚠️ Error creando canal mozo_waiter al importar:', err)
+      }
+    }
+  } catch (err) {
+    // No bloquear import si falla
+    console.warn('⚠️ No se pudo crear canal mozo_waiter al importar pushNotifications:', err)
+  }
+})()
 
 export const initializePushNotifications = async () => {
   console.log('🔔 Inicializando sistema de notificaciones push...')

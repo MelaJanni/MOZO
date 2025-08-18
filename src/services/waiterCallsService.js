@@ -35,10 +35,10 @@ class WaiterCallsService {
    */
   async getPendingCalls() {
     try {
-      const response = await apiService.getPendingCalls()
-      return response.data
+  const response = await apiService.getPendingCalls()
+  return response.data
     } catch (error) {
-      console.error('Error getting pending calls:', error)
+  // console.error('Error getting pending calls:', error)
       throw this.handleError(error)
     }
   }
@@ -52,7 +52,7 @@ class WaiterCallsService {
       const response = await apiService.acknowledgeCall(callId)
       return response.data
     } catch (error) {
-      console.error('Error acknowledging call:', error)
+  // console.error('Error acknowledging call:', error)
       throw this.handleError(error)
     }
   }
@@ -66,7 +66,7 @@ class WaiterCallsService {
       const response = await apiService.completeCall(callId)
       return response.data
     } catch (error) {
-      console.error('Error completing call:', error)
+  // console.error('Error completing call:', error)
       throw this.handleError(error)
     }
   }
@@ -79,12 +79,11 @@ class WaiterCallsService {
    */
   async getWaiterCallHistory(filter = 'today', page = 1, limit = 20) {
     try {
-      const response = await apiService.get('/waiter/calls/history', {
-        params: { filter, page, limit }
-      })
-      return response.data
+  // Use the dedicated apiService helper to avoid calling a non-existing `get` method
+  const response = await apiService.getWaiterCallHistory({ filter, page, limit })
+  return response.data
     } catch (error) {
-      console.error('Error getting waiter call history:', error)
+  // console.error('Error getting waiter call history:', error)
       throw this.handleError(error)
     }
   }
@@ -95,12 +94,10 @@ class WaiterCallsService {
    */
   async getAdminCallHistory(filter = 'today', page = 1, limit = 20) {
     try {
-      const response = await apiService.get('/admin/calls/history', {
-        params: { filter, page, limit }
-      })
-      return response.data
+  const response = await apiService.getAdminCallHistory({ filter, page, limit })
+  return response.data
     } catch (error) {
-      console.error('Error getting admin call history:', error)
+  // console.error('Error getting admin call history:', error)
       throw this.handleError(error)
     }
   }
@@ -112,10 +109,10 @@ class WaiterCallsService {
    * POST /api/waiter/tables/{table_id}/activate
    */
   async activateTable(tableId) {
-    console.log('🎯 Activando mesa individual:', tableId)
+    // console.log('🎯 Activando mesa individual:', tableId)
     try {
       const response = await apiService.activateTable(tableId)
-      console.log('✅ Respuesta activar mesa:', response.data)
+      // console.log('✅ Respuesta activar mesa:', response.data)
       return response.data
     } catch (error) {
       console.error('❌ Error activating table:', error)
@@ -145,12 +142,12 @@ class WaiterCallsService {
    * POST /api/waiter/tables/activate/multiple
    */
   async activateMultipleTables(tableIds) {
-    console.log('🎯 Activando múltiples mesas:', tableIds)
+    // console.log('🎯 Activando múltiples mesas:', tableIds)
     try {
       const response = await apiService.activateMultipleTables({
         table_ids: tableIds
       })
-      console.log('✅ Respuesta activar múltiples mesas:', response.data)
+      // console.log('✅ Respuesta activar múltiples mesas:', response.data)
       return response.data
     } catch (error) {
       console.error('❌ Error activating multiple tables:', error)
@@ -182,16 +179,14 @@ class WaiterCallsService {
    * POST /api/waiter/tables/{table_id}/silence
    */
   async silenceTable(tableId, durationMinutes = 30, notes = '') {
-    console.log('🔇 Silenciando mesa:', tableId, 'por', durationMinutes, 'minutos')
-    
+    // console.log('🔇 Silenciando mesa:', tableId, 'por', durationMinutes, 'minutos')
     // Asegurar que notes sea siempre un string
     const cleanNotes = typeof notes === 'string' ? notes : ''
-    
     const payload = {
       duration_minutes: durationMinutes,
       notes: cleanNotes
     }
-    console.log('📤 Enviando payload para silenciar:', payload)
+    // console.log('📤 Enviando payload para silenciar:', payload)
     
     try {
       const response = await apiService.silenceTable(tableId, payload)
@@ -347,10 +342,10 @@ class WaiterCallsService {
    * GET /api/waiter/businesses/{business_id}/tables
    */
   async getWaiterBusinessTables(businessId) {
-    console.log('🏢 Obteniendo mesas del negocio:', businessId)
+    // console.log('🏢 Obteniendo mesas del negocio:', businessId)
     try {
       const response = await apiService.getWaiterBusinessTables(businessId)
-      console.log('📋 Respuesta mesas del negocio desde API:', response.data)
+      // console.log('📋 Respuesta mesas del negocio desde API:', response.data)
       return response.data
     } catch (error) {
       console.error('❌ Error getting business tables:', error)

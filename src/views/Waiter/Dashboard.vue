@@ -168,7 +168,7 @@
 
           <div class="notifications-list" id="calls-container">
             <div 
-              v-for="call in visiblePendingCalls" 
+              v-for="call in pendingCalls" 
               :key="call.id"
               class="notification-item"
               :class="{
@@ -217,10 +217,46 @@
             </div>
 
             <!-- Mensaje si no hay notificaciones -->
-            <div v-if="visiblePendingCalls.length === 0" class="empty-notifications">
+            <div v-if="pendingCalls.length === 0" class="empty-notifications">
               <i class="fas fa-bell-slash"></i>
               <p v-if="!needsBusiness">No hay llamadas pendientes</p>
               <p v-else>Selecciona un negocio para ver las llamadas</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Historial de llamadas acknowledged/completed -->
+        <div class="section-card">
+          <div class="section-header">
+            <h3>Historial</h3>
+          </div>
+
+          <div class="acknowledged-list">
+            <div
+              v-for="call in callHistory"
+              :key="`hist-${call.id}`"
+              class="notification-item acknowledged"
+            >
+              <div class="notification-info">
+                <div class="notification-title">Mesa {{ call.table_number || call.table?.number }}:</div>
+                <div class="notification-message">{{ call.message || 'Solicita mozo' }}</div>
+                <div class="notification-time">{{ call.acknowledged_at ? 'Atendida' : '' }}</div>
+              </div>
+              <div class="notification-actions">
+                <button
+                  @click="completeFromHistory(call.id)"
+                  class="notification-action-btn complete"
+                  :disabled="processingCall === call.id"
+                  title="Completar desde historial"
+                >
+                  <i class="fas fa-check-double"></i>
+                </button>
+              </div>
+            </div>
+
+            <div v-if="callHistory.length === 0" class="empty-notifications">
+              <i class="fas fa-history"></i>
+              <p>No hay historial disponible</p>
             </div>
           </div>
         </div>
@@ -296,7 +332,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import waiterCallsService from '@/services/waiterCallsService'
-import { initializeUltraFastWaiterNotifications } from '@/services/firebaseRealtimeDatabase'
+import { initializeUnifiedWaiterNotifications } from '@/services/firebaseUnifiedAdapter'
 import { showSuccessToast, showErrorToast, showConfirmDialog } from '@/utils/notifications'
 import TableSelector from '@/components/Waiter/TableSelector.vue'
 import BusinessSelector from '@/components/Waiter/BusinessSelector.vue'
@@ -313,6 +349,7 @@ const state = reactive({
   assignedTables: [],
   availableTables: [],
   pendingCalls: [],
+  callHistory: [],
   silencedTables: [],
   businesses: [],
   currentBusiness: null,
@@ -350,15 +387,39 @@ const needsBusiness = computed(() => state.needsBusiness)
 const businessName = computed(() => state.currentBusiness?.name || 'Seleccionar Negocio')
 
 // Computed properties
-const pendingCalls = computed(() => state.pendingCalls)
+// pendingCalls se calcula dinámicamente filtrando por activeCalls (si existe)
+const pendingCalls = computed(() => {
+  try {
+    if (window && window.ultraFastNotifications && window.ultraFastNotifications.activeCalls) {
+      const activeIds = new Set(Array.from(window.ultraFastNotifications.activeCalls.keys()).map(k => String(k)))
+      return state.pendingCalls.filter(call => !activeIds.has(String(call.id)))
+    }
+  } catch (e) {
+    // fallback
+  }
+  return state.pendingCalls
+})
+
+// callHistory debe excluir cualquier llamada que siga en pending para evitar mezclas
+const callHistory = computed(() => {
+  try {
+    const pendingIds = new Set((window && window.ultraFastNotifications && window.ultraFastNotifications.activeCalls)
+      ? Array.from(window.ultraFastNotifications.activeCalls.keys()).map(k => String(k))
+      : []
+    )
+    return state.callHistory.filter(c => !pendingIds.has(String(c.id)))
+  } catch (e) {
+    return state.callHistory
+  }
+})
 
 // Evitar duplicados en la maquetación: si UltraFast mantiene activeCalls, filtrar
 // las pendingCalls que ya estén presentes allí (por id)
 const visiblePendingCalls = computed(() => {
   try {
     if (window && window.ultraFastNotifications && window.ultraFastNotifications.activeCalls) {
-      const activeIds = new Set(Array.from(window.ultraFastNotifications.activeCalls.keys()))
-      return state.pendingCalls.filter(call => !activeIds.has(String(call.id)))
+  const activeIds = new Set(Array.from(window.ultraFastNotifications.activeCalls.keys()).map(k => String(k)))
+  return state.pendingCalls.filter(call => !activeIds.has(String(call.id)))
     }
   } catch (err) {
     // ignore and fallback
@@ -373,6 +434,8 @@ const assignedTables = computed(() => {
 // --- Event handlers to let Dashboard own all rendering of realtime calls ---
 function addOrUpdatePendingCall(call) {
   const id = String(call.id)
+  // Si se añade/actualiza como pending, asegurarnos que no esté en el historial
+  state.callHistory = state.callHistory.filter(c => String(c.id) !== id)
   const idx = state.pendingCalls.findIndex(c => String(c.id) === id)
   const now = Date.now()
   const calledAt = call.called_at || call.timestamp || now
@@ -392,8 +455,17 @@ function handleUltraFastAddCall(ev) {
   try {
     const call = ev?.detail
     if (!call || !call.id) return
-  console.debug('Dashboard handler ultraFastAddCall', call.id)
+  //console.debug('Dashboard handler ultraFastAddCall', call.id)
   addOrUpdatePendingCall(call)
+  // Actualizar contadores/mesas en background para mantener UI consistente
+  try {
+    // loadAssignedTables está definido más abajo; se ejecutará cuando exista
+    if (typeof loadAssignedTables === 'function') {
+      loadAssignedTables()
+    }
+  } catch (e) {
+    /* no-op */
+  }
   } catch (e) {
     console.warn('Error handling ultraFastAddCall:', e)
   }
@@ -431,14 +503,68 @@ function handleCallAcknowledged(ev) {
     if (!callId) return
     const idx = state.pendingCalls.findIndex(c => String(c.id) === String(callId))
     if (idx !== -1) {
-      state.pendingCalls[idx].status = 'acknowledged'
+      // Marcar como acknowledged en pending
+      const acknowledgedCall = { ...state.pendingCalls[idx], status: 'acknowledged' }
+      // Remover de pending
+      state.pendingCalls.splice(idx, 1)
+      // Añadir al historial al inicio
+      state.callHistory.unshift(acknowledgedCall)
     }
   } catch (e) {
     console.warn('Error handling callAcknowledged:', e)
   }
 }
 
-// Ultra Fast Firebase Realtime Database Notifications  
+function handleCallMovedToHistory(ev) {
+  try {
+    const detail = ev?.detail || {}
+    const callId = detail.callId || (detail.callData && detail.callData.id)
+    const callData = detail.callData || null
+    if (!callId) return
+    // Ignorar eventos que llevan status 'pending' (no deben ir al historial)
+    if (callData && callData.status === 'pending') return
+
+    // Remover de pending si por algún motivo sigue ahí
+    state.pendingCalls = state.pendingCalls.filter(c => String(c.id) !== String(callId))
+
+    // Si ya está en history, actualizarlo, si no, insertarlo al inicio
+    const exists = state.callHistory.find(c => String(c.id) === String(callId))
+    if (exists) {
+      Object.assign(exists, callData || {})
+    } else if (callData) {
+      state.callHistory.unshift(callData)
+    }
+  } catch (err) {
+    console.warn('Error manejando callMovedToHistory en Dashboard:', err)
+  }
+}
+
+/**
+ * Completar llamada desde la sección historial.
+ * Intentará usar UltraFast si está disponible, si no usará el servicio API.
+ */
+const completeFromHistory = async (callId) => {
+  if (!callId) return
+  state.processingCall = callId
+  try {
+    if (ultraFastNotifications && ultraFastNotifications.completeCall) {
+      await ultraFastNotifications.completeCall(callId)
+    } else {
+      await waiterCallsService.completeCall(callId)
+    }
+
+    // Remover de historial local
+    state.callHistory = state.callHistory.filter(c => String(c.id) !== String(callId))
+    showSuccessToast('Llamada marcada como completada')
+  } catch (e) {
+    console.error('Error completing call from history:', e)
+    showErrorToast('Error completando la llamada')
+  } finally {
+    state.processingCall = null
+  }
+}
+
+// Adapter realtime unificado (antes variable se usaba para ultra-fast legacy)
 let ultraFastNotifications = null
 
 // ===== MÉTODOS PRINCIPALES =====
@@ -473,53 +599,20 @@ onMounted(async () => {
   // Cargar datos iniciales
   await loadDashboardData()
 
-  // Inicializar UltraFast si hay usuario
-  try {
-    if (authStore.user && authStore.user.id) {
-      ultraFastNotifications = initializeUltraFastWaiterNotifications(authStore.user.id)
-      window.ultraFastNotifications = ultraFastNotifications
-
-      // Seed pendingCalls from activeCalls present at initialization
-      try {
-        if (ultraFastNotifications && ultraFastNotifications.activeCalls) {
-          for (const [id, callData] of ultraFastNotifications.activeCalls.entries()) {
-            addOrUpdatePendingCall({ id, ...callData })
-          }
-        }
-      } catch (seedErr) {
-        console.warn('Error seeding pendingCalls from activeCalls:', seedErr)
-      }
-    } else {
-      // Si el usuario no está aún disponible, observarlo y inicializar cuando llegue
-      const stop = watch(() => authStore.user, (newUser) => {
-        if (newUser && newUser.id) {
-          try {
-            ultraFastNotifications = initializeUltraFastWaiterNotifications(newUser.id)
-            window.ultraFastNotifications = ultraFastNotifications
-            if (ultraFastNotifications && ultraFastNotifications.activeCalls) {
-              for (const [id, callData] of ultraFastNotifications.activeCalls.entries()) {
-                addOrUpdatePendingCall({ id, ...callData })
-              }
-            }
-          } catch (e) {
-            console.warn('Error inicializando ultraFast desde watcher:', e)
-          } finally {
-            stop()
-          }
-        }
-      })
-    }
-  } catch (e) {
-    console.warn('Error inicializando ultraFastNotifications:', e)
-  }
+  // (Legacy UltraFast DESACTIVADO) - usamos solo el adapter unified en startRealtimeListeners()
 
   // Registrar listeners de eventos emitidos por el módulo realtime
-  window.addEventListener('ultraFastAddCall', handleUltraFastAddCall)
-  window.addEventListener('newWaiterCall', handleUltraFastAddCall)
-  window.addEventListener('updateCallStatus', handleUpdateCallStatus)
-  window.addEventListener('removeCall', handleRemoveCall)
-  window.addEventListener('clearAllCalls', handleClearAllCalls)
-  window.addEventListener('callAcknowledged', handleCallAcknowledged)
+  if (!window.__waiterDashboardListenersRegistered) {
+    window.addEventListener('ultraFastAddCall', handleUltraFastAddCall)
+    window.addEventListener('newWaiterCall', handleUltraFastAddCall)
+    window.addEventListener('updateCallStatus', handleUpdateCallStatus)
+    window.addEventListener('removeCall', handleRemoveCall)
+    window.addEventListener('clearAllCalls', handleClearAllCalls)
+    window.addEventListener('callAcknowledged', handleCallAcknowledged)
+  // Mantener sincronizado el historial cuando adapters mueven llamadas a history
+  window.addEventListener('callMovedToHistory', handleCallMovedToHistory)
+    window.__waiterDashboardListenersRegistered = true
+  }
 
   // Exponer helper de debug para inspeccionar desde consola
   try {
@@ -534,12 +627,17 @@ onMounted(async () => {
 
 onUnmounted(() => {
   try {
-    window.removeEventListener('ultraFastAddCall', handleUltraFastAddCall)
-    window.removeEventListener('newWaiterCall', handleUltraFastAddCall)
-    window.removeEventListener('updateCallStatus', handleUpdateCallStatus)
-    window.removeEventListener('removeCall', handleRemoveCall)
-    window.removeEventListener('clearAllCalls', handleClearAllCalls)
-    window.removeEventListener('callAcknowledged', handleCallAcknowledged)
+    // Sólo eliminar si fuimos quienes los registramos
+    if (window.__waiterDashboardListenersRegistered) {
+      window.removeEventListener('ultraFastAddCall', handleUltraFastAddCall)
+      window.removeEventListener('newWaiterCall', handleUltraFastAddCall)
+      window.removeEventListener('updateCallStatus', handleUpdateCallStatus)
+      window.removeEventListener('removeCall', handleRemoveCall)
+      window.removeEventListener('clearAllCalls', handleClearAllCalls)
+      window.removeEventListener('callAcknowledged', handleCallAcknowledged)
+  window.removeEventListener('callMovedToHistory', handleCallMovedToHistory)
+      window.__waiterDashboardListenersRegistered = false
+    }
   } catch (e) {
     console.warn('Error removing ultraFast event listeners:', e)
   }
@@ -558,15 +656,15 @@ onUnmounted(() => {
  */
 const loadAssignedTables = async () => {
   if (!state.currentBusiness) {
-    console.log('⚠️ No hay negocio activo, no se pueden cargar mesas')
+    // console.log('⚠️ No hay negocio activo, no se pueden cargar mesas')
     return
   }
   
   try {
-    console.log('📋 Cargando mesas asignadas para negocio:', state.currentBusiness.id)
+    // console.log('📋 Cargando mesas asignadas para negocio:', state.currentBusiness.id)
     const response = await waiterCallsService.getWaiterBusinessTables(state.currentBusiness.id)
     
-    console.log('📋 Respuesta completa:', response)
+    // console.log('📋 Respuesta completa:', response)
     
     if (response.success) {
       // Filtrar solo las mesas asignadas al mozo actual
@@ -575,9 +673,9 @@ const loadAssignedTables = async () => {
       ) || []
       
       state.assignedTables = assignedTables
-      console.log('✅ Mesas asignadas cargadas:', assignedTables.length, assignedTables)
+      // console.log('✅ Mesas asignadas cargadas:', assignedTables.length, assignedTables)
     } else {
-      console.error('❌ Error en respuesta:', response)
+      // console.error('❌ Error en respuesta:', response)
     }
   } catch (error) {
     console.error('❌ Error cargando mesas asignadas:', error)
@@ -589,23 +687,25 @@ const loadAssignedTables = async () => {
  * Cargar llamadas pendientes - delegado a Firebase
  */
 const loadPendingCalls = async () => {
-  console.log('🔔 Llamadas pendientes manejadas por Firebase Realtime')
-  // Las llamadas se manejan automáticamente por el listener de Firebase
+  // (UNIFICACIÓN) Ya no se carga historial por API.
+  // El historial se construirá SOLO con eventos tiempo real (callMovedToHistory).
+  // Esta función se mantiene para no romper llamadas existentes en Promise.all.
+  //console.debug('🔄 Pending manejadas por realtime; historial API deshabilitado')
 }
 
 /**
  * Cargar mesas disponibles
  */
 const loadAvailableTables = async () => {
-  console.log('🔍 Cargando mesas disponibles...')
+  // console.log('🔍 Cargando mesas disponibles...')
   try {
     const response = await waiterCallsService.getAvailableTables()
-    console.log('📋 Respuesta mesas disponibles:', response)
+    // console.log('📋 Respuesta mesas disponibles:', response)
     if (response.success) {
       state.availableTables = response.available_tables || []
-      console.log('✅ Mesas disponibles cargadas:', state.availableTables.length, state.availableTables)
+      // console.log('✅ Mesas disponibles cargadas:', state.availableTables.length, state.availableTables)
     } else {
-      console.error('❌ Error en respuesta mesas disponibles:', response.message)
+      // console.error('❌ Error en respuesta mesas disponibles:', response.message)
     }
   } catch (error) {
     console.error('💥 Error loading available tables:', error)
@@ -635,21 +735,21 @@ const loadSilencedTables = async () => {
  * Activar mesa individual
  */
 const activateTable = async (tableId) => {
-  console.log('🚀 Dashboard: Iniciando activación de mesa:', tableId)
+  // console.log('🚀 Dashboard: Iniciando activación de mesa:', tableId)
   try {
     const response = await waiterCallsService.activateTable(tableId)
-    console.log('📊 Dashboard: Respuesta de activación:', response)
+    // console.log('📊 Dashboard: Respuesta de activación:', response)
     
     if (response.success) {
-      console.log('✅ Dashboard: Mesa activada exitosamente')
+      // console.log('✅ Dashboard: Mesa activada exitosamente')
       showSuccessToast(response.message || 'Mesa activada')
-      console.log('🔄 Dashboard: Recargando mesas asignadas...')
+      // console.log('🔄 Dashboard: Recargando mesas asignadas...')
       await loadAssignedTables()
       
       // Reiniciar monitoreo en tiempo real con las nuevas mesas
       startRealtimeListeners()
     } else {
-      console.error('❌ Dashboard: Error en respuesta:', response.message)
+      // console.error('❌ Dashboard: Error en respuesta:', response.message)
       showErrorToast(response.message || 'Error activando mesa')
     }
   } catch (error) {
@@ -801,11 +901,11 @@ const onBusinessesLoaded = (data) => {
   state.currentBusiness = data.activeBusiness || null
   state.needsBusiness = data.needsBusiness || false
 
-  console.log('🏢 Negocios cargados:', {
-    total: state.businesses.length,
-    current: state.currentBusiness?.name,
-    needsBusiness: state.needsBusiness
-  })
+  // console.log('🏢 Negocios cargados:', {
+  //   total: state.businesses.length,
+  //   current: state.currentBusiness?.name,
+  //   needsBusiness: state.needsBusiness
+  // })
 
   // Si hay negocio activo, cargar datos del dashboard
   if (state.currentBusiness && !state.needsBusiness) {
@@ -821,7 +921,7 @@ const onBusinessesLoaded = (data) => {
 const onBusinessChanged = (business) => {
   state.currentBusiness = business
   
-  console.log('🏢 Negocio cambiado a:', business.name)
+  // console.log('🏢 Negocio cambiado a:', business.name)
   
   // Limpiar datos anteriores
   state.assignedTables = []
@@ -842,30 +942,30 @@ const onBusinessChanged = (business) => {
  * Cuando se seleccionan mesas para activar
  */
 const onTablesSelected = async (selectedTableIds) => {
-  console.log('🚀 Dashboard: Mesas seleccionadas para activar:', selectedTableIds)
+  // console.log('🚀 Dashboard: Mesas seleccionadas para activar:', selectedTableIds)
   state.showTableSelector = false
   
   if (selectedTableIds.length === 0) {
-    console.log('⚠️ Dashboard: No se seleccionaron mesas')
+    // console.log('⚠️ Dashboard: No se seleccionaron mesas')
     return
   }
 
   try {
-    console.log('🔄 Dashboard: Iniciando activación múltiple...')
+    // console.log('🔄 Dashboard: Iniciando activación múltiple...')
     const response = await waiterCallsService.activateMultipleTables(selectedTableIds)
-    console.log('📊 Dashboard: Respuesta activación múltiple:', response)
+    // console.log('📊 Dashboard: Respuesta activación múltiple:', response)
     
     if (response.success) {
       console.log('✅ Dashboard: Mesas activadas exitosamente')
       showSuccessToast(response.message || `${response.summary?.successful || selectedTableIds.length} mesas activadas`)
-      console.log('🔄 Dashboard: Recargando datos del dashboard...')
+      // console.log('🔄 Dashboard: Recargando datos del dashboard...')
       await loadAssignedTables()
       await loadAvailableTables()
       
       // Reiniciar monitoreo en tiempo real con las nuevas mesas activadas
       startRealtimeListeners()
     } else {
-      console.error('❌ Dashboard: Error en respuesta múltiple:', response.message)
+      // console.error('❌ Dashboard: Error en respuesta múltiple:', response.message)
       showErrorToast(response.message || 'Error activando mesas')
     }
   } catch (error) {
@@ -878,7 +978,7 @@ const onTablesSelected = async (selectedTableIds) => {
  * Cuando se actualizan las mesas desde el gestor
  */
 const onTablesUpdated = async (tables) => {
-  console.log('📋 Mesas del negocio actualizadas:', tables.length)
+  // console.log('📋 Mesas del negocio actualizadas:', tables.length)
   // Recargar datos del dashboard
   await loadDashboardData()
 }
@@ -887,7 +987,7 @@ const onTablesUpdated = async (tables) => {
  * Cuando se actualizan los perfiles desde el gestor
  */
 const onProfilesUpdated = async () => {
-  console.log('📋 Perfiles actualizados')
+  // console.log('📋 Perfiles actualizados')
   // Recargar datos del dashboard
   await loadDashboardData()
 }
@@ -902,13 +1002,13 @@ const startRealtimeListeners = async () => {
     return
   }
 
-  console.log('⚡ Iniciando Ultra Fast Firebase Realtime Database para mozo:', authStore.user.id)
+  // console.log('⚡ Iniciando UNIFIED Firebase Realtime Database para mozo:', authStore.user.id)
   
   try {
-    // Inicializar sistema ULTRA RÁPIDO
-    ultraFastNotifications = initializeUltraFastWaiterNotifications(authStore.user.id.toString())
+    // Inicializar sistema UNIFIED
+    ultraFastNotifications = initializeUnifiedWaiterNotifications(authStore.user.id.toString())
     
-    console.log('✅ Ultra Fast Firebase Realtime Database activado')
+    // console.log('✅ UNIFIED Firebase Realtime Database activado')
   } catch (error) {
     console.error('❌ Error configurando Ultra Fast Firebase:', error)
     showErrorToast('Error configurando notificaciones ultra rápidas')
@@ -919,14 +1019,14 @@ const startRealtimeListeners = async () => {
  * Parar listeners de tiempo real
  */
 const stopRealtimeListeners = async () => {
-  console.log('🛑 Deteniendo Ultra Fast Firebase Realtime Database')
+  // console.log('🛑 Deteniendo UNIFIED Firebase Realtime Database')
   
   try {
     if (ultraFastNotifications) {
       ultraFastNotifications.stopListening()
       ultraFastNotifications = null
     }
-    console.log('✅ Ultra Fast Firebase Realtime Database desconectado')
+    // console.log('✅ UNIFIED Firebase Realtime Database desconectado')
   } catch (error) {
     console.error('❌ Error desconectando Ultra Fast Firebase:', error)
   }
@@ -937,7 +1037,7 @@ const stopRealtimeListeners = async () => {
 // ===== LIFECYCLE =====
 
 onMounted(async () => {
-  console.log('🏠 Waiter Dashboard mounted')
+  // console.log('🏠 Waiter Dashboard mounted')
   
   // Las empresas se cargan automáticamente por el BusinessSelector
   // loadDashboardData se llamará desde onBusinessesLoaded si hay negocio activo
@@ -983,7 +1083,7 @@ const handleFirebaseCallUpdate = async (event) => {
  * Manejar eliminación de llamada desde Firebase
  */
 const handleFirebaseCallRemove = async (event) => {
-  console.log('❌ Llamada eliminada desde Firebase:', event.detail)
+  // console.log('❌ Llamada eliminada desde Firebase:', event.detail)
   const { callId } = event.detail
   state.pendingCalls = state.pendingCalls.filter(call => call.id !== callId)
   await loadAssignedTables() // Actualizar contadores
@@ -993,7 +1093,7 @@ const handleFirebaseCallRemove = async (event) => {
  * Manejar limpieza de todas las llamadas desde Firebase
  */
 const handleFirebaseClearAllCalls = async (event) => {
-  console.log('🧹 Limpiando todas las llamadas desde Firebase')
+  // console.log('🧹 Limpiando todas las llamadas desde Firebase')
   state.pendingCalls = []
   await loadAssignedTables() // Actualizar contadores
 }

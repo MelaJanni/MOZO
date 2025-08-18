@@ -13,7 +13,7 @@ const userRole = computed(() => authStore.currentRole);
 onMounted(() => {
   // Helpful debug info when running on device (Android) to see why items may be hidden
   try {
-    console.log('OffCanvasNavbar - mounted - isAuthenticated:', authStore.isAuthenticated, 'currentRole:', authStore.currentRole)
+    //console.log('OffCanvasNavbar - mounted - isAuthenticated:', authStore.isAuthenticated, 'currentRole:', authStore.currentRole)
   } catch (e) {
     /* no-op */
   }

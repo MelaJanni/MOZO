@@ -10,9 +10,11 @@ const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || `${import.meta.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL, // para Realtime Database
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_MEASUREMENT_ID
 }
 
 // Global Firebase instances
@@ -43,6 +45,12 @@ export const initializeFirebase = async () => {
     }
 
     console.log('🔥 Initializing Firebase...')
+    if (!firebaseConfig.databaseURL) {
+      console.warn('⚠️ Falta VITE_FIREBASE_DATABASE_URL (Realtime Database). Añade la URL si usas RTDB para reconciliación.')
+    }
+    if (firebaseConfig.appId && /:android:/.test(firebaseConfig.appId)) {
+      console.warn('⚠️ appId es Android. Si estás en Web, define VITE_FIREBASE_APP_ID con el appId Web (contiene :web:).')
+    }
 
     // Register Service Worker for background notifications
     if ('serviceWorker' in navigator) {
@@ -68,7 +76,7 @@ export const initializeFirebase = async () => {
 
     // Initialize Firebase App
     app = initializeApp(firebaseConfig)
-    console.log('🔥 Firebase App initialized')
+  console.log('🔥 Firebase App initialized appId=', firebaseConfig.appId, 'projectId=', firebaseConfig.projectId)
 
     // Initialize Firebase Messaging
     messaging = getMessaging(app)
@@ -102,27 +110,32 @@ export const getFCMToken = async () => {
 
     const { getToken } = await import('firebase/messaging')
     
-    // Check notification permissions
-    let permission = Notification.permission
-    console.log('🔥 Current notification permission:', permission)
-    
-    if (permission === 'default') {
-      console.log('🔥 Requesting notification permissions...')
-      permission = await Notification.requestPermission()
-      console.log('🔥 Permission after request:', permission)
+    // Guardar para entornos donde Notification no existe (WebView Android / SSR)
+    if (typeof Notification === 'undefined') {
+      console.warn('🔥 Notification API no disponible en este entorno (probablemente WebView). Saltando solicitud de permisos.')
+    } else {
+      // Check notification permissions
+      let permission = Notification.permission
+      console.log('🔥 Current notification permission:', permission)
+      
+      if (permission === 'default') {
+        console.log('🔥 Requesting notification permissions...')
+        permission = await Notification.requestPermission()
+        console.log('🔥 Permission after request:', permission)
+      }
+      
+      if (permission === 'denied') {
+        console.error('🔥 Notification permissions DENIED by user')
+        console.error('🔥 SOLUTION: Click the 🔒 in the address bar and change Notifications to "Allow"')
+        throw new Error('Notification permissions denied. Click the 🔒 in the address bar and change Notifications to "Allow", then reload the page.')
+      }
+      
+      if (permission !== 'granted') {
+        throw new Error('Notification permissions not granted')
+      }
+      
+      console.log('✅ Notification permissions granted')
     }
-    
-    if (permission === 'denied') {
-      console.error('🔥 Notification permissions DENIED by user')
-      console.error('🔥 SOLUTION: Click the 🔒 in the address bar and change Notifications to "Allow"')
-      throw new Error('Notification permissions denied. Click the 🔒 in the address bar and change Notifications to "Allow", then reload the page.')
-    }
-    
-    if (permission !== 'granted') {
-      throw new Error('Notification permissions not granted')
-    }
-    
-    console.log('✅ Notification permissions granted')
 
     console.log('🔥 Getting FCM token...')
     
@@ -144,7 +157,7 @@ export const getFCMToken = async () => {
       throw new Error('Failed to obtain FCM token')
     }
 
-    console.log('🔥 FCM token obtained:', token.substring(0, 20) + '...')
+  console.log('🔥 FCM token obtained (length=' + token.length + '):', token.substring(0, 25) + '...')
     
     // Store in localStorage for persistence
     localStorage.setItem('fcm_token', token)
@@ -396,7 +409,7 @@ export const getFirebaseStatus = () => {
     messagingAvailable: false,
     firestoreAvailable: false,
     tokenExists: false,
-    notificationPermission: 'default'
+  notificationPermission: (typeof Notification !== 'undefined') ? Notification.permission : 'unavailable'
   }
 
   try {

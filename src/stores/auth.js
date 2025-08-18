@@ -29,7 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || null)
   // Indica que el store ya intentó restaurar el usuario/token (tryToLogin completado)
   const initialized = ref(false)
-  console.log('AuthStore - Inicialización - Token cargado de localStorage:', safeTokenValue(token) ? 'Sí (presente)' : 'No')
+  // console.log('AuthStore - Inicialización - Token cargado de localStorage:', safeTokenValue(token) ? 'Sí (presente)' : 'No')
   const isAuthenticated = ref(!!safeTokenValue(token))
   const isLoading = ref(false)
   const error = ref(null)
@@ -39,11 +39,11 @@ export const useAuthStore = defineStore('auth', () => {
   if (storedUser) {
     try {
       const userObj = JSON.parse(storedUser)
-      console.log('AuthStore - Usuario cargado de localStorage:', userObj)
+      // console.log('AuthStore - Usuario cargado de localStorage:', userObj)
       if (userObj.selectedRole) {
         selectedRole.value = userObj.selectedRole
         userObj.role = userObj.selectedRole
-        console.log('AuthStore - Rol seleccionado del usuario:', userObj.role)
+        // console.log('AuthStore - Rol seleccionado del usuario:', userObj.role)
       }
       user.value = userObj
     } catch (err) {
@@ -56,17 +56,17 @@ export const useAuthStore = defineStore('auth', () => {
   })
 
   const login = async (credentials) => {
-    console.log('AuthStore - Iniciando login')
+    // console.log('AuthStore - Iniciando login')
     isLoading.value = true
     error.value = null
     
     try {
   const resp = await loginWithFCM(credentials)
       const responseData = resp.data || {}
-      console.log('AuthStore - Respuesta login:', responseData)
+      // console.log('AuthStore - Respuesta login:', responseData)
 
       const receivedToken = responseData.token || responseData.access_token || responseData.plainTextToken
-      console.log('AuthStore - Token recibido:', receivedToken ? 'Sí (valor no mostrado)' : 'No')
+      // console.log('AuthStore - Token recibido:', receivedToken ? 'Sí (valor no mostrado)' : 'No')
 
       user.value = responseData.user
       token.value = receivedToken || null
@@ -75,9 +75,9 @@ export const useAuthStore = defineStore('auth', () => {
 
       const tokenValue = safeTokenValue(token)
       if (tokenValue) {
-        console.log('AuthStore - Guardando token en localStorage')
+        // console.log('AuthStore - Guardando token en localStorage')
         localStorage.setItem('token', tokenValue)
-        console.log('AuthStore - Token después de guardar:', localStorage.getItem('token') ? 'Existe' : 'No existe')
+        // console.log('AuthStore - Token después de guardar:', localStorage.getItem('token') ? 'Existe' : 'No existe')
       }
       localStorage.setItem('user', JSON.stringify(responseData.user))
   // Marca que la inicialización/post-login está completa
@@ -85,7 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
       
       // Inicializar notificaciones después del login
       try {
-        console.log('AuthStore - Inicializando sistema de notificaciones después del login...')
+        // console.log('AuthStore - Inicializando sistema de notificaciones después del login...')
 
         const { initializePushNotifications } = await import('@/services/pushNotifications')
         const platform = (await import('@capacitor/core')).Capacitor.getPlatform()
@@ -95,15 +95,15 @@ export const useAuthStore = defineStore('auth', () => {
         // register native push, ensuring the 'registration' listener sends the token
         // to the backend even if the app is backgrounded.
         const pushInit = await initializePushNotifications()
-        console.log('AuthStore - initializePushNotifications result:', pushInit)
+        // console.log('AuthStore - initializePushNotifications result:', pushInit)
 
         // Additionally initialize realtime listeners for notifications store
         const { useNotificationsStore } = await import('@/stores/notifications')
         const notificationsStore = useNotificationsStore()
         notificationsStore.initializeRealTimeNotifications()
-        console.log('AuthStore - Listeners de Firestore inicializados')
+        // console.log('AuthStore - Listeners de Firestore inicializados')
       } catch (notificationError) {
-        console.warn('AuthStore - Error inicializando notificaciones:', notificationError)
+        // console.warn('AuthStore - Error inicializando notificaciones:', notificationError)
       }
       
       return responseData.user
@@ -145,12 +145,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
   
   const setSelectedRole = (role) => {
-    console.log('AuthStore - setSelectedRole:', role)
-    console.log('AuthStore - Estado previo:', { 
-      selectedRole: safeValue(selectedRole), 
-      tokenInState: !!safeTokenValue(token),
-      tokenInStorage: !!localStorage.getItem('token')
-    })
+    // console.log('AuthStore - setSelectedRole:', role)
+    // console.log('AuthStore - Estado previo:', { 
+    //   selectedRole: safeValue(selectedRole), 
+    //   tokenInState: !!safeTokenValue(token),
+    //   tokenInStorage: !!localStorage.getItem('token')
+    // })
     
     selectedRole.value = role
     
@@ -164,7 +164,7 @@ export const useAuthStore = defineStore('auth', () => {
         userObj.selectedRole = role
         userObj.role = role
         localStorage.setItem('user', JSON.stringify(userObj))
-        console.log('AuthStore - Usuario actualizado en localStorage con rol:', role)
+        // console.log('AuthStore - Usuario actualizado en localStorage con rol:', role)
       } catch (err) {
         console.error('AuthStore - Error actualizando usuario en localStorage:', err)
       }
@@ -176,17 +176,17 @@ export const useAuthStore = defineStore('auth', () => {
       if (storedToken) {
         token.value = storedToken
         isAuthenticated.value = true
-        console.log('AuthStore - Token sincronizado desde localStorage tras setSelectedRole')
+        // console.log('AuthStore - Token sincronizado desde localStorage tras setSelectedRole')
       }
     } catch (err) {
       console.warn('AuthStore - Error sincronizando token desde localStorage:', err)
     }
 
-    console.log('AuthStore - Estado después de setSelectedRole:', { 
-      selectedRole: safeValue(selectedRole), 
-      tokenInState: !!safeTokenValue(token),
-      tokenInStorage: !!localStorage.getItem('token')
-    })
+    // console.log('AuthStore - Estado después de setSelectedRole:', { 
+    //   selectedRole: safeValue(selectedRole), 
+    //   tokenInState: !!safeTokenValue(token),
+    //   tokenInStorage: !!localStorage.getItem('token')
+    // })
   }
 
   const getSelectedRole = () => {
@@ -194,9 +194,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const fetchUser = async () => {
-    console.log('AuthStore - fetchUser iniciado')
+    // console.log('AuthStore - fetchUser iniciado')
     if (user.value) {
-      console.log('AuthStore - Usuario ya existe en el estado:', user.value)
+      // console.log('AuthStore - Usuario ya existe en el estado:', user.value)
       return;
     }
 
@@ -204,19 +204,19 @@ export const useAuthStore = defineStore('auth', () => {
     if (storedUser) {
       try {
         user.value = JSON.parse(storedUser);
-        console.log('AuthStore - Usuario cargado de localStorage en fetchUser:', user.value)
+        // console.log('AuthStore - Usuario cargado de localStorage en fetchUser:', user.value)
       } catch (err) {
-        console.error('AuthStore - Error al parsear usuario en fetchUser:', err)
+        // console.error('AuthStore - Error al parsear usuario en fetchUser:', err)
       }
     } else if (isAuthenticated.value) {
-      console.log('AuthStore - Autenticado pero sin usuario en localStorage. Cerrando sesión.')
+      // console.log('AuthStore - Autenticado pero sin usuario en localStorage. Cerrando sesión.')
       logout();
     }
   }
   
   const updateProfile = async (formData) => {
     try {
-      console.log("Actualizando perfil con:", Object.fromEntries(formData.entries()));
+      // console.log("Actualizando perfil con:", Object.fromEntries(formData.entries()));
       
       const updatedData = Object.fromEntries(formData.entries());
       user.value = { ...user.value, ...updatedData };
@@ -230,12 +230,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const logout = async () => {
-    console.log('AuthStore - Cerrando sesión')
+    // console.log('AuthStore - Cerrando sesión')
     
     // Llamar al helper que intenta borrar el device token y hacer logout en backend
     try {
       await logoutAndUnregister()
-      console.log('AuthStore - logoutAndUnregister ejecutado')
+      // console.log('AuthStore - logoutAndUnregister ejecutado')
     } catch (error) {
       console.warn('AuthStore - Error en logoutAndUnregister:', error)
       // Continuar con logout local aunque falle
@@ -254,7 +254,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { deleteFCMToken } = await import('@/services/firebase')
       await deleteFCMToken()
-      console.log('AuthStore - Token FCM eliminado')
+      // console.log('AuthStore - Token FCM eliminado')
     } catch (error) {
       console.warn('Error eliminando token FCM:', error)
     }
@@ -267,7 +267,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       console.warn('Error desconectando Firestore listeners:', error)
     }
-    console.log('AuthStore - Sesión cerrada, token eliminado de localStorage')
+    // console.log('AuthStore - Sesión cerrada, token eliminado de localStorage')
     return true
   }
   
@@ -301,13 +301,13 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Función para intentar login automático con token existente
   const tryToLogin = async () => {
-    console.log('AuthStore - tryToLogin iniciado');
+    // console.log('AuthStore - tryToLogin iniciado');
 
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
     if (!storedToken) {
-      console.log('AuthStore - No hay token almacenado');
+      // console.log('AuthStore - No hay token almacenado');
       return false;
     }
 
@@ -318,23 +318,23 @@ export const useAuthStore = defineStore('auth', () => {
         const userObj = JSON.parse(storedUser);
         user.value = userObj;
         selectedRole.value = userObj.selectedRole || userObj.role;
-        console.log('AuthStore - Usuario restaurado desde localStorage:', userObj);
+        // console.log('AuthStore - Usuario restaurado desde localStorage:', userObj);
       }
 
       // Validar el token con el servidor
       const isValidToken = await apiService.getCurrentUser();
       if (!isValidToken) {
-        console.warn('AuthStore - Token inválido, cerrando sesión.');
+        // console.warn('AuthStore - Token inválido, cerrando sesión.');
         logout();
         return false;
       }
 
       isAuthenticated.value = true;
-      console.log('AuthStore - Autenticación exitosa con token existente.');
+      // console.log('AuthStore - Autenticación exitosa con token existente.');
   initialized.value = true
       return true;
     } catch (err) {
-      console.error('AuthStore - Error en tryToLogin:', err);
+      // console.error('AuthStore - Error en tryToLogin:', err);
   await logout();
   initialized.value = true
       return false;

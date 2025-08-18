@@ -200,6 +200,15 @@ const apiService = {
   
   healthCheck: () => api.get('health-check'),
 
+  // ===== UNIFIED FIREBASE CONFIG =====
+  getFirebaseConfig: () => api.get('firebase/config'),
+
+  // ===== FCM TOKEN (NUEVOS ENDPOINTS UNIFICADOS) =====
+  registerWaiterFcm: (data) => api.post('waiter/fcm/register', data),
+  refreshWaiterFcm: (data) => api.post('waiter/fcm/refresh', data),
+  deleteWaiterFcmToken: (data) => api.delete('waiter/fcm/token', { data }),
+  testWaiterFcm: (data) => api.post('waiter/fcm/test', data),
+
   // ===== WAITER CALLS APIs =====
   
   // Mozo - Gestión de llamadas
@@ -215,31 +224,31 @@ const apiService = {
   
   // Gestión individual de mesas
   activateTable: (tableId) => {
-    console.log('🌐 API: POST waiter/tables/' + tableId + '/activate')
+    //console.log('🌐 API: POST waiter/tables/' + tableId + '/activate')
     return api.post(`waiter/tables/${tableId}/activate`)
   },
   deactivateTable: (tableId) => {
-    console.log('🌐 API: DELETE waiter/tables/' + tableId + '/activate')
+    //console.log('🌐 API: DELETE waiter/tables/' + tableId + '/activate')
     return api.delete(`waiter/tables/${tableId}/activate`)
   },
   
   // Gestión múltiple de mesas
   activateMultipleTables: (data) => {
-    console.log('🌐 API: POST waiter/tables/activate/multiple', data)
+    //console.log('🌐 API: POST waiter/tables/activate/multiple', data)
     return api.post('waiter/tables/activate/multiple', data)
   },
   deactivateMultipleTables: (data) => {
-    console.log('🌐 API: POST waiter/tables/deactivate/multiple', data)
+    //console.log('🌐 API: POST waiter/tables/deactivate/multiple', data)
     return api.post('waiter/tables/deactivate/multiple', data)
   },
   
   // Silenciado de mesas
   silenceTable: (tableId, data) => {
-    console.log('🌐 API: POST waiter/tables/' + tableId + '/silence', data)
+    //console.log('🌐 API: POST waiter/tables/' + tableId + '/silence', data)
     return api.post(`waiter/tables/${tableId}/silence`, data)
   },
   unsilenceTable: (tableId) => {
-    console.log('🌐 API: DELETE waiter/tables/' + tableId + '/silence')
+    //console.log('🌐 API: DELETE waiter/tables/' + tableId + '/silence')
     return api.delete(`waiter/tables/${tableId}/silence`)
   },
   silenceMultipleTables: (data) => api.post('waiter/tables/silence/multiple', data),
@@ -283,7 +292,7 @@ const apiService = {
   
   // Obtener mesas de un negocio específico
   getWaiterBusinessTables: (businessId) => {
-    console.log('🌐 API: GET waiter/businesses/' + businessId + '/tables')
+    //console.log('🌐 API: GET waiter/businesses/' + businessId + '/tables')
     return api.get(`waiter/businesses/${businessId}/tables`)
   },
   

@@ -3,10 +3,10 @@ import { useNotificationsStore } from '../stores/notifications'
 
 export default {
   setToken(token) {
-    console.log('Guardando token en localStorage:', token)
+    // console.log('Guardando token en localStorage:', token)
     if (token) {
       localStorage.setItem('token', token)
-      console.log('Token después de guardar:', localStorage.getItem('token'))
+      // console.log('Token después de guardar:', localStorage.getItem('token'))
     } else {
       console.error('Intento de guardar un token inválido:', token)
     }
@@ -14,17 +14,17 @@ export default {
   
   getToken() {
     const token = localStorage.getItem('token')
-    console.log('Obteniendo token de localStorage:', token)
+    // console.log('Obteniendo token de localStorage:', token)
     return token
   },
   
   removeToken() {
-    console.log('Eliminando token de localStorage')
+    // console.log('Eliminando token de localStorage')
     localStorage.removeItem('token')
   },
   
   setUser(user) {
-    console.log('Guardando usuario en localStorage:', user)
+    // console.log('Guardando usuario en localStorage:', user)
     localStorage.setItem('user', JSON.stringify(user))
   },
   
@@ -39,15 +39,15 @@ export default {
   
   isAuthenticated() {
     const isAuth = !!this.getToken()
-    console.log('¿Está autenticado?', isAuth)
+    // console.log('¿Está autenticado?', isAuth)
     return isAuth
   },
   
   async login(email, password) {
     try {
-      console.log('Iniciando login con:', { email })
+      // console.log('Iniciando login con:', { email })
       const response = await apiService.login({ email, password })
-      console.log('Respuesta login COMPLETA:', JSON.stringify(response))
+      // console.log('Respuesta login COMPLETA:', JSON.stringify(response))
       
       const token = response.data.token || 
                    response.data.access_token || 
@@ -56,7 +56,7 @@ export default {
                    (response.data.user && response.data.user.access_token) ||
                    response.headers?.authorization?.replace('Bearer ', '');
       
-      console.log('Token encontrado:', token ? 'Sí (valor no mostrado)' : 'No')
+      // console.log('Token encontrado:', token ? 'Sí (valor no mostrado)' : 'No')
       
       if (!token) {
         console.error('No se encontró un token válido en la respuesta:', response.data);
@@ -75,7 +75,7 @@ export default {
   async loginWithGoogle(token) {
     try {
       const response = await apiService.loginWithGoogle(token)
-      console.log('Respuesta loginWithGoogle COMPLETA:', JSON.stringify(response))
+      // console.log('Respuesta loginWithGoogle COMPLETA:', JSON.stringify(response))
       
       const authToken = response.data.token || 
                         response.data.access_token || 
@@ -166,10 +166,10 @@ export default {
   
   async selectRole(role) {
     try {
-      console.log('Seleccionando rol:', role)
-      console.log('Token antes de seleccionar rol:', this.getToken())
+      // console.log('Seleccionando rol:', role)
+      // console.log('Token antes de seleccionar rol:', this.getToken())
       const response = await apiService.selectRole(role)
-      console.log('Respuesta selectRole COMPLETA:', JSON.stringify(response))
+      // console.log('Respuesta selectRole COMPLETA:', JSON.stringify(response))
       const data = response.data || {}
       
       const newToken = data.token || 
@@ -178,12 +178,12 @@ export default {
                       (data.user && data.user.token) ||
                       (data.user && data.user.access_token);
       
-      console.log('Nuevo token recibido:', newToken ? 'Sí (valor no mostrado)' : 'No')
+      // console.log('Nuevo token recibido:', newToken ? 'Sí (valor no mostrado)' : 'No')
       
       if (newToken) {
         this.setToken(newToken)
       } else {
-        console.warn('No se recibió un nuevo token al seleccionar el rol')
+        // console.warn('No se recibió un nuevo token al seleccionar el rol')
       }
 
       const user = this.getUser()
@@ -192,7 +192,7 @@ export default {
         this.setUser(user)
       }
       
-      console.log('Token después de seleccionar rol:', this.getToken())
+      // console.log('Token después de seleccionar rol:', this.getToken())
       return data
     } catch (error) {
       console.error('Error en selectRole:', error)
