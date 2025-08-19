@@ -38,7 +38,9 @@ class UnifiedWaiterNotifications {
 
         const waiterUnsubscribe = onValue(waiterRef, (snapshot) => {
             const callIds = snapshot.val() || [];
-            // console.log('📋 UNIFIED: Llamadas activas del mozo:', callIds);
+            console.log('📋 UNIFIED: Llamadas activas del mozo:', callIds);
+            console.log('📋 UNIFIED: waiterId:', this.waiterId);
+            console.log('📋 UNIFIED: Firebase path:', `waiters/${this.waiterId}/active_calls`);
 
             if (this.initializing && !this._initialSetProcessed) {
                 this._expectedInitialCallIds = new Set(callIds.map(id => String(id)));
@@ -58,7 +60,7 @@ class UnifiedWaiterNotifications {
         
     this.initializing = true;
     this.listeners.set('waiter', waiterUnsubscribe);
-    // console.log(`⚡ UNIFIED WebSocket conectado`);
+    console.log(`⚡ UNIFIED WebSocket conectado para mozo ${this.waiterId}`);
     }
 
     updateActiveCallsListeners(newCallIds) {

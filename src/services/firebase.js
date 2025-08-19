@@ -23,10 +23,10 @@ let messaging = null
 let db = null
 
 /**
- * Initialize Firebase and Messaging service
- * @returns {Object|null} Firebase app and messaging instances or null if failed
+ * Initialize Firebase App (always works)
+ * @returns {Object} Firebase app instance
  */
-export const initializeFirebase = async () => {
+export const initializeFirebaseApp = async () => {
   try {
     // Browser environment check
     if (typeof window === 'undefined') {
@@ -45,14 +45,37 @@ export const initializeFirebase = async () => {
     }
 
     console.log('🔥 Initializing Firebase...')
-    if (!firebaseConfig.databaseURL) {
-      console.warn('⚠️ Falta VITE_FIREBASE_DATABASE_URL (Realtime Database). Añade la URL si usas RTDB para reconciliación.')
-    }
-    if (firebaseConfig.appId && /:android:/.test(firebaseConfig.appId)) {
-      console.warn('⚠️ appId es Android. Si estás en Web, define VITE_FIREBASE_APP_ID con el appId Web (contiene :web:).')
+    
+    // Initialize Firebase App (this works everywhere)
+    const { initializeApp } = await import('firebase/app')
+    app = initializeApp(firebaseConfig)
+    console.log('🔥 Firebase App initialized appId=', firebaseConfig.appId, 'projectId=', firebaseConfig.projectId)
+
+    // Initialize Firestore (works everywhere)
+    const { getFirestore } = await import('firebase/firestore')
+    db = getFirestore(app)
+    console.log('🔥 Firestore initialized')
+
+    return { app, db }
+  } catch (error) {
+    console.error('🔥 Firebase App initialization error:', error)
+    return null
+  }
+}
+
+/**
+ * Initialize Firebase and Messaging service (web only)
+ * @returns {Object|null} Firebase app and messaging instances or null if failed
+ */
+export const initializeFirebase = async () => {
+  try {
+    // First ensure app is initialized
+    if (!app) {
+      const appResult = await initializeFirebaseApp()
+      if (!appResult) return null
     }
 
-    // Register Service Worker for background notifications
+    // Register Service Worker for background notifications (web only)
     if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
@@ -62,34 +85,25 @@ export const initializeFirebase = async () => {
       }
     }
 
-    // Dynamic imports for better performance
-    const { initializeApp } = await import('firebase/app')
+    // Try to initialize Firebase Messaging (web only)
     const { getMessaging, isSupported } = await import('firebase/messaging')
-    const { getFirestore } = await import('firebase/firestore')
-
-    // Check if Firebase Messaging is supported
     const supported = await isSupported()
+    
     if (!supported) {
       console.log('🔥 Firebase Messaging not supported in this browser')
-      return null
+      // Still return the app for other Firebase services
+      return { app, messaging: null, db }
     }
-
-    // Initialize Firebase App
-    app = initializeApp(firebaseConfig)
-  console.log('🔥 Firebase App initialized appId=', firebaseConfig.appId, 'projectId=', firebaseConfig.projectId)
 
     // Initialize Firebase Messaging
     messaging = getMessaging(app)
     console.log('🔥 Firebase Messaging initialized')
 
-    // Initialize Firestore
-    db = getFirestore(app)
-    console.log('🔥 Firestore initialized')
-
     return { app, messaging, db }
   } catch (error) {
     console.error('🔥 Firebase initialization error:', error)
-    return null
+    // Fallback: return at least the app
+    return { app, messaging: null, db }
   }
 }
 
@@ -438,6 +452,7 @@ export const getFirebaseStatus = () => {
 // Export clean Firebase service
 export default {
   initializeFirebase,
+  initializeFirebaseApp,
   getFCMToken,
   setupForegroundMessageListener,
   deleteFCMToken,

@@ -8,8 +8,8 @@ let _db
 
 export function getFirebaseApp() {
   if (_app) return _app
-  // initializeFirebase devuelve { app }
-  return firebaseService.initializeFirebase().then(res => {
+  // Use initializeFirebaseApp que siempre funciona (no depende de Firebase Messaging)
+  return firebaseService.initializeFirebaseApp().then(res => {
     _app = res?.app
     return _app
   })
