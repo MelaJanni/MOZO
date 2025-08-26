@@ -108,7 +108,7 @@
 <script>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import authService from '@/services/auth'
+import { useAuthStore } from '@/stores/auth'
 import { useGoogleAuth } from '@/composables/useGoogleAuth'
 import { useNativeGoogleAuth } from '@/composables/useNativeGoogleAuth'
 import { Capacitor } from '@capacitor/core'
@@ -117,6 +117,7 @@ export default {
   name: 'RegisterView',
   setup() {
     const router = useRouter()
+  const authStore = useAuthStore()
   const { signInWithGoogleAndCheckUser, isInitializing } = useGoogleAuth()
   const { signInWithGoogle: signInNative, isNativePlatform } = useNativeGoogleAuth()
     
@@ -153,17 +154,15 @@ export default {
       error.value = ''
       
       try {
-        await authService.register(
-          name.value,
-          email.value,
-          password.value,
-          passwordConfirmation.value
-        )
-        
-        router.push({
-          path: '/login',
-          query: { registered: 'success' }
+        await authStore.register({
+          name: name.value,
+          email: email.value,
+          password: password.value,
+          password_confirmation: passwordConfirmation.value
         })
+
+        // Ya está autenticado: ir directo a selección de rol
+        router.push({ name: 'role-selection' })
       } catch (err) {
         console.error('Error de registro:', err)
         error.value = err.response?.data?.message || 'Error al crear la cuenta. Por favor, inténtalo de nuevo.'
@@ -213,7 +212,7 @@ export default {
         
         // Para registro con Google, usamos el mismo endpoint que login
         // porque Google OAuth maneja tanto registro como login automáticamente
-        const response = await authService.loginWithGoogle(registerData)
+  const response = await authStore.loginWithGoogle(registerData)
         
         if (response.staff_request_created) {
           console.log(`✅ Solicitud de staff creada para: ${response.business_name}`)

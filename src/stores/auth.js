@@ -132,18 +132,41 @@ export const useAuthStore = defineStore('auth', () => {
       const resp = await apiService.register(userData)
       const data = resp.data || {}
 
-      user.value = data.user
-      token.value = data.token || null
-      isAuthenticated.value = true
-      selectedRole.value = null
-      
-      const tokenValue = safeTokenValue(token)
-      if (tokenValue) {
-        localStorage.setItem('token', tokenValue)
+      // Algunos backends devuelven token en el registro; si no, haremos login automático
+      const receivedToken = data.token || data.access_token || data.plainTextToken
+      if (receivedToken && data.user) {
+        user.value = data.user
+        token.value = receivedToken
+        isAuthenticated.value = true
+        selectedRole.value = data.user?.selectedRole || null
+
+        const tokenValue = safeTokenValue(token)
+        if (tokenValue) localStorage.setItem('token', tokenValue)
+        localStorage.setItem('user', JSON.stringify(data.user))
+
+        // Inicializar notificaciones igual que en login
+        try {
+          const { initializePushNotifications } = await import('@/services/pushNotifications')
+          await initializePushNotifications()
+          const { useNotificationsStore } = await import('@/stores/notifications')
+          const notificationsStore = useNotificationsStore()
+          notificationsStore.initializeRealTimeNotifications()
+        } catch (notificationError) { /* noop */ }
+
+        initialized.value = true
+        return data.user
       }
-      localStorage.setItem('user', JSON.stringify(data.user))
-      
-      return data.user
+
+      // Si no hubo token en el registro, realizar login automático con email/contraseña
+      if (userData?.email && userData?.password) {
+        await login({ email: userData.email, password: userData.password })
+        initialized.value = true
+        return user.value
+      }
+
+      // Fallback: si no hay token ni credenciales, marcar autenticado en falso
+      isAuthenticated.value = false
+      throw new Error('Registro exitoso pero no se pudo iniciar sesión automáticamente')
     } catch (err) {
       error.value = err.message || 'Error al registrarse'
       throw err
