@@ -40,6 +40,14 @@ const props = defineProps({
   displayValue: {
     type: String,
     default: ''
+  },
+  hasError: {
+    type: Boolean,
+    default: false
+  },
+  errorMessage: {
+    type: String,
+    default: ''
   }
 });
 const emit = defineEmits(['update:value']);
@@ -86,9 +94,9 @@ const cancelEditing = () => {
 };
 </script>
 <template>
-  <div class="editable-field">
+  <div class="editable-field" :class="{ 'has-error': hasError }">
     <div class="field-label" v-if="label">{{ label }}</div>
-    <div class="field-content" :class="{ 'is-editing': isEditing }">
+    <div class="field-content" :class="{ 'is-editing': isEditing, 'error': hasError }">
       <div v-if="!isEditing" class="display-value" @click="startEditing">
         {{ displayValue }}
         <button v-if="editable" class="edit-button" @click.stop="startEditing">
@@ -97,12 +105,12 @@ const cancelEditing = () => {
       </div>
       <div v-else class="edit-container">
         <input
-          v-if="type === 'text'"
+          v-if="type === 'text' || type === 'email' || type === 'tel'"
           ref="inputRef"
-          type="text"
+          :type="type"
           v-model="currentValue"
           :placeholder="placeholder"
-          class="edit-input"
+          :class="['edit-input', { 'input-error': hasError }]"
           @keydown="handleKeyDown"
           @change="saveChanges"
           @blur="cancelEditing"
@@ -115,7 +123,7 @@ const cancelEditing = () => {
           :placeholder="placeholder"
           :min="min"
           :max="max"
-          class="edit-input"
+          :class="['edit-input', { 'input-error': hasError }]"
           @keydown="handleKeyDown"
           @change="saveChanges"
           @blur="cancelEditing"
@@ -125,7 +133,7 @@ const cancelEditing = () => {
           ref="inputRef"
           type="date"
           v-model="currentValue"
-          class="edit-input"
+          :class="['edit-input', { 'input-error': hasError }]"
           @keydown="handleKeyDown"
           @change="saveChanges"
           @blur="cancelEditing"
@@ -135,7 +143,7 @@ const cancelEditing = () => {
           ref="inputRef"
           v-model="currentValue"
           rows="3"
-          class="edit-input"
+          :class="['edit-input', { 'input-error': hasError }]"
           @keydown="handleKeyDown"
           @change="saveChanges"
           @blur="cancelEditing"
@@ -144,7 +152,7 @@ const cancelEditing = () => {
           v-else-if="type === 'select'"
           ref="inputRef"
           v-model="currentValue"
-          class="edit-select"
+          :class="['edit-select', { 'input-error': hasError }]"
           @change="saveChanges"
           @blur="cancelEditing"
         >
@@ -165,6 +173,9 @@ const cancelEditing = () => {
           </button>
         </div>
       </div>
+    </div>
+    <div v-if="hasError && errorMessage" class="error-message">
+      {{ errorMessage }}
     </div>
   </div>
 </template>
@@ -237,5 +248,22 @@ const cancelEditing = () => {
 }
 .cancel-button {
   color: #dc3545;
+}
+
+/* Error styles */
+.has-error .field-label {
+  color: #dc3545;
+}
+
+.input-error {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2) !important;
+}
+
+.error-message {
+  font-size: 0.875rem;
+  color: #dc3545;
+  margin-top: 0.25rem;
+  padding-left: 0.5rem;
 }
 </style> 

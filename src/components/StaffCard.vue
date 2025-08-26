@@ -28,27 +28,43 @@ const removeEmployee = (event) => {
     
     <div class="staff-avatar">
       <img 
-        :src="employee.avatar || 'https://randomuser.me/api/portraits/men/32.jpg'" 
-        :alt="employee.name" 
+        :src="employee.user?.user_profile?.avatar || employee.user?.user_profile?.avatar_url || 'https://randomuser.me/api/portraits/men/32.jpg'" 
+        :alt="employee.user?.name || employee.user?.user_profile?.display_name" 
         class="avatar-image"
       />
     </div>
     
-    <h3 class="employee-name">{{ employee.name }}</h3>
+    <h3 class="employee-name">{{ employee.user?.name || employee.user?.user_profile?.display_name }}</h3>
+    <p class="employee-email" v-if="employee.user?.email">{{ employee.user.email }}</p>
     
     <div class="staff-info">
+      <div class="profile-details" v-if="employee.user?.user_profile">
+        <div class="detail-item" v-if="employee.user.user_profile.experience_years">
+          <i class="bi bi-briefcase"></i>
+          <span>{{ employee.user.user_profile.experience_years }} años</span>
+        </div>
+        <div class="detail-item" v-if="employee.user.user_profile.current_schedule">
+          <i class="bi bi-clock"></i>
+          <span>{{ employee.user.user_profile.current_schedule }}</span>
+        </div>
+        <div class="detail-item" v-if="employee.user.user_profile.employment_type">
+          <i class="bi bi-person-badge"></i>
+          <span>{{ employee.user.user_profile.employment_type }}</span>
+        </div>
+      </div>
+      
       <div class="rating-container">
         <div class="stars">
           <i 
             v-for="star in 5" 
             :key="star" 
             class="bi" 
-            :class="star <= Math.round(employee.rating || 0) ? 'bi-star-fill' : 'bi-star'"
+            :class="star <= Math.round(employee.user?.user_profile?.rating || 0) ? 'bi-star-fill' : 'bi-star'"
           ></i>
         </div>
         <div class="comments-count">
           <i class="bi bi-chat-left-text"></i>
-          <span>{{ employee.reviewsCount || 0 }} comentarios</span>
+          <span>{{ employee.user?.user_profile?.total_reviews || 0 }} comentarios</span>
         </div>
       </div>
     </div>
@@ -117,11 +133,38 @@ const removeEmployee = (event) => {
 .employee-name {
   font-size: 1rem;
   font-weight: 600;
+  margin: 0 0 0.25rem 0;
+}
+
+.employee-email {
+  font-size: 0.875rem;
+  color: #666;
   margin: 0 0 0.5rem 0;
 }
 
 .staff-info {
   width: 100%;
+}
+
+.profile-details {
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: #666;
+  justify-content: center;
+}
+
+.detail-item i {
+  width: 12px;
+  text-align: center;
 }
 
 .rating-container {

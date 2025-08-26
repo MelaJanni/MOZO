@@ -20,6 +20,9 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
+        // Register custom plugins
+        registerPlugin(GoogleAuthPlugin.class);
+        
         Log.d(TAG, "🚀 MainActivity CREATED");
         
         // (Opcional) Solicitar ignorar optimizaciones de batería para mejorar recepción en background

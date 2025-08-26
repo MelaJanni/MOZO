@@ -74,11 +74,26 @@
         
         <button 
           type="submit" 
-          class="btn btn-primary w-100 mb-4" 
+          class="btn btn-primary w-100 mb-3" 
           :disabled="loading || !isFormValid"
         >
           <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
           Crear cuenta
+        </button>
+        
+        <div class="text-center my-3">
+          <span class="text-muted">O regístrate con</span>
+        </div>
+        
+        <button 
+          type="button" 
+          class="btn btn-outline-secondary w-100 mb-4"
+          @click="handleGoogleRegister"
+          :disabled="loading || isInitializing"
+        >
+          <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          <i v-else class="bi bi-google me-2"></i> 
+          {{ loading ? 'Registrando...' : 'Continuar con Google' }}
         </button>
         
         <div class="text-center">
@@ -94,11 +109,16 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import authService from '@/services/auth'
+import { useGoogleAuth } from '@/composables/useGoogleAuth'
+import { useNativeGoogleAuth } from '@/composables/useNativeGoogleAuth'
+import { Capacitor } from '@capacitor/core'
 
 export default {
   name: 'RegisterView',
   setup() {
     const router = useRouter()
+  const { signInWithGoogleAndCheckUser, isInitializing } = useGoogleAuth()
+  const { signInWithGoogle: signInNative, isNativePlatform } = useNativeGoogleAuth()
     
     const name = ref('')
     const email = ref('')
@@ -152,6 +172,83 @@ export default {
       }
     }
     
+    const handleGoogleRegister = async () => {
+      try {
+        loading.value = true
+        error.value = ''
+
+        console.log('🔵 Iniciando registro con Google...', isNativePlatform ? 'NATIVO' : 'WEB')
+        
+        let googleToken, userEmail
+        
+        if (isNativePlatform) {
+          // Usar autenticación nativa para móviles
+          const result = await signInNative()
+          googleToken = result.token
+          userEmail = result.email
+        } else {
+          // Usar autenticación web
+          const result = await signInWithGoogleAndCheckUser(true)
+          googleToken = result.token
+          userEmail = result.email
+        }
+        
+        console.log('✅ Token de Google obtenido para:', userEmail)
+        
+        const registerData = {
+          google_token: googleToken, // Este es el id_token real de Google
+          fcm_token: localStorage.getItem('fcm_token') || undefined,
+          platform: isNativePlatform ? 'android' : 'web'
+        }
+
+        // Verificar si hay código de invitación en la URL
+        const urlParams = new URLSearchParams(window.location.search)
+        const invitationCode = urlParams.get('invitation_code') || urlParams.get('code')
+        if (invitationCode) {
+          registerData.business_invitation_code = invitationCode
+          console.log('🏢 Código de invitación detectado:', invitationCode)
+        }
+
+        console.log('🚀 Enviando datos de registro al servidor...')
+        
+        // Para registro con Google, usamos el mismo endpoint que login
+        // porque Google OAuth maneja tanto registro como login automáticamente
+        const response = await authService.loginWithGoogle(registerData)
+        
+        if (response.staff_request_created) {
+          console.log(`✅ Solicitud de staff creada para: ${response.business_name}`)
+          // Mostrar mensaje de éxito si se unió a un negocio
+          if (response.message) {
+            console.log('📢 Mensaje del servidor:', response.message)
+          }
+        }
+
+        // Redirigir a selección de rol después del registro exitoso
+        router.push({ name: 'role-selection' })
+
+      } catch (err) {
+        console.error('❌ Error en registro con Google:', err)
+        
+        // Manejar diferentes tipos de errores
+        if (err.message === 'Redirecting to Google Sign-In...') {
+          // El redirect está en proceso, no mostrar error
+          error.value = 'Redirigiendo a Google Sign-In...'
+          return // No cambiar loading.value para mantener el indicador
+        } else if (err.message === 'Google sign-in cancelled by user') {
+          error.value = 'Registro cancelado'
+        } else if (err.response?.status === 401) {
+          error.value = 'Token de Google inválido. Por favor, inténtalo de nuevo.'
+        } else {
+          error.value = err.response?.data?.message || err.message || 'Error al registrarse con Google'
+        }
+      } finally {
+        // Solo cambiar loading si no es un redirect
+        if (!error.value?.includes('Redirigiendo')) {
+          loading.value = false
+        }
+      }
+    }
+    
     return {
       name,
       email,
@@ -159,11 +256,13 @@ export default {
       passwordConfirmation,
       error,
       loading,
+      isInitializing,
       isEmailValid,
       isPasswordValid,
       doPasswordsMatch,
       isFormValid,
-      handleRegister
+      handleRegister,
+      handleGoogleRegister
     }
   }
 }

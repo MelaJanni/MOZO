@@ -110,6 +110,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import waiterCallsService from '@/services/waiterCallsService'
 import { showSuccessToast, showErrorToast } from '@/utils/notifications'
+import { createStaffJoinSuccessNotification } from '@/services/staffNotifications'
 
 // Props y emits
 const emit = defineEmits(['business-changed', 'businesses-loaded'])
@@ -134,23 +135,32 @@ const loadBusinesses = async () => {
 
     if (response.success) {
       businesses.value = response.businesses || []
-      
-      // Buscar el negocio activo por ID
+
+      // Determinar negocio activo
       if (response.active_business_id && businesses.value.length > 0) {
         currentBusiness.value = businesses.value.find(b => b.id === response.active_business_id) || null
       } else {
         currentBusiness.value = response.active_business || null
       }
-      
-      //console.log('✅ Negocios cargados:', businesses.value.length, businesses.value)
-      //console.log('🔍 active_business_id desde API:', response.active_business_id)
-      //console.log('🎯 Negocio activo encontrado:', currentBusiness.value)
-      
-      // Emitir eventos
+
+      // Autoseleccionar cuando hay exactamente 1 negocio y ninguno activo
+      if (!currentBusiness.value && businesses.value.length === 1) {
+        try {
+          const only = businesses.value[0]
+          const setResp = await waiterCallsService.setActiveWaiterBusiness(only.id)
+          if (setResp.success) {
+            currentBusiness.value = only
+          }
+        } catch (e) {
+          // si falla, continuar sin bloquear
+        }
+      }
+
+      // Emitir eventos (needsBusiness si no hay negocio activo)
       emit('businesses-loaded', {
         businesses: businesses.value,
         activeBusiness: currentBusiness.value,
-        needsBusiness: response.needs_business || businesses.value.length === 0
+        needsBusiness: !currentBusiness.value
       })
     } else {
       console.error('❌ Error en respuesta de negocios:', response.message)
@@ -190,7 +200,17 @@ const joinBusiness = async () => {
   try {
     const response = await waiterCallsService.joinBusinessWithCode(businessCode.value.trim())
     if (response.success) {
-      showSuccessToast(response.message || 'Te has unido al negocio exitosamente')
+      const businessName = response.business?.name || response.data?.business?.name || 'el negocio'
+      
+      // Mostrar mensaje según el estado de la solicitud
+      if (response.staff_request?.status === 'pending') {
+        showSuccessToast('Solicitud enviada al administrador. Te notificaremos cuando sea aprobada.')
+      } else {
+        showSuccessToast(response.message || 'Te has unido al negocio exitosamente')
+        // Crear notificación de éxito si se unió directamente
+        createStaffJoinSuccessNotification(businessName)
+      }
+      
       businessCode.value = ''
       closeJoinForm()
       
@@ -201,7 +221,8 @@ const joinBusiness = async () => {
     }
   } catch (error) {
     console.error('Error joining business:', error)
-    showErrorToast('Error uniéndose al negocio')
+    const errorMessage = error.response?.data?.message || error.message || 'Error uniéndose al negocio'
+    showErrorToast(errorMessage)
   } finally {
     joining.value = false
   }

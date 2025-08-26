@@ -328,21 +328,140 @@ export const useNotificationsStore = defineStore('notifications', {
     
     async initializeRealTimeNotifications() {
       const authStore = useAuthStore()
-      console.log('🔥 Notificaciones en tiempo real delegadas a Firebase Realtime')
-      console.log('ℹ️ Las notificaciones de mozo se manejan directamente con Firebase')
-      
-      // Las notificaciones en tiempo real ahora se manejan por:
-      // - Firebase Realtime Notifications para mozos
-      // - Firebase Cloud Messaging para notificaciones generales
-      
-      this.isConnected = true
-      return true
+      // Inicializar listeners de staff en Realtime Database
+      try {
+        const user = authStore.user
+        if (!user) {
+          this.isConnected = true
+          return true
+        }
+
+        const { startStaffRealtimeForAdmin, startStaffRealtimeForUser } = await import('@/services/staffRealtime')
+
+        // Si el usuario es admin con business_id, escuchar businesses_staff
+        const role = user.role || user.selectedRole
+        if (role === 'admin' && user.business_id) {
+          await startStaffRealtimeForAdmin(user.business_id, (val) => {
+            try {
+              if (val && val.stats) {
+                window.dispatchEvent(new CustomEvent('businessStaffStatsUpdate', { detail: { businessId: user.business_id, stats: val.stats, recent_activity: val.recent_activity } }))
+              }
+
+              if (val && val.recent_activity) {
+                const activity = val.recent_activity
+                const status = activity.last_request_status
+                const requesterName = activity.last_request_name || 'Usuario'
+                
+                if (status === 'pending') {
+                  const note = {
+                    id: `staff_req_${activity.last_request_id}`,
+                    type: 'staff_request',
+                    data: {
+                      title: '👥 Nueva solicitud de personal',
+                      message: `${requesterName} quiere unirse a tu negocio`,
+                      route: '/admin/staff/requests',
+                      business_id: user.business_id,
+                      staff_request_id: activity.last_request_id,
+                      requester_name: requesterName
+                    },
+                    created_at: new Date().toISOString()
+                  }
+                  this.addNewNotification(note)
+                }
+              }
+            } catch (err) {
+              console.error('Error handling admin realtime staff update', err)
+            }
+          })
+        }
+
+        // Para usuarios staff, escuchar users_staff/{userId}
+        if (user.id) {
+          await startStaffRealtimeForUser(user.id, (val) => {
+            try {
+              if (!val) return
+              const current = val.current_request
+              if (current && current.status) {
+                const status = current.status
+                const businessName = current.business_name || 'el negocio'
+                
+                if (status === 'confirmed') {
+                  const note = {
+                    id: `user_staff_${current.id || Date.now()}`,
+                    type: 'staff_request_approved',
+                    data: {
+                      title: '✅ ¡Solicitud aprobada!',
+                      message: `${businessName} te ha aceptado como parte del equipo`,
+                      route: '/waiter/dashboard',
+                      user_id: user.id,
+                      request: current,
+                      business_name: businessName
+                    },
+                    created_at: new Date().toISOString()
+                  }
+                  this.addNewNotification(note)
+                } else if (status === 'rejected') {
+                  const note = {
+                    id: `user_staff_${current.id || Date.now()}`,
+                    type: 'staff_request_rejected',
+                    data: {
+                      title: '❌ Solicitud rechazada',
+                      message: `${businessName} ha rechazado tu solicitud`,
+                      route: '/waiter/dashboard',
+                      user_id: user.id,
+                      request: current,
+                      business_name: businessName
+                    },
+                    created_at: new Date().toISOString()
+                  }
+                  this.addNewNotification(note)
+                } else if (status === 'invited') {
+                  const note = {
+                    id: `user_staff_${current.id || Date.now()}`,
+                    type: 'staff_invitation',
+                    data: {
+                      title: '📩 Invitación de trabajo',
+                      message: `${businessName} te ha invitado a trabajar con ellos`,
+                      route: '/staff/invitations',
+                      user_id: user.id,
+                      request: current,
+                      business_name: businessName
+                    },
+                    created_at: new Date().toISOString()
+                  }
+                  this.addNewNotification(note)
+                }
+              }
+            } catch (err) {
+              console.error('Error handling user realtime staff update', err)
+            }
+          })
+        }
+
+        this.isConnected = true
+        return true
+      } catch (error) {
+        console.error('Error inicializando realtime staff listeners:', error)
+        this.isConnected = false
+        return false
+      }
     },
 
     async disconnectRealTimeNotifications() {
-      console.log('🔥 Desconectando notificaciones en tiempo real...')
+      // Desconectar listeners de staff en Realtime Database
+      try {
+        const authStore = useAuthStore()
+        const user = authStore.user
+        if (user) {
+          const { stopStaffRealtimeForAdmin, stopStaffRealtimeForUser } = await import('@/services/staffRealtime')
+          if (user.business_id) stopStaffRealtimeForAdmin(user.business_id)
+          if (user.id) stopStaffRealtimeForUser(user.id)
+        }
+      } catch (err) {
+        console.warn('Error desconectando staff realtime listeners:', err)
+      }
+
       this.isConnected = false
-      console.log('✅ Notificaciones desconectadas')
     },
     
     /**
@@ -354,7 +473,7 @@ export const useNotificationsStore = defineStore('notifications', {
       const existsInWaiterUnread = this.waiterUnreadNotifications.find(n => n.id === notification.id)
       
       if (existsInUnread || existsInWaiterUnread) {
-        console.log('🔍 Notificación ya existe, actualizando...', notification.id)
+        //console.log('🔍 Notificación ya existe, actualizando...', notification.id)
         this.updateExistingNotification(notification)
         return
       }
@@ -363,11 +482,11 @@ export const useNotificationsStore = defineStore('notifications', {
       if (notification.type === 'waiter_call' || notification.type === 'table_call') {
         this.waiterUnreadNotifications.unshift(notification)
         this.waiterUnreadCount++
-        console.log('🍽️ Nueva notificación de mozo agregada:', notification.title || notification.body)
+        //console.log('🍽️ Nueva notificación de mozo agregada:', notification.title || notification.body)
       } else {
         this.unreadNotifications.unshift(notification)
         this.unreadCount++
-        console.log('🔔 Nueva notificación general agregada:', notification.title || notification.body)
+        //console.log('🔔 Nueva notificación general agregada:', notification.title || notification.body)
       }
       
       // Mostrar notificación toast
@@ -407,7 +526,7 @@ export const useNotificationsStore = defineStore('notifications', {
         return
       }
 
-      console.log('⚠️ No se encontró la notificación para actualizar:', notification.id)
+      //console.log('⚠️ No se encontró la notificación para actualizar:', notification.id)
     },
 
     /**
@@ -424,7 +543,7 @@ export const useNotificationsStore = defineStore('notifications', {
       this.unreadCount = this.unreadNotifications.length
       this.waiterUnreadCount = this.waiterUnreadNotifications.length
       
-      console.log('🗑️ Notificación eliminada:', notificationId)
+      //console.log('🗑️ Notificación eliminada:', notificationId)
     },
 
     /**

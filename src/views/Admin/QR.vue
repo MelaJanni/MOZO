@@ -58,7 +58,15 @@
                 @click.stop 
                 class="form-check-input"
               >
-              <span>{{ (table.name || `MESA ${table.number}`).toUpperCase() }}</span>
+              <span class="table-name">{{ (table.name || `MESA ${table.number}`).toUpperCase() }}</span>
+              <div class="table-actions" @click.stop>
+                <button @click="editTablePrompt(table)" class="btn-action edit" title="Editar mesa">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button @click="deleteTablePrompt(table)" class="btn-action delete" title="Eliminar mesa">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
             </div>
            </div>
            <button class="add-table-btn" @click="createTablePrompt">MESA ＋</button>
@@ -170,7 +178,10 @@
           </div>
           <div class="add-menu-card w-100" @click="handleAddMenu">
             ＋ Agregar menú (PDF)
-            </div>
+          </div>
+          <div class="debug-menu-card w-100" @click="debugUpload">
+            🐛 DEBUG Upload Test
+          </div>
          </div>
       </div>
     </div>
@@ -182,6 +193,36 @@
       input-type="number"
       @confirm="confirmCreateTable"
     />
+    
+    <!-- Modal para editar mesa -->
+    <BaseModal v-model="showEditTableModal" title="Editar Mesa">
+      <div class="edit-table-content">
+        <div class="form-group">
+          <label for="edit-table-number">Número de la mesa:</label>
+          <input 
+            id="edit-table-number" 
+            v-model.number="editTableData.number" 
+            type="number" 
+            class="form-control"
+            min="1"
+          />
+        </div>
+        <div class="form-group">
+          <label for="edit-table-name">Nombre personalizado (opcional):</label>
+          <input 
+            id="edit-table-name" 
+            v-model="editTableData.name" 
+            type="text" 
+            class="form-control"
+            placeholder="Ej: Mesa VIP, Mesa Terraza..."
+          />
+        </div>
+      </div>
+      <template #footer>
+        <button class="btn btn-secondary" @click="showEditTableModal = false">Cancelar</button>
+        <button class="btn btn-primary" @click="confirmEditTable">Guardar Cambios</button>
+      </template>
+    </BaseModal>
     <BaseModal v-model="showDownloadModal" title="Exportar Códigos QR">
       <div class="download-modal-content">
         <p>Selecciona el formato en el que deseas descargar los códigos QR.</p>
@@ -242,6 +283,7 @@ import TableListItemSkeleton from '@/components/skeletons/TableListItemSkeleton.
 import { api } from '@/services/api'
 const router = useRouter();
 const adminStore = useAdminStore();
+const maxMenuSizeMB = 50;
 const isLoading = computed(() => adminStore.isLoading);
 const error = computed(() => adminStore.error);
 const tables = computed(() => adminStore.tables);
@@ -251,6 +293,8 @@ const qrImageUrl = ref('');
 const activeTab = ref(localStorage.getItem('adminQRTab') || 'tables');
 const showTableModal = ref(false)
 const newTableName = ref('')
+const showEditTableModal = ref(false)
+const editTableData = ref({ id: null, number: null, name: '' })
 const overlayMenuId = ref(null)
 const processingMenuId = ref(null)
 const selectedTables = ref([]);
@@ -305,13 +349,99 @@ const confirmCreateTable = async (tableNumber) => {
     showErrorToast(err.message || 'Error al crear la mesa');
   }
 };
+
+const editTablePrompt = (table) => {
+  editTableData.value = {
+    id: table.id,
+    number: table.number,
+    name: table.name || ''
+  };
+  showEditTableModal.value = true;
+};
+
+const confirmEditTable = async () => {
+  if (!editTableData.value.number || editTableData.value.number <= 0) {
+    showErrorToast('Por favor, ingresa un número de mesa válido y mayor a cero.');
+    return;
+  }
+  
+  try {
+    const updateData = {
+      number: editTableData.value.number,
+      name: editTableData.value.name || null
+    };
+    
+    await adminStore.updateTable(editTableData.value.id, updateData);
+    showEditTableModal.value = false;
+    
+    // Update selected table if it's the one being edited
+    if (selectedTable.value && selectedTable.value.id === editTableData.value.id) {
+      const updatedTable = tables.value.find(t => t.id === editTableData.value.id);
+      if (updatedTable) {
+        selectedTable.value = updatedTable;
+      }
+    }
+    
+    showSuccessToast('Mesa actualizada correctamente');
+  } catch (err) {
+    showErrorToast(err.message || 'Error al actualizar la mesa');
+  }
+};
+
+const deleteTablePrompt = async (table) => {
+  const result = await Swal.fire({
+    title: '¿Eliminar mesa?',
+    html: `¿Estás seguro de que deseas eliminar la mesa <strong>${table.name || `MESA ${table.number}`}</strong>?<br><br><small class="text-danger">Esta acción no se puede deshacer y eliminará también su código QR.</small>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#dc3545',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar'
+  });
+
+  if (result.isConfirmed) {
+    try {
+      await adminStore.deleteTable(table.id);
+      
+      // Clear selection if deleted table was selected
+      if (selectedTable.value && selectedTable.value.id === table.id) {
+        selectedTable.value = null;
+      }
+      
+      // Remove from selected tables if it was selected
+      selectedTables.value = selectedTables.value.filter(t => t.id !== table.id);
+      
+      showSuccessToast(`Mesa ${table.name || table.number} eliminada correctamente`);
+    } catch (err) {
+      showErrorToast(err.message || 'Error al eliminar la mesa');
+    }
+  }
+};
 const generateQrForSelectedTable = async () => {
   if (!selectedTable.value) return;
   try {
-    await adminStore.generateQrCode(selectedTable.value.id);
-    showSuccessToast('Se ha procesado el QR para la mesa.');
+    // Determine action before API call
+    const hasExistingQr = selectedTable.value.qr_code;
+    const action = hasExistingQr ? 'regenerado' : 'generado';
+    
+    // Use regenerateQrCode for the "Regenerar QR" button to create a new QR code
+    if (hasExistingQr) {
+      await adminStore.regenerateQrCode(selectedTable.value.id);
+    } else {
+      // Use generateQrCode only for tables that don't have a QR code yet
+      await adminStore.generateQrCode(selectedTable.value.id);
+    }
+    
+    // Update the selected table with the fresh data from the store
+    const updatedTable = tables.value.find(t => t.id === selectedTable.value.id);
+    if (updatedTable) {
+      selectedTable.value = updatedTable;
+    }
+    
+    showSuccessToast(`Código QR ${action} exitosamente.`);
   } catch (error) {
-    showErrorToast(error.message || 'Error al generar código QR');
+    showErrorToast(error.message || 'Error al procesar código QR');
   }
 };
 const shareQrFile = async (table) => {
@@ -361,8 +491,9 @@ const handleAddMenu = async () => {
     cancelButtonText: 'Cancelar'
   })
   if (!file) return;
-  if (file.size > 10 * 1024 * 1024) {
-    showErrorToast('El archivo supera los 10 MB');
+  const sizeMB = file.size / (1024 * 1024);
+  if (sizeMB > maxMenuSizeMB) {
+    showErrorToast(`El archivo (${sizeMB.toFixed(2)} MB) supera el límite de ${maxMenuSizeMB} MB`);
     return;
   }
   const { value: name } = await Swal.fire({
@@ -379,6 +510,28 @@ const handleAddMenu = async () => {
   await adminStore.uploadMenu(fd);
   showSuccessToast('Menú subido');
 };
+
+const debugUpload = async () => {
+  try {
+    const response = await api.post('/debug/fix-php-limits', {})
+
+    console.log('🐛 DEBUG RESULT:', response.data);
+    
+    Swal.fire({
+      title: '✅ DEBUG Success',
+      text: response.data,
+      icon: 'success'
+    });
+  } catch (error) {
+    console.error('🐛 DEBUG ERROR:', error);
+    Swal.fire({
+      title: '❌ DEBUG Error',
+      text: error.message || 'Error al ejecutar el debug',
+      icon: 'error'
+    });
+  }
+};
+
 const toggleOverlay = (menuId) => {
   overlayMenuId.value = overlayMenuId.value === menuId ? null : menuId
 }
@@ -573,6 +726,16 @@ watch(selectedTable, async (newTable) => {
     }
   }
 });
+
+// Watch for changes in the tables array to update selected table if it was modified
+watch(tables, (newTables) => {
+  if (selectedTable.value) {
+    const updatedSelectedTable = newTables.find(t => t.id === selectedTable.value.id);
+    if (updatedSelectedTable && updatedSelectedTable !== selectedTable.value) {
+      selectedTable.value = updatedSelectedTable;
+    }
+  }
+}, { deep: true });
 </script>
 <style scoped lang="scss">
 .qr-management-container {
@@ -622,18 +785,78 @@ watch(selectedTable, async (newTable) => {
   display: flex;
   gap: 0.75rem;
   align-items: center;
+  justify-content: space-between;
   padding: 1rem;
   border-radius: 6px;
   margin-bottom: 0.5rem;
   cursor: pointer;
   border: 1px solid transparent;
+  transition: all 0.2s ease;
+  
   &:hover {
     background: #f1f3f5;
+    
+    .table-actions {
+      opacity: 1;
+      visibility: visible;
+    }
   }
+  
   &.active {
     background: #e9e4f8;
     border-color: #6A3FEA;
     font-weight: 600;
+    
+    .table-actions {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+  
+  .table-name {
+    flex: 1;
+    margin-left: 0.5rem;
+  }
+}
+
+.table-actions {
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+}
+
+.btn-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  
+  &.edit {
+    background-color: #ffc107;
+    color: #000;
+    
+    &:hover {
+      background-color: #e0a800;
+      transform: scale(1.05);
+    }
+  }
+  
+  &.delete {
+    background-color: #dc3545;
+    color: white;
+    
+    &:hover {
+      background-color: #c82333;
+      transform: scale(1.05);
+    }
   }
 }
 .form-check-input {
@@ -785,6 +1008,14 @@ watch(selectedTable, async (newTable) => {
   border: 2px dashed #1e40af;
   color: #1e40af;
   font-weight: 600;
+}
+
+.debug-menu-card {
+  background: none;
+  border: 2px dashed #dc2626;
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 .card-content {
   transition: filter .2s ease;
@@ -961,6 +1192,44 @@ watch(selectedTable, async (newTable) => {
       padding: 0.5rem;
       border-radius: 6px;
       border: 1px solid #ced4da;
+    }
+  }
+}
+
+.edit-table-content {
+  .form-group {
+    margin-bottom: 1rem;
+    
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: #495057;
+    }
+    
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      
+      &:focus {
+        outline: none;
+        border-color: #6A3FEA;
+        box-shadow: 0 0 0 0.2rem rgba(106, 63, 234, 0.25);
+      }
+    }
+    
+    input[type="number"] {
+      -moz-appearance: textfield;
+      
+      &::-webkit-outer-spin-button,
+      &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
     }
   }
 }

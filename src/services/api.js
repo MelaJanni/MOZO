@@ -39,6 +39,13 @@ api.interceptors.response.use(
           localStorage.setItem('token', token);
         }
       }
+      // Fallback: token en encabezado Authorization
+      if (!localStorage.getItem('token') && response.headers) {
+        const authHeader = response.headers['authorization'] || response.headers['Authorization']
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          localStorage.setItem('token', authHeader.replace('Bearer ', ''))
+        }
+      }
     } catch (e) {}
     
     return response
@@ -74,7 +81,8 @@ api.interceptors.response.use(
 
 const apiService = {
   login: (credentials) => api.post('login', credentials),
-  loginWithGoogle: (token) => api.post('login/google', { token }),
+  loginWithGoogle: (data) => api.post('login/google', data),
+  checkUserExists: (email) => api.post('check-user-exists', { email }),
   forgotPassword: (email) => api.post('forgot-password', email),
   resetPassword: (data) => api.post('reset-password', data),
   callWaiter: (tableId) => api.post(`tables/${tableId}/call-waiter`),
@@ -82,18 +90,54 @@ const apiService = {
   
   getCurrentUser: () => api.get('user'),
   logout: () => api.post('logout'),
-  selectRole: (role) => api.post('role/select', { role }),
+  // Selección de rol (opcionalmente con negocio activo)
+  selectRole: (role, businessId = null) => {
+    const payload = { role }
+    if (businessId) payload.business_id = businessId
+    return api.post('role/select', payload)
+  },
   updateProfile: (formData) => api.post('profile/update', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  updateWaiterProfile: (data) => api.post('profile/waiter/update', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  getProfileCompleteness: () => api.get('profile/completeness'),
+  
+  // 🔄 NUEVAS APIs de Perfiles Separados por Rol
+  getActiveUserProfile: (businessId = null) => {
+    const params = businessId ? { business_id: businessId } : {}
+    return api.get('user-profile/active', { params })
+  },
+  getAllUserProfiles: () => api.get('user-profile/all'),
+  updateWaiterUserProfile: (data) => api.post('user-profile/waiter/update', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  updateAdminUserProfile: (data) => api.post('user-profile/admin/update', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  deleteUserProfileAvatar: (data) => api.delete('user-profile/avatar', { data }),
+  changePassword: (data) => api.post('change-password', data),
+  deleteAccount: (data) => api.delete('delete-account', { data }),
   sendWhatsAppMessage: (data) => api.post('profile/whatsapp/send', data),
   
-  getNotifications: () => api.get('notifications'),
-  handleNotification: (notificationId, data) => api.post(`notifications/handle/${notificationId}`, data),
+  // Notificaciones de usuario (contrato propone /user/notifications)
+  // Mantenemos compat con el antiguo si el backend lo soporta en otra capa.
+  getNotifications: () => api.get('user/notifications'),
+  handleNotification: (notificationId) => api.post(`user/notifications/${notificationId}/read`),
   globalNotifications: (data) => api.post('notifications/global', data),
   
   storeDeviceToken: (data) => api.post('device-token', data),
-  deleteDeviceToken: (data) => api.delete('device-token', { data }),
+  deleteDeviceToken: (arg) => {
+    // Permitir: deleteDeviceToken({ token }) ó deleteDeviceToken(tokenId)
+    if (arg && typeof arg === 'object') {
+      return api.delete('device-token', { data: arg })
+    }
+    if (typeof arg === 'string' || typeof arg === 'number') {
+      return api.delete(`device-token/${arg}`)
+    }
+    return api.delete('device-token')
+  },
   
   toggleTableNotifications: (tableId) => api.post(`tables/toggle-notifications/${tableId}`),
   
@@ -108,8 +152,10 @@ const apiService = {
   waiterGlobalNotifications: (data) => api.post('waiter/notifications/global', data),
   waiterToggleTableNotifications: (tableId) => api.post(`waiter/tables/toggle-notifications/${tableId}`),
   
+  // INFO de negocio activo del Admin
   getBusinessInfo: () => api.get('admin/business'),
-  switchView: (data) => api.post('admin/switch-view', data),
+  // Listar todos los negocios del admin (incluye activo)
+  getAdminBusinesses: () => api.get('admin/businesses'),
   removeStaff: (staffId) => api.delete(`admin/staff/${staffId}`),
   handleStaffRequest: (requestId, data) => api.post(`admin/staff/request/${requestId}`, data),
   getStaffRequests: () => api.get('admin/staff/requests'),
@@ -123,25 +169,20 @@ const apiService = {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   setDefaultMenu: (data) => api.post('menus/default', data),
-  generateQRCode: (tableId) => {
-    const qrBaseUrl = import.meta.env.VITE_QR_BASE_URL || window.location.origin;
-    console.log('🔍 Generating QR with base URL:', qrBaseUrl);
-    console.log('📋 Environment vars:', {
-      VITE_QR_BASE_URL: import.meta.env.VITE_QR_BASE_URL,
-      VITE_URL_API: import.meta.env.VITE_URL_API,
-      window_origin: window.location.origin
-    });
-    return api.post(`admin/qr/generate/${tableId}`, { 
-      base_url: qrBaseUrl 
-    });
-  },
+  // QR Admin
+  generateQRCode: (tableId) => api.post(`admin/qr/generate/${tableId}`),
+  regenerateQRCode: (tableId) => api.post(`admin/qr/generate/${tableId}`, { regenerate: true }),
+  getQrPreview: (tableId) => api.get(`admin/qr/preview/${tableId}`, { responseType: 'text' }),
   exportQR: (data) => api.post('admin/qr/export', data),
+  sendQrEmail: (data) => api.post('admin/qr/email', data),
   getSettings: () => api.get('admin/settings'),
   updateSettings: (data) => api.post('admin/settings', data),
   deleteMenu: (menuId) => api.delete(`menus/${menuId}`),
   renameMenu: (menuId, data) => api.put(`menus/${menuId}`, data),
-  reorderMenus: (menuOrder) => api.post('menus/reorder', { menu_order: menuOrder }),
+  // Reordenar menús según contrato: { order: [{ menu_id, display_order }] }
+  reorderMenus: (order) => api.post('menus/reorder', { order }),
   previewMenu: (menuId) => api.get(`menus/${menuId}/preview`, { responseType: 'blob' }),
+  downloadMenu: (menuId) => api.get(`menus/${menuId}/download`, { responseType: 'blob' }),
   cloneTable: (tableId, data) => api.post(`tables/clone/${tableId}`, data),
   getStaff: (page = 1) => api.get(`admin/staff?page=${page}`),
   getStaffMember: (staffId) => api.get(`admin/staff/${staffId}`),
@@ -157,7 +198,6 @@ const apiService = {
   changePassword: (data) => api.post('change-password', data),
   deleteAccount: (data) => api.delete('delete-account', { data }),
   getAdminStatistics: () => api.get('admin/statistics'),
-  sendQrEmail: (data) => api.post('admin/qr/email', data),
   
   getAdminNotifications: () => api.get('admin/notifications'),
   listWorkHistory: () => api.get('profile/work-history'),
@@ -173,6 +213,19 @@ const apiService = {
   createAdminStaff: (data) => api.post('admin/staff', data),
   updateAdminStaff: (staffId, data) => api.post(`admin/staff/${staffId}`, data),
   deleteAdminStaff: (staffId) => api.delete(`admin/staff/${staffId}`),
+  
+  // 🔥 NEW STAFF MANAGEMENT APIs with Firebase
+  getStaffByBusiness: (businessId) => api.get(`staff?business_id=${businessId}`),
+  createStaff: (data) => api.post('staff', data),
+  getStaffById: (id) => api.get(`staff/${id}`),
+  approveStaff: (id, data) => api.post(`staff/${id}/approve`, data),
+  rejectStaff: (id, data) => api.post(`staff/${id}/reject`, data),
+  inviteStaffMember: (id) => api.post(`staff/${id}/invite`),
+  getStaffWhatsApp: (id) => api.get(`staff/${id}/whatsapp`),
+  deleteStaffById: (id) => api.delete(`staff/${id}`),
+  joinStaffWithToken: (token, data) => api.post(`staff/join/${token}`, data),
+  testStaffNotifications: (data) => api.post('staff/test-notifications', data),
+  
   getAdminMenus: () => api.get('admin/menus'),
   getAdminMenuDetails: (menuId) => api.get(`admin/menus/${menuId}`),
   createAdminMenu: (data) => api.post('admin/menus', data),
@@ -190,15 +243,19 @@ const apiService = {
   subscribeToTopic: (data) => api.post('admin/notifications/subscribe-to-topic', data),
   unsubscribeFromTopic: (data) => api.post('admin/notifications/unsubscribe-from-topic', data),
   
-  // Device Tokens - Gestión
-  storeDeviceToken: (data) => api.post('device-token', data),
+  // Device Tokens - Gestión (mantener helper de listado por compatibilidad)
   getDeviceTokens: (userId) => api.get(`device-tokens/${userId}`),
-  deleteDeviceToken: (tokenId) => api.delete(`device-token/${tokenId}`),
   
   // Compatibilidad con endpoints existentes
   sendPushToUser: (data) => api.post('admin/notifications/send-to-user', data),
   
   healthCheck: () => api.get('health-check'),
+
+  // ===== ADMIN BUSINESS =====
+  getBusinessInfo: () => api.get('admin/business'),
+  createBusiness: (data) => api.post('admin/business/create', data),
+  joinBusiness: (invitationCode) => api.post('join-business', { invitation_code: invitationCode }),
+  regenerateInvitationCode: () => api.post('admin/business/regenerate-invitation-code'),
 
   // ===== UNIFIED FIREBASE CONFIG =====
   getFirebaseConfig: () => api.get('firebase/config'),
@@ -300,7 +357,31 @@ const apiService = {
   joinBusinessWithCode: (code) => api.post('waiter/join-business', { business_code: code }),
   
   // Salir de un negocio
-  leaveWaiterBusiness: (businessId) => api.delete(`waiter/businesses/${businessId}/leave`)
+  leaveWaiterBusiness: (businessId) => api.delete(`waiter/businesses/${businessId}/leave`),
+  
+  // ===== ANTI-SPAM APIs =====
+  
+  // Bloquear IP por spam
+  blockIpForSpam: (data) => api.post('waiter/ip/block', data),
+  
+  // Desbloquear IP
+  unblockIp: (data) => api.post('waiter/ip/unblock', data),
+  
+  // Listar IPs bloqueadas
+  getBlockedIps: (params) => api.get('waiter/ip/blocked', { params }),
+
+  // Debug de estado de IP bloqueada
+  debugBlockedIp: (params) => api.get('waiter/ip/debug', { params }),
+
+  // Desbloqueo forzado de una IP
+  forceUnblockIp: (data) => api.post('waiter/ip/force-unblock', data),
+  
+  // ===== WAITER PROFILE APIs =====
+  // Obtener negocios activos del waiter para hoy
+  getWaiterBusinessesActiveToday: () => api.get('waiter/businesses/active-today'),
+  
+  // Abandonar un negocio
+  leaveBusinessAsWaiter: (data) => api.post('waiter/leave-business', data)
 }
 
 export { api, apiService }

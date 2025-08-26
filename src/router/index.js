@@ -10,8 +10,8 @@ import RoleSelection from '@/views/auth/RoleSelection.vue'
 import WaiterDashboard from '@/views/Waiter/Dashboard.vue'
 import UserProfile from '@/views/Waiter/Profile.vue'
 import WaiterOnboarding from '@/views/Waiter/Onboarding.vue'
+import StaffInvitations from '@/views/StaffInvitations.vue'
 
-import AdminDashboard from '@/views/Admin/Dashboard.vue'
 import AdminHome from '@/views/Admin/Home.vue'
 import AdminQR from '@/views/Admin/QR.vue'
 import AdminStats from '@/views/Admin/Stats.vue'
@@ -20,6 +20,7 @@ import AdminStaffDetail from '@/views/Admin/StaffDetail.vue'
 import AdminProfile from '@/views/Admin/Profile.vue'
 import AdminSettings from '@/views/Admin/Settings.vue'
 import AdminNotificationDebug from '@/views/Admin/NotificationDebug.vue'
+import AdminOnboarding from '@/views/Admin/Onboarding.vue'
 
 // Public views (no authentication required)
 import MenuTable from '@/views/Public/MenuTable.vue'
@@ -37,7 +38,10 @@ const router = createRouter({
         const authStore = useAuthStore();
         const { isAuthenticated, currentRole } = storeToRefs(authStore);
         if (isAuthenticated.value) {
-          const role = currentRole.value || 'admin';
+          const role = currentRole.value;
+          if (!role) {
+            return next({ name: 'role-selection' })
+          }
           const dashboardName = role === 'waiter' ? 'waiter-dashboard' : 'admin';
           return next({ name: dashboardName });
         }
@@ -61,6 +65,12 @@ const router = createRouter({
       name: 'forgot-password',
       component: ForgotPassword,
       meta: { requiresGuest: true }
+    },
+    {
+      path: '/join/:token',
+      name: 'join-staff',
+      component: () => import('@/views/JoinStaff.vue'),
+      meta: { requiresGuest: false } // Can be accessed by both authenticated and unauthenticated users
     },
     {
       path: '/reset-password',
@@ -87,6 +97,12 @@ const router = createRouter({
       component: WaiterOnboarding,
       meta: { requiresAuth: true, role: 'waiter' }
     },
+    {
+      path: '/staff/invitations',
+      name: 'staff-invitations',
+      component: StaffInvitations,
+      meta: { requiresAuth: true }
+    },
     
     {
       path: '/profile',
@@ -94,18 +110,28 @@ const router = createRouter({
       component: UserProfile,
       meta: { requiresAuth: true }
     },
+    {
+      path: '/completeness',
+      name: 'completeness',
+      component: () => import('@/views/Completeness.vue'),
+      meta: { requiresAuth: true }
+    },
     
     {
       path: '/admin',
       name: 'admin',
-      component: AdminDashboard,
+      component: AdminHome,
+      meta: { requiresAuth: true, role: 'admin' }
+    },
+    {
+      path: '/admin/onboard',
+      name: 'admin-onboard',
+      component: AdminOnboarding,
       meta: { requiresAuth: true, role: 'admin' }
     },
     {
       path: '/admin/home',
-      name: 'admin-home',
-      component: AdminHome,
-      meta: { requiresAuth: true, role: 'admin' }
+      redirect: { name: 'admin' }
     },
     {
       path: '/admin/qr',
@@ -167,18 +193,61 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
-  const { isAuthenticated } = storeToRefs(authStore);
-  
-  // Allow public routes without authentication
-  if (to.meta.isPublic) {
+  const { isAuthenticated, currentRole, initialized } = storeToRefs(authStore);
+  // Lazy import del store para evitar ciclos durante inicialización
+  const { useAdminStore } = await import('@/stores/admin')
+  const adminStore = useAdminStore()
+
+  // Rutas públicas
+  if (to.meta.isPublic) return next();
+
+  // Requiere invitado
+  if (to.meta.requiresGuest) {
+    if (isAuthenticated.value) return next({ name: 'root' });
     return next();
   }
-  
-  if (isAuthenticated.value && !authStore.user) {
-    await authStore.fetchUser();
+
+  // Rutas autenticadas
+  if (to.meta.requiresAuth) {
+    // Asegurar que el store de auth haya intentado restaurar sesión
+    if (!initialized.value) {
+      try { await authStore.tryToLogin() } catch (e) {}
+    }
+
+    if (!isAuthenticated.value) return next({ name: 'login' });
+    if (!authStore.user) await authStore.fetchUser(false); // No forzar, usar cache
+
+    // Enforce role if specified
+    if (to.meta.role) {
+      // Si aún no hay rol resuelto, dirigir a selección de rol
+      if (!currentRole.value) {
+        return next({ name: 'role-selection' })
+      }
+      const role = currentRole.value
+      if (to.meta.role !== role) {
+        return next({ name: role === 'waiter' ? 'waiter-dashboard' : 'admin' })
+      }
+    }
+
+    // Admin: si requiere setup de negocio, redirigir a onboarding salvo que ya esté ahí
+    if ((to.name?.toString().startsWith('admin')) && to.name !== 'admin-onboard') {
+      try {
+        // Si aún no sabemos, consulta ligera
+        if (adminStore.requiresBusinessSetup === false && adminStore.activeBusinessId) {
+          // ya tiene negocio
+        } else {
+          const info = await adminStore.fetchBusinessData()
+          if (adminStore.requiresBusinessSetup || info?.requires_business_setup) {
+            return next({ name: 'admin-onboard' })
+          }
+        }
+      } catch (e) {
+        // En caso de error de red, no bloquear la navegación
+      }
+    }
   }
 
-  next();
+  return next();
 })
 
 export default router 

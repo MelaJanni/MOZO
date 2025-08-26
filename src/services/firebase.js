@@ -21,6 +21,7 @@ const firebaseConfig = {
 let app = null
 let messaging = null
 let db = null
+let auth = null
 
 /**
  * Initialize Firebase App (always works)
@@ -49,18 +50,56 @@ export const initializeFirebaseApp = async () => {
     // Initialize Firebase App (this works everywhere)
     const { initializeApp } = await import('firebase/app')
     app = initializeApp(firebaseConfig)
-    console.log('🔥 Firebase App initialized appId=', firebaseConfig.appId, 'projectId=', firebaseConfig.projectId)
+    //console.log('🔥 Firebase App initialized appId=', firebaseConfig.appId, 'projectId=', firebaseConfig.projectId)
 
     // Initialize Firestore (works everywhere)
     const { getFirestore } = await import('firebase/firestore')
     db = getFirestore(app)
-    console.log('🔥 Firestore initialized')
+    //console.log('🔥 Firestore initialized')
 
-    return { app, db }
+    // Initialize Firebase Auth for Realtime Database access
+    const { getAuth, signInAnonymously, onAuthStateChanged } = await import('firebase/auth')
+    auth = getAuth(app)
+    
+    // Sign in anonymously to allow Realtime Database access
+    try {
+      const userCredential = await signInAnonymously(auth)
+      console.log('🔥 Firebase Auth: Anonymous sign-in successful, UID:', userCredential.user.uid)
+      
+      // Verificar que la autenticación esté activa
+      await new Promise((resolve) => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          if (user) {
+            console.log('🔥 Firebase Auth: User authenticated with UID:', user.uid)
+          } else {
+            console.warn('🔥 Firebase Auth: No user authenticated')
+          }
+          unsubscribe()
+          resolve()
+        })
+      })
+      
+    } catch (authError) {
+      console.error('🔥 Firebase Auth: Anonymous sign-in failed:', authError)
+      // Aún así devolvemos la instancia para otros servicios de Firebase
+    }
+
+    return { app, db, auth }
   } catch (error) {
     console.error('🔥 Firebase App initialization error:', error)
     return null
   }
+}
+
+/**
+ * Get Firebase Auth instance
+ * @returns {Object} Firebase Auth instance
+ */
+export const getAuth = async () => {
+  if (!auth) {
+    await initializeFirebaseApp()
+  }
+  return auth
 }
 
 /**
@@ -79,7 +118,7 @@ export const initializeFirebase = async () => {
     if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
-        console.log('🔥 Service Worker registered successfully')
+        //console.log('🔥 Service Worker registered successfully')
       } catch (error) {
         console.error('🔥 Service Worker registration failed:', error)
       }
@@ -92,18 +131,30 @@ export const initializeFirebase = async () => {
     if (!supported) {
       console.log('🔥 Firebase Messaging not supported in this browser')
       // Still return the app for other Firebase services
-      return { app, messaging: null, db }
+      const { getAuth } = await import('firebase/auth')
+      const auth = getAuth(app)
+      return { app, messaging: null, db, auth }
     }
 
     // Initialize Firebase Messaging
     messaging = getMessaging(app)
-    console.log('🔥 Firebase Messaging initialized')
+    //console.log('🔥 Firebase Messaging initialized')
 
-    return { app, messaging, db }
+    // Get auth instance if it was initialized
+    const { getAuth } = await import('firebase/auth')
+    const auth = getAuth(app)
+
+    return { app, messaging, db, auth }
   } catch (error) {
     console.error('🔥 Firebase initialization error:', error)
     // Fallback: return at least the app
-    return { app, messaging: null, db }
+    try {
+      const { getAuth } = await import('firebase/auth')
+      const auth = getAuth(app)
+      return { app, messaging: null, db, auth }
+    } catch (authError) {
+      return { app, messaging: null, db, auth: null }
+    }
   }
 }
 
@@ -130,7 +181,7 @@ export const getFCMToken = async () => {
     } else {
       // Check notification permissions
       let permission = Notification.permission
-      console.log('🔥 Current notification permission:', permission)
+      //console.log('🔥 Current notification permission:', permission)
       
       if (permission === 'default') {
         console.log('🔥 Requesting notification permissions...')
@@ -147,18 +198,18 @@ export const getFCMToken = async () => {
       if (permission !== 'granted') {
         throw new Error('Notification permissions not granted')
       }
-      
-      console.log('✅ Notification permissions granted')
+
+      //console.log('✅ Notification permissions granted')
     }
 
-    console.log('🔥 Getting FCM token...')
+    //console.log('🔥 Getting FCM token...')
     
     // Use VAPID key (required for web)
     const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY
     const tokenOptions = {}
     
     if (vapidKey) {
-      console.log('🔥 Using VAPID key:', vapidKey.substring(0, 10) + '...')
+      //console.log('🔥 Using VAPID key:', vapidKey.substring(0, 10) + '...')
       tokenOptions.vapidKey = vapidKey
     } else {
       console.warn('🔥 VAPID key not configured - this may fail in production')
@@ -171,7 +222,7 @@ export const getFCMToken = async () => {
       throw new Error('Failed to obtain FCM token')
     }
 
-  console.log('🔥 FCM token obtained (length=' + token.length + '):', token.substring(0, 25) + '...')
+    //console.log('🔥 FCM token obtained (length=' + token.length + '):', token.substring(0, 25) + '...')
     
     // Store in localStorage for persistence
     localStorage.setItem('fcm_token', token)
@@ -197,17 +248,17 @@ export const setupForegroundMessageListener = async (callback) => {
 
     const { onMessage } = await import('firebase/messaging')
     
-    console.log('🔥 Setting up foreground message listener...')
+    //console.log('🔥 Setting up foreground message listener...')
     
     onMessage(messaging, (payload) => {
-      console.log('🔥🚨 FCM MESSAGE RECEIVED (Firebase onMessage):', payload)
-      console.log('🔥📱 Detailed payload:', {
-        notification: payload.notification,
-        data: payload.data,
-        from: payload.from,
-        messageId: payload.messageId
-      })
-      console.log('🔥⏰ Timestamp:', new Date().toLocaleTimeString())
+      // console.log('🔥🚨 FCM MESSAGE RECEIVED (Firebase onMessage):', payload)
+      // console.log('🔥📱 Detailed payload:', {
+      //   notification: payload.notification,
+      //   data: payload.data,
+      //   from: payload.from,
+      //   messageId: payload.messageId
+      // })
+      // console.log('🔥⏰ Timestamp:', new Date().toLocaleTimeString())
       
       // Process the notification according to backend structure
       const processedNotification = processNotificationPayload(payload)
@@ -252,7 +303,7 @@ export const setupForegroundMessageListener = async (callback) => {
       }
     })
 
-    console.log('🔥 Foreground message listener configured')
+    //console.log('🔥 Foreground message listener configured')
   } catch (error) {
     console.error('🔥 Error setting up message listener:', error)
   }
@@ -264,8 +315,8 @@ export const setupForegroundMessageListener = async (callback) => {
  * @returns {Object} Processed notification
  */
 const processNotificationPayload = (payload) => {
-  console.log('🔄 Processing notification payload...')
-  
+  // console.log('🔄 Processing notification payload...')
+
   // Base structure
   let processedNotification = {
     title: payload.notification?.title || 'Nueva notificación',
@@ -276,8 +327,8 @@ const processNotificationPayload = (payload) => {
   // Process according to notification type from backend
   if (payload.data?.type) {
     const notificationType = payload.data.type
-    
-    console.log('🔄 Notification type:', notificationType)
+
+    // console.log('🔄 Notification type:', notificationType)
 
     // Process according to backend notification types
     switch (notificationType) {
@@ -350,7 +401,7 @@ const processNotificationPayload = (payload) => {
     }
   }
 
-  console.log('✅ Notification processed:', processedNotification)
+  //console.log('✅ Notification processed:', processedNotification)
   return processedNotification
 }
 
@@ -370,8 +421,8 @@ const showBrowserNotification = (notification) => {
         data: data,
         requireInteraction: true
       })
-      
-      console.log('🔥🔔 Browser notification displayed:', browserNotification)
+
+      // console.log('🔥🔔 Browser notification displayed:', browserNotification)
     }
   } catch (error) {
     console.error('🔥❌ Error showing browser notification:', error)

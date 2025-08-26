@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
 import { useAuthStore } from '@/stores/auth'
@@ -10,6 +10,16 @@ const authStore = useAuthStore()
 
 const isLoading = ref(false)
 const error = ref('')
+const showBusinessDropdown = ref(false)
+const isLoadingBusinessSwitch = ref(false)
+const businessCode = ref('')
+
+// Computed properties for business management
+const availableBusinesses = computed(() => adminStore.availableBusinesses || [])
+const currentBusinessName = computed(() => {
+  const current = availableBusinesses.value.find(b => b.id === adminStore.activeBusinessId)
+  return current?.name || adminStore.businessData?.name || 'Negocio'
+})
 const stats = ref({
   activeRequests: 0,
   pendingRequests: 0,
@@ -18,20 +28,74 @@ const stats = ref({
   salesThisMonth: 0
 })
 
+const loadData = async () => {
+  try {
+    // Solo cargar datos de negocio si no los tenemos ya
+    let info = adminStore.businessData
+    if (!info || !info.id) {
+      info = await adminStore.fetchBusinessData()
+    }
+    
+    // Si el backend indica que requiere setup de negocio, redirigir a onboarding
+    if (adminStore.requiresBusinessSetup || info?.requires_business_setup) {
+      router.replace({ name: 'admin-onboard' })
+      return
+    }
+    
+    // Cargar datos en paralelo para mejorar rendimiento y evitar duplicados
+    const promises = []
+    
+    // Solo cargar negocios si no están ya cargados
+    if (!adminStore.requiresBusinessSetup && (!adminStore.availableBusinesses || adminStore.availableBusinesses.length === 0)) {
+      promises.push(
+        adminStore.fetchAllBusinesses().catch(err => {
+          console.warn('Error al cargar lista de negocios:', err)
+        })
+      )
+    }
+    
+    // Solo cargar si no están ya cargados
+    if (!adminStore.staffRequests || adminStore.staffRequests.length === 0) {
+      promises.push(adminStore.fetchStaffRequests())
+    }
+    
+    // Cargar estadísticas (estas pueden cambiar frecuentemente)
+    promises.push(adminStore.fetchDashboardStats().then(statsData => {
+      stats.value = statsData
+    }))
+    
+    // Ejecutar todas las promesas en paralelo
+    await Promise.allSettled(promises)
+    
+    // Actualizar código de negocio
+    if (adminStore.businessData && adminStore.invitationCode) {
+      businessCode.value = adminStore.invitationCode
+    }
+  } catch (err) {
+    error.value = err.message || 'Error al cargar datos del negocio'
+  }
+}
+
 onMounted(async () => {
   isLoading.value = true
   error.value = ''
   
-  try {
-    await adminStore.fetchBusinessData()
-    await adminStore.fetchStaffRequests()
-    const statsData = await adminStore.fetchDashboardStats()
-    stats.value = statsData
-  } catch (err) {
-    error.value = err.message || 'Error al cargar datos del negocio'
-  } finally {
-    isLoading.value = false
-  }
+  await loadData()
+  
+  // Cerrar dropdown al hacer clic fuera
+  document.addEventListener('click', (event) => {
+    const businessDropdown = document.querySelector('.business-dropdown')
+    if (businessDropdown && !businessDropdown.contains(event.target)) {
+      showBusinessDropdown.value = false
+    }
+  })
+  
+  isLoading.value = false
+})
+
+onUnmounted(() => {
+  // Limpiar event listeners
+  document.removeEventListener('click', () => {})
 })
 
 const navigateTo = (route) => {
@@ -49,6 +113,57 @@ const copyBusinessId = () => {
       })
   }
 }
+
+const onSelectBusiness = async (id) => {
+  try {
+    isLoading.value = true
+    await adminStore.selectActiveBusiness(id)
+  } catch (e) {
+    error.value = e.message || 'No se pudo cambiar el negocio activo'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Business dropdown functions
+const toggleBusinessDropdown = () => {
+  showBusinessDropdown.value = !showBusinessDropdown.value
+}
+
+const switchBusiness = async (business) => {
+  if (business.id === adminStore.activeBusinessId) {
+    showBusinessDropdown.value = false
+    return // Ya está seleccionado
+  }
+  
+  try {
+    isLoadingBusinessSwitch.value = true
+    showBusinessDropdown.value = false
+    
+    await adminStore.selectActiveBusiness(business.id)
+    
+    // Actualizar código de negocio
+    businessCode.value = adminStore.invitationCode || ''
+    
+    // Recargar datos
+    await loadData()
+  } catch (error) {
+    console.error('Error al cambiar negocio:', error)
+  } finally {
+    isLoadingBusinessSwitch.value = false
+  }
+}
+
+const copyBusinessCode = () => {
+  navigator.clipboard.writeText(businessCode.value)
+    .then(() => {
+      // Puedes agregar un toast aquí si quieres
+      console.log('Código copiado al portapapeles')
+    })
+    .catch(err => {
+      console.error('Error al copiar al portapapeles:', err)
+    })
+}
 </script>
 
 <template>
@@ -64,8 +179,41 @@ const copyBusinessId = () => {
             <li><a class="dropdown-item" href="#">Mozo</a></li>
           </ul>
         </div>
-
-        <span class="user-id">ID:{{ adminStore.businessId }}</span>
+        <!-- Business Selector - Only show if multiple businesses available -->
+        <div v-if="availableBusinesses.length > 1" class="business-dropdown ms-auto me-2">
+          <button 
+            class="btn btn-outline-primary dropdown-toggle btn-sm" 
+            @click="toggleBusinessDropdown"
+            :disabled="isLoadingBusinessSwitch"
+          >
+            <i class="bi bi-building me-1"></i>
+            {{ isLoadingBusinessSwitch ? 'Cambiando...' : currentBusinessName }}
+            <i v-if="isLoadingBusinessSwitch" class="bi bi-arrow-clockwise spin ms-1"></i>
+          </button>
+          <div class="dropdown-menu" :class="{ show: showBusinessDropdown }">
+            <div v-for="business in availableBusinesses" :key="business.id" class="dropdown-item-wrapper">
+              <a 
+                class="dropdown-item" 
+                href="#" 
+                @click="switchBusiness(business)"
+                :class="{ active: business.id === adminStore.activeBusinessId }"
+              >
+                <i class="bi bi-building me-2"></i>
+                {{ business.name }}
+                <small v-if="business.id === adminStore.activeBusinessId" class="text-success ms-2">
+                  <i class="bi bi-check-circle-fill"></i>
+                </small>
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        <div class="user-id-container d-flex align-items-center ms-auto">
+          <span class="user-id me-2">ID:{{ businessCode }}</span>
+          <button class="btn btn-sm btn-outline-secondary" @click="copyBusinessCode" title="Copiar al portapapeles">
+            <i class="bi bi-clipboard"></i>
+          </button>
+        </div>
       </div>
     
       <div v-if="isLoading" class="text-center py-5">
@@ -82,41 +230,84 @@ const copyBusinessId = () => {
             </button>
       </div>
       
-      <div v-else class="row g-3 card-grid">
+      <div v-else>
+        <div v-if="adminStore.requiresBusinessSetup" class="alert alert-warning d-flex justify-content-between align-items-center">
+          <span>Aún no tienes un negocio configurado.</span>
+          <button class="btn btn-sm btn-primary" @click="$router.replace({ name: 'admin-onboard' })">Configurar ahora</button>
+        </div>
+        <!-- Resumen de negocio activo -->
+        <div class="card mb-3">
+          <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="me-auto">
+              <h5 class="mb-1">{{ adminStore.businessData?.name || 'Mi negocio' }}</h5>
+              <div class="text-muted small">Negocio activo: #{{ adminStore.activeBusinessId }}</div>
+            </div>
+            <div class="d-flex gap-3">
+              <div class="text-center">
+                <div class="fw-bold">{{ adminStore.tablesCount }}</div>
+                <div class="small text-muted">Mesas</div>
+              </div>
+              <div class="text-center">
+                <div class="fw-bold">{{ adminStore.menusCount }}</div>
+                <div class="small text-muted">Menús</div>
+              </div>
+              <div class="text-center">
+                <div class="fw-bold">{{ adminStore.qrCodesCount }}</div>
+                <div class="small text-muted">QRs</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer d-flex flex-wrap align-items-center gap-2">
+            <div class="me-auto small">
+              <span class="text-muted">Código de invitación: </span>
+              <code>{{ adminStore.invitationCode || '—' }}</code>
+              <span v-if="adminStore.invitationUrl" class="ms-2">
+                <a :href="adminStore.invitationUrl" target="_blank">Enlace</a>
+              </span>
+            </div>
+            <button class="btn btn-sm btn-outline-primary" @click="() => adminStore.regenerateInvitation().then(() => adminStore.fetchBusinessData())">Regenerar</button>
+            <button class="btn btn-sm btn-outline-secondary" @click="copyBusinessId">Copiar ID</button>
+          </div>
+        </div>
+
+        
+
+        <div class="row g-3 card-grid">
         <div class="col-6">
-          <a href="#" @click.prevent="navigateTo('admin-qr')" class="card dashboard-card text-center text-decoration-none">
+          <RouterLink :to="{ name: 'admin-qr' }" class="card dashboard-card text-center text-decoration-none">
             <div class="card-body">
               <i class="bi bi-qr-code"></i>
               </div>
             <div class="card-footer">QR</div>
-          </a>
+          </RouterLink>
             </div>
             
         <div class="col-6">
-          <a href="#" @click.prevent="navigateTo('admin-stats')" class="card dashboard-card text-center text-decoration-none">
+          <RouterLink :to="{ name: 'admin-stats' }" class="card dashboard-card text-center text-decoration-none">
             <div class="card-body">
               <i class="bi bi-graph-up"></i>
             </div>
             <div class="card-footer">ESTADÍSTICAS</div>
-          </a>
+          </RouterLink>
         </div>
         
         <div class="col-6">
-          <a href="#" @click.prevent="navigateTo('admin-staff')" class="card dashboard-card text-center text-decoration-none">
+          <RouterLink :to="{ name: 'admin-staff' }" class="card dashboard-card text-center text-decoration-none">
             <div class="card-body">
               <i class="bi bi-person-fill"></i>
               </div>
             <div class="card-footer">PERSONAL</div>
-          </a>
+          </RouterLink>
             </div>
             
         <div class="col-6">
-          <a href="#" @click.prevent="navigateTo('admin-settings')" class="card dashboard-card text-center text-decoration-none">
+          <RouterLink :to="{ name: 'admin-settings' }" class="card dashboard-card text-center text-decoration-none">
             <div class="card-body">
               <i class="bi bi-gear-fill"></i>
             </div>
             <div class="card-footer">CONFIGURACIÓN</div>
-          </a>
+          </RouterLink>
+        </div>
         </div>
       </div>
     </div>
@@ -124,4 +315,106 @@ const copyBusinessId = () => {
 </template>
 
 <style scoped>
+.business-dropdown {
+  position: relative;
+}
+
+.business-dropdown .dropdown-toggle {
+  display: flex;
+  align-items: center;
+  max-width: 200px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 1px solid #007bff;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.business-dropdown .dropdown-toggle:hover:not(:disabled) {
+  background-color: #007bff;
+  color: white;
+}
+
+.business-dropdown .dropdown-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.business-dropdown .dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  display: none;
+  min-width: 200px;
+  padding: 0.5rem 0;
+  margin: 0.125rem 0 0;
+  color: #212529;
+  text-align: left;
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.business-dropdown .dropdown-menu.show {
+  display: block;
+}
+
+.business-dropdown .dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  clear: both;
+  font-weight: 400;
+  color: #212529;
+  text-align: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+  background-color: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.business-dropdown .dropdown-item:hover,
+.business-dropdown .dropdown-item:focus {
+  background-color: #f8f9fa;
+  color: #1e2125;
+  text-decoration: none;
+}
+
+.business-dropdown .dropdown-item.active {
+  background-color: #007bff;
+  color: white;
+}
+
+.business-dropdown .dropdown-item.active:hover {
+  background-color: #0056b3;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.user-id-container {
+  margin-left: auto;
+}
+
+.user-id {
+  font-family: monospace;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+}
 </style> 

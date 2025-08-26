@@ -164,11 +164,11 @@ export default {
     }
   },
   
-  async selectRole(role) {
+  async selectRole(role, businessId = null) {
     try {
       // console.log('Seleccionando rol:', role)
       // console.log('Token antes de seleccionar rol:', this.getToken())
-      const response = await apiService.selectRole(role)
+      const response = await apiService.selectRole(role, businessId)
       // console.log('Respuesta selectRole COMPLETA:', JSON.stringify(response))
       const data = response.data || {}
       
@@ -186,7 +186,7 @@ export default {
         // console.warn('No se recibió un nuevo token al seleccionar el rol')
       }
 
-      const user = this.getUser()
+  const user = this.getUser()
       if (user) {
         user.role = role
         this.setUser(user)

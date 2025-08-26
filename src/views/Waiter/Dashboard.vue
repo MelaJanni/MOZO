@@ -1,5 +1,7 @@
 <template>
-  <div class="waiter-dashboard">
+  <!-- Wrapper agregado para asegurar un único nodo raíz (necesario para <Transition>) -->
+  <div class="waiter-dashboard-root">
+    <div class="waiter-dashboard">
     <!-- Header con información del mozo -->
     <div class="dashboard-header">
       <div class="waiter-info">
@@ -24,7 +26,7 @@
           <div class="stat-label">Mesas asignadas</div>
         </div>
         <div class="stat-item urgent">
-          <div class="stat-number">{{ pendingCalls.length }}</div>
+          <div class="stat-number">{{ pendingCallsWithSpamInfo.length }}</div>
           <div class="stat-label">Llamadas pendientes</div>
         </div>
         <div class="stat-item">
@@ -52,6 +54,22 @@
               >
                 <i class="fas fa-bookmark"></i>
                 Perfiles
+              </button>
+              <button 
+                v-if="!needsBusiness" 
+                @click="showBlockedIpsManager = true" 
+                class="action-btn danger"
+              >
+                <i class="fas fa-shield-alt"></i>
+                Anti-Spam
+              </button>
+              <button 
+                v-if="!needsBusiness" 
+                @click="openIpDebugPanel" 
+                class="action-btn secondary"
+              >
+                <i class="fas fa-bug"></i>
+                IP Debug
               </button>
               <button 
                 v-if="!needsBusiness" 
@@ -95,7 +113,11 @@
                   <span v-if="table.pending_calls_count > 0" class="urgency-icon">
                     <i class="fas fa-exclamation-triangle"></i>
                   </span>
-                  <span v-else-if="table.is_silenced" class="silence-icon">
+                  <span
+                    v-else-if="table.is_silenced"
+                    class="silence-icon"
+                    :title="table.silence?.remaining_time || 'Mesa silenciada'"
+                  >
                     <i class="fas fa-volume-mute"></i>
                   </span>
                   <span v-else class="ok-icon">
@@ -105,6 +127,15 @@
                 <div v-if="table.name && table.name !== `Mesa ${table.number}`" class="table-subtitle">
                   {{ table.name }}
                 </div>
+                <div 
+                  v-if="table.is_silenced" 
+                  class="table-silenced-info"
+                >
+                  <i class="fas fa-volume-mute"></i>
+                  <span>
+                    {{ table.silence?.remaining_time || (table.silence?.reason === 'manual' ? 'Silenciada manualmente' : 'Mesa silenciada') }}
+                  </span>
+                </div>
               </div>
 
               <div class="table-actions">
@@ -112,7 +143,7 @@
                   @click="activateTable(table.id)"
                   class="table-action-btn activate"
                   title="Activar llamadas"
-                  v-if="!table.notifications_enabled"
+                  v-if="table.actions_available?.can_activate"
                 >
                   <i class="fas fa-check"></i>
                 </button>
@@ -120,15 +151,15 @@
                   @click="silenceTable(table.id)"
                   class="table-action-btn silence"
                   title="Silenciar"
-                  v-if="!table.is_silenced && table.notifications_enabled"
+                  v-if="table.actions_available?.can_silence"
                 >
                   <i class="fas fa-volume-mute"></i>
                 </button>
                 <button 
                   @click="unsilenceTable(table.id)"
                   class="table-action-btn unsilence"
-                  title="Activar"
-                  v-if="table.is_silenced"
+                  title="Quitar silencio"
+                  v-if="table.actions_available?.can_unsilence"
                 >
                   <i class="fas fa-volume-up"></i>
                 </button>
@@ -136,6 +167,7 @@
                   @click="deactivateTable(table.id)"
                   class="table-action-btn deactivate"
                   title="Desactivar"
+                  v-if="table.actions_available?.can_deactivate"
                 >
                   <i class="fas fa-times"></i>
                 </button>
@@ -168,12 +200,13 @@
 
           <div class="notifications-list" id="calls-container">
             <div 
-              v-for="call in pendingCalls" 
+              v-for="call in pendingCallsWithSpamInfo" 
               :key="call.id"
               class="notification-item"
               :class="{
                 'urgent': call.urgency === 'high',
-                'old': call.minutes_ago > 5
+                'old': call.minutes_ago > 5,
+                'potential-spam': call.is_potential_spam
               }"
             >
               <div class="notification-info">
@@ -186,6 +219,15 @@
                 <div class="notification-time">
                   Hace {{ call.minutes_ago }}m
                   <span v-if="call.urgency === 'high'" class="urgent-badge">URGENTE</span>
+                  <span v-if="call.is_potential_spam" class="spam-badge">
+                    POSIBLE SPAM ({{ call.ip_call_count }}x)
+                  </span>
+                </div>
+                <div v-if="call.client_info?.ip_address" class="client-info">
+                  IP: {{ call.client_info.ip_address }}
+                  <span v-if="call.client_info.source_type" class="source-badge">
+                    {{ call.client_info.source_type }}
+                  </span>
                 </div>
               </div>
 
@@ -213,11 +255,20 @@
                 >
                   <i class="fas fa-volume-mute"></i>
                 </button>
+                <button 
+                  v-if="call.client_info?.ip_address"
+                  @click="blockIpForSpam(call)"
+                  class="notification-action-btn block-ip"
+                  :disabled="processingCall === call.id"
+                  title="Bloquear IP por spam"
+                >
+                  <i class="fas fa-ban"></i>
+                </button>
               </div>
             </div>
 
             <!-- Mensaje si no hay notificaciones -->
-            <div v-if="pendingCalls.length === 0" class="empty-notifications">
+            <div v-if="pendingCallsWithSpamInfo.length === 0" class="empty-notifications">
               <i class="fas fa-bell-slash"></i>
               <p v-if="!needsBusiness">No hay llamadas pendientes</p>
               <p v-else>Selecciona un negocio para ver las llamadas</p>
@@ -257,6 +308,71 @@
             <div v-if="callHistory.length === 0" class="empty-notifications">
               <i class="fas fa-history"></i>
               <p>No hay historial disponible</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- IPs Bloqueadas -->
+        <div class="section-card">
+          <div class="section-header">
+            <h3>
+              <i class="fas fa-ban"></i>
+              IPs Bloqueadas
+            </h3>
+            <button @click="loadBlockedIps" class="action-btn" :disabled="loading" title="Actualizar">
+              <i class="fas fa-sync-alt" :class="{ 'fa-spin': loading }"></i>
+            </button>
+          </div>
+
+          <div class="blocked-ips-list-sidebar">
+            <div
+              v-for="blockedIp in blockedIps"
+              :key="blockedIp.ip_address"
+              class="blocked-ip-item"
+            >
+              <div class="blocked-ip-info">
+                <div class="blocked-ip-address">
+                  <i class="fas fa-shield-alt"></i>
+                  {{ blockedIp.ip_address }}
+                </div>
+                <div class="blocked-ip-details">
+                  <div class="blocked-detail">
+                    <strong>Razón:</strong> {{ blockedIp.reason }}
+                  </div>
+                  <div class="blocked-detail">
+                    <strong>Por:</strong> {{ blockedIp.blocked_by }}
+                  </div>
+                  <div class="blocked-detail">
+                    <strong>Fecha:</strong> {{ formatBlockDate(blockedIp.blocked_at) }}
+                  </div>
+                  <div v-if="blockedIp.expires_at" class="blocked-detail expires">
+                    <strong>Expira:</strong> {{ formatBlockDate(blockedIp.expires_at) }}
+                  </div>
+                  <div v-else class="blocked-detail permanent">
+                    <strong>Duración:</strong> Permanente
+                  </div>
+                  <div v-if="blockedIp.notes" class="blocked-detail notes">
+                    <strong>Notas:</strong> {{ blockedIp.notes }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="blocked-ip-actions">
+                <button
+                  @click="unblockIp(blockedIp.ip_address)"
+                  class="blocked-action-btn unblock"
+                  title="Desbloquear IP"
+                >
+                  <i class="fas fa-unlock"></i>
+                  Desbloquear
+                </button>
+              </div>
+            </div>
+
+            <div v-if="blockedIps.length === 0" class="empty-notifications">
+              <i class="fas fa-shield-check"></i>
+              <p v-if="!needsBusiness">No hay IPs bloqueadas</p>
+              <p v-else>Selecciona un negocio para ver IPs bloqueadas</p>
             </div>
           </div>
         </div>
@@ -324,6 +440,176 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal gestor de IPs bloqueadas -->
+    <div v-if="showBlockedIpsManager && currentBusiness" class="modal-overlay" @click.self="showBlockedIpsManager = false">
+      <div class="modal-content large">
+        <div class="modal-header">
+          <h3>
+            <i class="fas fa-shield-alt"></i>
+            Sistema Anti-Spam - IPs Bloqueadas
+          </h3>
+          <button @click="showBlockedIpsManager = false" class="close-btn">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="anti-spam-section">
+            <!-- Estadísticas de spam -->
+            <div v-if="suspiciousIps.length > 0" class="spam-alerts">
+              <h4><i class="fas fa-exclamation-triangle"></i> IPs Sospechosas Activas</h4>
+              <div v-for="ipData in suspiciousIps" :key="ipData.ip" class="suspicious-ip-card">
+                <div class="ip-info">
+                  <strong>{{ ipData.ip }}</strong>
+                  <span class="call-count">{{ ipData.count }} llamadas en 10 min</span>
+                </div>
+                <div class="ip-calls">
+                  <div v-for="call in ipData.calls" :key="call.id" class="mini-call">
+                    Mesa {{ call.table_number }} - {{ call.message }}
+                  </div>
+                </div>
+                <button 
+                  @click="blockIpForSpam(ipData.calls[0])" 
+                  class="btn-block-ip"
+                >
+                  <i class="fas fa-ban"></i> Bloquear IP
+                </button>
+              </div>
+            </div>
+
+            <!-- Lista de IPs bloqueadas -->
+            <div class="blocked-ips-list">
+              <div class="section-header">
+                <h4><i class="fas fa-ban"></i> IPs Bloqueadas</h4>
+                <button @click="loadBlockedIps" class="btn btn-secondary btn-sm">
+                  <i class="fas fa-sync"></i> Actualizar
+                </button>
+              </div>
+
+              <div v-if="blockedIps.length === 0" class="empty-state">
+                <i class="fas fa-shield-check"></i>
+                <p>No hay IPs bloqueadas actualmente</p>
+              </div>
+
+              <div v-else class="blocked-ip-cards">
+                <div v-for="blockedIp in blockedIps" :key="blockedIp.ip_address" class="blocked-ip-card">
+                  <div class="blocked-ip-header">
+                    <div class="ip-address">{{ blockedIp.ip_address }}</div>
+                    <div class="block-reason">{{ blockedIp.reason }}</div>
+                  </div>
+                  <div class="blocked-ip-details">
+                    <div class="detail-item">
+                      <strong>Bloqueada por:</strong> {{ blockedIp.blocked_by }}
+                    </div>
+                    <div class="detail-item">
+                      <strong>Fecha:</strong> {{ new Date(blockedIp.blocked_at).toLocaleString() }}
+                    </div>
+                    <div v-if="blockedIp.expires_at" class="detail-item">
+                      <strong>Expira:</strong> {{ new Date(blockedIp.expires_at).toLocaleString() }}
+                    </div>
+                    <div v-else class="detail-item">
+                      <strong>Duración:</strong> Permanente
+                    </div>
+                    <div v-if="blockedIp.notes" class="detail-item">
+                      <strong>Notas:</strong> {{ blockedIp.notes }}
+                    </div>
+                  </div>
+                  <div class="blocked-ip-actions">
+                    <button 
+                      @click="unblockIp(blockedIp.ip_address)"
+                      class="btn btn-warning btn-sm"
+                    >
+                      <i class="fas fa-unlock"></i> Desbloquear
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+    
+    <!-- Modal Debug de IP (mantenido fuera del contenedor interno pero dentro del root único) -->
+    <div v-if="showIpDebugPanel" class="modal-overlay" @click.self="showIpDebugPanel = false">
+      <div class="modal-content large">
+        <div class="modal-header">
+          <h3>
+            <i class="fas fa-bug"></i>
+            Debug de IP (Anti-Spam)
+          </h3>
+          <button @click="showIpDebugPanel = false" class="close-btn">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body ip-debug-body">
+          <div class="ip-debug-form">
+            <label>IP a diagnosticar</label>
+            <input 
+              v-model="ipDebugInput" 
+              type="text" 
+              placeholder="Ej: 190.123.45.67" 
+              class="ip-input"
+            />
+            <div class="actions">
+              <button 
+                class="btn btn-primary" 
+                @click="runIpDebug" 
+                :disabled="!ipDebugInput || ipDebugLoading"
+              >
+                <i class="fas fa-search" v-if="!ipDebugLoading"></i>
+                <i class="fas fa-spinner fa-spin" v-else></i>
+                Diagnosticar
+              </button>
+              <button 
+                class="btn btn-warning" 
+                v-if="ipDebugResult?.active_locks?.length" 
+                @click="forceUnblockFromDebug" 
+                :disabled="ipDebugLoading"
+              >
+                <i class="fas fa-unlock"></i>
+                Force Unblock ({{ ipDebugResult.active_locks.length }})
+              </button>
+            </div>
+            <div v-if="ipDebugError" class="error-box">
+              <i class="fas fa-exclamation-triangle"></i> {{ ipDebugError }}
+            </div>
+          </div>
+          <div v-if="ipDebugResult" class="ip-debug-result">
+            <h4>Resultado:</h4>
+            <div class="summary-line">
+              <strong>IP:</strong> {{ ipDebugResult.ip_address }}
+              <strong style="margin-left:16px;">Locks activos:</strong> {{ ipDebugResult.active_locks?.length || 0 }}
+              <strong style="margin-left:16px;">Total registros:</strong> {{ ipDebugResult.all_locks?.length || 0 }}
+            </div>
+            <div class="locks-section" v-if="ipDebugResult.active_locks?.length">
+              <h5>Locks Activos</h5>
+              <ul>
+                <li v-for="lock in ipDebugResult.active_locks" :key="lock.id">
+                  ID {{ lock.id }} - expira: {{ lock.expires_at || lock.unblock_at || 'N/D' }} - razón: {{ lock.reason }}
+                </li>
+              </ul>
+            </div>
+            <div class="locks-section" v-if="ipDebugResult.inactive_locks?.length">
+              <h5>Locks Inactivos</h5>
+              <ul>
+                <li v-for="lock in ipDebugResult.inactive_locks" :key="'i-'+lock.id">
+                  ID {{ lock.id }} - desbloqueado: {{ lock.unblocked_at || 'N/D' }} - razón: {{ lock.reason }}
+                </li>
+              </ul>
+            </div>
+            <details class="raw-json">
+              <summary>Ver JSON crudo</summary>
+              <pre>{{ ipDebugResult }}</pre>
+            </details>
+          </div>
+          <div v-else-if="!ipDebugLoading" class="hint-box">
+            Ingrese una IP y presione Diagnosticar para ver su estado en el sistema anti-spam.
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -339,6 +625,7 @@ import BusinessSelector from '@/components/Waiter/BusinessSelector.vue'
 import BusinessTablesManager from '@/components/Waiter/BusinessTablesManager.vue'
 import TableProfilesManager from '@/components/Waiter/TableProfilesManager.vue'
 import DebugApiTester from '@/components/Waiter/DebugApiTester.vue'
+
 
 // Stores
 const router = useRouter()
@@ -358,7 +645,10 @@ const state = reactive({
   processingCall: null,
   showTableSelector: false,
   showTablesManager: false,
-  showProfilesManager: false
+  showProfilesManager: false,
+  showBlockedIpsManager: false,
+  blockedIps: [],
+  showIpDebugPanel: false,
 })
 
 // Referencias reactivas para el template  
@@ -378,6 +668,23 @@ const showProfilesManager = computed({
   get: () => state.showProfilesManager,
   set: (value) => state.showProfilesManager = value
 })
+const showBlockedIpsManager = computed({
+  get: () => state.showBlockedIpsManager,
+  set: (value) => state.showBlockedIpsManager = value
+})
+const showIpDebugPanel = computed({
+  get: () => state.showIpDebugPanel,
+  set: (value) => state.showIpDebugPanel = value
+})
+
+// Estado debug IP
+const ipDebugInput = ref('')
+const ipDebugLoading = ref(false)
+const ipDebugResult = ref(null)
+const ipDebugError = ref(null)
+
+// Referencias reactivas para el template
+const blockedIps = computed(() => state.blockedIps || [])
 
 // Referencias
 const businessSelector = ref(null)
@@ -428,7 +735,67 @@ const visiblePendingCalls = computed(() => {
 })
 
 const assignedTables = computed(() => {
-  return state.assignedTables
+  return state.assignedTables.map(table => {
+    // pending desde respuesta directa si existe
+    const apiPending = table.calls?.pending_count
+    // fallback: contar pendingCalls locales
+    const localPending = state.pendingCalls.filter(call => 
+      call.table_id === table.id || call.table?.id === table.id
+    ).length
+    return {
+      ...table,
+      is_silenced: table.silence?.is_silenced ?? table.is_silenced ?? false,
+      pending_calls_count: typeof apiPending === 'number' ? apiPending : localPending
+    }
+  })
+})
+
+// Computed para detectar IPs sospechosas (más de 2 llamadas en 10 minutos)
+const ipCallCounts = computed(() => {
+  if (!state.pendingCalls || !Array.isArray(state.pendingCalls)) {
+    return {}
+  }
+  
+  const now = Date.now()
+  const tenMinutesAgo = now - (10 * 60 * 1000)
+  const ipCounts = {}
+  
+  state.pendingCalls.forEach(call => {
+    const ip = call.client_info?.ip_address
+    if (!ip || !call.called_at || call.called_at < tenMinutesAgo) return
+    
+    if (!ipCounts[ip]) {
+      ipCounts[ip] = { count: 0, calls: [] }
+    }
+    ipCounts[ip].count++
+    ipCounts[ip].calls.push(call)
+  })
+  
+  return ipCounts
+})
+
+const suspiciousIps = computed(() => {
+  return Object.entries(ipCallCounts.value)
+    .filter(([ip, data]) => data.count >= 2)
+    .map(([ip, data]) => ({ ip, ...data }))
+})
+
+// Computed para marcar llamadas como potencial spam
+const pendingCallsWithSpamInfo = computed(() => {
+  if (!state.pendingCalls || !Array.isArray(state.pendingCalls)) {
+    return []
+  }
+  
+  return state.pendingCalls.map(call => {
+    const ip = call.client_info?.ip_address
+    const ipData = ipCallCounts.value[ip]
+    
+    return {
+      ...call,
+      is_potential_spam: ipData && ipData.count >= 2,
+      ip_call_count: ipData ? ipData.count : 1
+    }
+  })
 })
 
 // --- Event handlers to let Dashboard own all rendering of realtime calls ---
@@ -455,17 +822,9 @@ function handleUltraFastAddCall(ev) {
   try {
     const call = ev?.detail
     if (!call || !call.id) return
-  //console.debug('Dashboard handler ultraFastAddCall', call.id)
+  console.debug('Dashboard handler ultraFastAddCall', call.id, call)
   addOrUpdatePendingCall(call)
-  // Actualizar contadores/mesas en background para mantener UI consistente
-  try {
-    // loadAssignedTables está definido más abajo; se ejecutará cuando exista
-    if (typeof loadAssignedTables === 'function') {
-      loadAssignedTables()
-    }
-  } catch (e) {
-    /* no-op */
-  }
+  // Los contadores se actualizan automáticamente via computed properties
   } catch (e) {
     console.warn('Error handling ultraFastAddCall:', e)
   }
@@ -584,7 +943,8 @@ const loadDashboardData = async () => {
       loadAssignedTables(),
       loadPendingCalls(),
       loadAvailableTables(),
-      loadSilencedTables()
+      loadSilencedTables(),
+      loadBlockedIps()
     ])
   } catch (error) {
     console.error('Error loading dashboard data:', error)
@@ -603,14 +963,12 @@ onMounted(async () => {
 
   // Registrar listeners de eventos emitidos por el módulo realtime
   if (!window.__waiterDashboardListenersRegistered) {
-    window.addEventListener('ultraFastAddCall', handleUltraFastAddCall)
     window.addEventListener('newWaiterCall', handleUltraFastAddCall)
     window.addEventListener('updateCallStatus', handleUpdateCallStatus)
     window.addEventListener('removeCall', handleRemoveCall)
     window.addEventListener('clearAllCalls', handleClearAllCalls)
     window.addEventListener('callAcknowledged', handleCallAcknowledged)
-  // Mantener sincronizado el historial cuando adapters mueven llamadas a history
-  window.addEventListener('callMovedToHistory', handleCallMovedToHistory)
+    window.addEventListener('callMovedToHistory', handleCallMovedToHistory)
     window.__waiterDashboardListenersRegistered = true
   }
 
@@ -629,13 +987,12 @@ onUnmounted(() => {
   try {
     // Sólo eliminar si fuimos quienes los registramos
     if (window.__waiterDashboardListenersRegistered) {
-      window.removeEventListener('ultraFastAddCall', handleUltraFastAddCall)
       window.removeEventListener('newWaiterCall', handleUltraFastAddCall)
       window.removeEventListener('updateCallStatus', handleUpdateCallStatus)
       window.removeEventListener('removeCall', handleRemoveCall)
       window.removeEventListener('clearAllCalls', handleClearAllCalls)
       window.removeEventListener('callAcknowledged', handleCallAcknowledged)
-  window.removeEventListener('callMovedToHistory', handleCallMovedToHistory)
+      window.removeEventListener('callMovedToHistory', handleCallMovedToHistory)
       window.__waiterDashboardListenersRegistered = false
     }
   } catch (e) {
@@ -936,6 +1293,13 @@ const onBusinessChanged = (business) => {
   startRealtimeListeners()
 }
 
+// Abrir selector de mesas: refrescar la lista antes de mostrar
+watch(() => state.showTableSelector, async (open) => {
+  if (open && state.currentBusiness && !state.needsBusiness) {
+    await loadAvailableTables()
+  }
+})
+
 // ===== EVENT HANDLERS =====
 
 /**
@@ -1041,62 +1405,12 @@ onMounted(async () => {
   
   // Las empresas se cargan automáticamente por el BusinessSelector
   // loadDashboardData se llamará desde onBusinessesLoaded si hay negocio activo
-  
-  // Escuchar eventos personalizados del Ultra Fast Firebase
-  window.addEventListener('newWaiterCall', handleFirebaseNewCall)
-  window.addEventListener('updateCallStatus', handleFirebaseCallUpdate)
-  window.addEventListener('removeCall', handleFirebaseCallRemove)
-  window.addEventListener('clearAllCalls', handleFirebaseClearAllCalls)
 })
 
 onUnmounted(() => {
   stopRealtimeListeners()
-  window.removeEventListener('newWaiterCall', handleFirebaseNewCall)
-  window.removeEventListener('updateCallStatus', handleFirebaseCallUpdate)
-  window.removeEventListener('removeCall', handleFirebaseCallRemove)
-  window.removeEventListener('clearAllCalls', handleFirebaseClearAllCalls)
 })
 
-/**
- * Manejar nueva llamada desde Firebase
- */
-const handleFirebaseNewCall = async (event) => {
-  console.log('🔔 Nueva llamada desde Firebase:', event.detail)
-  // Agregar a la lista local
-  state.pendingCalls.unshift(event.detail)
-  await loadAssignedTables() // Actualizar contadores
-}
-
-/**
- * Manejar actualización de llamada desde Firebase
- */
-const handleFirebaseCallUpdate = async (event) => {
-  console.log('🔄 Llamada actualizada desde Firebase:', event.detail)
-  const callData = event.detail
-  const index = state.pendingCalls.findIndex(call => call.id === callData.id)
-  if (index !== -1) {
-    state.pendingCalls[index] = callData
-  }
-}
-
-/**
- * Manejar eliminación de llamada desde Firebase
- */
-const handleFirebaseCallRemove = async (event) => {
-  // console.log('❌ Llamada eliminada desde Firebase:', event.detail)
-  const { callId } = event.detail
-  state.pendingCalls = state.pendingCalls.filter(call => call.id !== callId)
-  await loadAssignedTables() // Actualizar contadores
-}
-
-/**
- * Manejar limpieza de todas las llamadas desde Firebase
- */
-const handleFirebaseClearAllCalls = async (event) => {
-  // console.log('🧹 Limpiando todas las llamadas desde Firebase')
-  state.pendingCalls = []
-  await loadAssignedTables() // Actualizar contadores
-}
 
 // ===== ACCIONES DE LLAMADAS DELEGADAS A FIREBASE =====
 
@@ -1155,6 +1469,196 @@ const createTestCall = async () => {
   } catch (error) {
     console.error('Error creando llamada de prueba:', error)
     showErrorToast('Error al crear la llamada de prueba')
+  }
+}
+
+// ===== FUNCIONES ANTI-SPAM =====
+
+/**
+ * Bloquear IP por spam
+ */
+const blockIpForSpam = async (call) => {
+  if (!call.client_info?.ip_address) {
+    showErrorToast('No se puede bloquear: IP no disponible')
+    return
+  }
+
+  try {
+    const confirmed = await showConfirmDialog(
+      '¿Bloquear IP por spam?',
+      `Se bloqueará la IP ${call.client_info.ip_address} por 24 horas. Esta IP no podrá realizar más llamadas.`,
+      'Bloquear IP',
+      'Cancelar',
+      'error'
+    )
+
+    if (confirmed) {
+      state.processingCall = call.id
+      
+      const response = await waiterCallsService.blockIpForSpam(call.id, {
+        reason: 'spam',
+        duration_hours: 24,
+        notes: `Bloqueada desde Mesa ${call.table_number} - IP: ${call.client_info.ip_address}`
+      })
+
+      if (response.success) {
+        showSuccessToast(`IP ${call.client_info.ip_address} bloqueada por 24 horas`)
+        
+        // Remover todas las llamadas de esta IP
+        const blockedIp = call.client_info.ip_address
+        state.pendingCalls = state.pendingCalls.filter(c => 
+          c.client_info?.ip_address !== blockedIp
+        )
+        
+        // Recargar lista de IPs bloqueadas
+        await loadBlockedIps()
+      } else {
+        showErrorToast(response.message || 'Error bloqueando IP')
+      }
+    }
+  } catch (error) {
+    console.error('Error blocking IP for spam:', error)
+    showErrorToast('Error bloqueando IP por spam')
+  } finally {
+    state.processingCall = null
+  }
+}
+
+/**
+ * Cargar IPs bloqueadas
+ */
+const loadBlockedIps = async () => {
+  try {
+    const response = await waiterCallsService.getBlockedIps({ active_only: true })
+    if (response.success) {
+      state.blockedIps = response.blocked_ips || []
+    } else {
+      state.blockedIps = []
+    }
+  } catch (error) {
+    console.error('Error loading blocked IPs:', error)
+    state.blockedIps = []
+  }
+}
+
+/**
+ * Desbloquear IP
+ */
+const unblockIp = async (ipAddress) => {
+  try {
+    const confirmed = await showConfirmDialog(
+      '¿Desbloquear IP?',
+      `Se desbloqueará la IP ${ipAddress} y podrá volver a realizar llamadas.`,
+      'Desbloquear',
+      'Cancelar',
+      'warning'
+    )
+
+    if (confirmed) {
+      const response = await waiterCallsService.unblockIp(ipAddress, state.currentBusiness?.id)
+      
+      if (response.success) {
+        showSuccessToast(`IP ${ipAddress} desbloqueada`)
+        await loadBlockedIps()
+      } else {
+        showErrorToast(response.message || 'Error desbloqueando IP')
+      }
+    }
+  } catch (error) {
+    console.error('Error unblocking IP:', error)
+    showErrorToast('Error desbloqueando IP')
+  }
+}
+
+// ===== DEBUG IP (Anti-Spam) =====
+const openIpDebugPanel = () => {
+  state.showIpDebugPanel = true
+  ipDebugInput.value = ''
+  ipDebugResult.value = null
+  ipDebugError.value = null
+}
+
+const runIpDebug = async () => {
+  if (!ipDebugInput.value) return
+  ipDebugLoading.value = true
+  ipDebugError.value = null
+  ipDebugResult.value = null
+  try {
+    const response = await waiterCallsService.debugBlockedIp(ipDebugInput.value, state.currentBusiness?.id)
+    if (response.success) {
+      ipDebugResult.value = response.data || response // según backend
+    } else {
+      ipDebugError.value = response.message || 'Diagnóstico fallido'
+    }
+  } catch (e) {
+    console.error('Error debug IP:', e)
+    ipDebugError.value = e.message || 'Error de red'
+  } finally {
+    ipDebugLoading.value = false
+  }
+}
+
+const forceUnblockFromDebug = async () => {
+  if (!ipDebugResult.value?.ip_address) return
+  const confirmed = await showConfirmDialog(
+    '¿Force Unblock?',
+    `Se forzará el desbloqueo completo de la IP ${ipDebugResult.value.ip_address}.`,
+    'Desbloquear',
+    'Cancelar',
+    'warning'
+  )
+  if (!confirmed) return
+  ipDebugLoading.value = true
+  try {
+    const resp = await waiterCallsService.forceUnblockIp(ipDebugResult.value.ip_address, state.currentBusiness?.id)
+    if (resp.success) {
+      showSuccessToast('IP desbloqueada forzadamente')
+      // refrescar resultado debug
+      await runIpDebug()
+      await loadBlockedIps()
+    } else {
+      showErrorToast(resp.message || 'No se pudo desbloquear')
+    }
+  } catch (e) {
+    console.error('Error force unblock:', e)
+    showErrorToast(e.message || 'Error desconocido')
+  } finally {
+    ipDebugLoading.value = false
+  }
+}
+
+/**
+ * Formatear fecha para mostrar en la lista de bloqueados
+ */
+const formatBlockDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  
+  try {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffTime = now - date
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
+    const diffMinutes = Math.floor(diffTime / (1000 * 60))
+    
+    if (diffMinutes < 60) {
+      return `Hace ${diffMinutes}m`
+    } else if (diffHours < 24) {
+      return `Hace ${diffHours}h`
+    } else if (diffDays < 7) {
+      return `Hace ${diffDays}d`
+    } else {
+      return date.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return 'Fecha inválida'
   }
 }
 </script>
@@ -1329,6 +1833,16 @@ const createTestCall = async () => {
   background: #f57c00;
 }
 
+.action-btn.danger {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.action-btn.danger:hover {
+  background: #c82333;
+}
+
 .action-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -1380,6 +1894,16 @@ const createTestCall = async () => {
   font-size: 12px;
   color: #6c757d;
   margin-top: 2px;
+}
+
+.table-silenced-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #6c757d;
+  margin-top: 4px;
+  font-style: italic;
 }
 
 .urgency-icon {
@@ -1690,6 +2214,356 @@ const createTestCall = async () => {
   max-height: calc(90vh - 80px);
 }
 
+/* Estilos Anti-Spam */
+.notification-item.potential-spam {
+  border-color: #fd7e14;
+  background: #fff8ed;
+  animation: spam-pulse 3s infinite;
+}
+
+@keyframes spam-pulse {
+  0% { border-color: #fd7e14; }
+  50% { border-color: #dc3545; }
+  100% { border-color: #fd7e14; }
+}
+
+.spam-badge {
+  background: #fd7e14;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-left: 8px;
+}
+
+.client-info {
+  font-size: 11px;
+  color: #6c757d;
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.source-badge {
+  background: #e9ecef;
+  color: #495057;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  margin-left: 8px;
+}
+
+.notification-action-btn.block-ip {
+  background: #dc3545;
+  color: white;
+  flex: none;
+  width: 32px;
+}
+
+.notification-action-btn.block-ip:hover:not(:disabled) {
+  background: #c82333;
+}
+
+/* Modal Anti-Spam */
+.anti-spam-section {
+  padding: 20px;
+}
+
+.spam-alerts {
+  background: #fff8ed;
+  border: 1px solid #fd7e14;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.spam-alerts h4 {
+  color: #fd7e14;
+  margin: 0 0 16px 0;
+  font-size: 14px;
+}
+
+.suspicious-ip-card {
+  background: white;
+  border: 1px solid #fd7e14;
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.ip-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.call-count {
+  background: #dc3545;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.ip-calls {
+  margin: 8px 0;
+}
+
+.mini-call {
+  font-size: 11px;
+  color: #6c757d;
+  padding: 2px 0;
+}
+
+.btn-block-ip {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-block-ip:hover {
+  background: #c82333;
+}
+
+.blocked-ips-list {
+  background: white;
+}
+
+.blocked-ips-list .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.blocked-ips-list h4 {
+  margin: 0;
+  color: #dc3545;
+  font-size: 14px;
+}
+
+.blocked-ip-cards {
+  display: grid;
+  gap: 12px;
+}
+
+.blocked-ip-card {
+  border: 1px solid #dc3545;
+  border-radius: 6px;
+  padding: 16px;
+  background: #fff5f5;
+}
+
+.blocked-ip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.ip-address {
+  font-family: monospace;
+  font-weight: bold;
+  color: #dc3545;
+  font-size: 14px;
+}
+
+.block-reason {
+  background: #dc3545;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.blocked-ip-details {
+  margin: 12px 0;
+}
+
+.detail-item {
+  font-size: 12px;
+  margin: 4px 0;
+  color: #495057;
+}
+
+.blocked-ip-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #545b62;
+}
+
+.btn-warning {
+  background: #ffc107;
+  color: #212529;
+}
+
+.btn-warning:hover {
+  background: #e0a800;
+}
+
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+/* Estilos para la sección de IPs bloqueadas en el sidebar */
+.blocked-ips-list-sidebar {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.blocked-ip-item {
+  padding: 12px;
+  border: 1px solid #dc3545;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  background: #fff5f5;
+  transition: all 0.2s ease;
+}
+
+.blocked-ip-item:hover {
+  border-color: #c82333;
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.1);
+}
+
+.blocked-ip-address {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: monospace;
+  font-weight: bold;
+  color: #dc3545;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.blocked-ip-address i {
+  color: #dc3545;
+}
+
+.blocked-ip-details {
+  margin: 8px 0 12px 0;
+}
+
+.blocked-detail {
+  font-size: 11px;
+  margin: 3px 0;
+  color: #495057;
+  line-height: 1.3;
+}
+
+.blocked-detail strong {
+  color: #212529;
+  font-weight: 600;
+}
+
+.blocked-detail.expires {
+  color: #fd7e14;
+}
+
+.blocked-detail.permanent {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+.blocked-detail.notes {
+  font-style: italic;
+  color: #6c757d;
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+.blocked-ip-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.blocked-action-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.blocked-action-btn.unblock {
+  background: #ffc107;
+  color: #212529;
+}
+
+.blocked-action-btn.unblock:hover {
+  background: #e0a800;
+  transform: translateY(-1px);
+}
+
+.blocked-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive ajustes para la sección de bloqueados */
+@media (max-width: 768px) {
+  .blocked-ip-item {
+    padding: 10px;
+  }
+  
+  .blocked-ip-address {
+    font-size: 12px;
+  }
+  
+  .blocked-detail {
+    font-size: 10px;
+  }
+  
+  .blocked-action-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
 @media (max-width: 768px) {
   .waiter-dashboard {
     padding: 12px;
@@ -1710,6 +2584,16 @@ const createTestCall = async () => {
   
   .modal-body {
     max-height: calc(95vh - 80px);
+  }
+  
+  .anti-spam-section {
+    padding: 12px;
+  }
+  
+  .blocked-ip-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 }
 </style>

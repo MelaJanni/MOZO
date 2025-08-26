@@ -15,6 +15,7 @@ const error = ref('')
 const success = ref('')
 const business = ref(null)
 const tables = ref([])
+const businesses = ref([])
 const showAddTableModal = ref(false)
 const showEditTableModal = ref(false)
 const showDeleteTableModal = ref(false)
@@ -31,13 +32,15 @@ onMounted(async () => {
   error.value = ''
   
   try {
-    const [businessData, tablesData] = await Promise.all([
+    const [businessData, tablesData, allBiz] = await Promise.all([
       adminStore.fetchBusinessData(),
-      adminStore.fetchTables()
+      adminStore.fetchTables(),
+      adminStore.fetchAllBusinesses().catch(() => [])
     ])
     
-    business.value = businessData || {}
+    business.value = businessData.business || {}
     tables.value = tablesData || []
+    businesses.value = allBiz || []
   } catch (err) {
     error.value = err.message || 'Error al cargar datos'
   } finally {
@@ -145,12 +148,30 @@ const deleteTable = async () => {
 }
 
 const goBack = () => {
-  router.push({ name: 'admin-home' })
+  router.push({ name: 'admin' })
 }
 
 const logout = async () => {
   await authStore.logout()
   router.push('/login')
+}
+
+const changeActiveBusiness = async (e) => {
+  const id = Number(e.target.value)
+  if (!id || id === adminStore.activeBusinessId) return
+  isLoading.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await adminStore.selectActiveBusiness(id)
+    const refreshed = await adminStore.fetchBusinessData()
+    business.value = refreshed || business.value
+    success.value = 'Negocio activo actualizado'
+  } catch (err) {
+    error.value = err.message || 'No se pudo cambiar el negocio activo'
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -182,6 +203,12 @@ const logout = async () => {
       
       <div class="settings-section">
         <h2>Información del negocio</h2>
+        <div v-if="businesses.length > 1" class="form-group mb-3">
+          <label for="active-business">Negocio activo</label>
+          <select id="active-business" class="form-select" :value="adminStore.activeBusinessId" @change="changeActiveBusiness">
+            <option v-for="b in businesses" :key="b.id" :value="b.id">{{ b.name }}</option>
+          </select>
+        </div>
         
         <form @submit.prevent="saveBusinessSettings" class="business-form">
           <div class="form-group">
@@ -242,52 +269,6 @@ const logout = async () => {
             </BaseButton>
           </div>
         </form>
-      </div>
-      
-      <div class="settings-section">
-        <div class="section-header">
-          <h2>Mesas</h2>
-          <BaseButton @click="showAddTableModal = true" variant="primary">
-            Añadir mesa
-          </BaseButton>
-        </div>
-        
-        <div v-if="tables.length === 0" class="empty-tables">
-          <p>No hay mesas configuradas</p>
-          <p>Añade mesas para que los clientes puedan hacer pedidos</p>
-        </div>
-        
-        <div v-else class="tables-list">
-          <div 
-            v-for="table in tables" 
-            :key="table.id" 
-            class="table-card"
-          >
-            <div class="table-info">
-              <div class="table-number">{{ table.number }}</div>
-              <div class="table-details">
-                <span class="table-name">{{ table.name || `Mesa ${table.number}` }}</span>
-                <span class="table-capacity">{{ table.capacity }} personas</span>
-              </div>
-            </div>
-            
-            <div class="table-actions">
-              <button 
-                @click="openEditTableModal(table)" 
-                class="edit-button"
-              >
-                Editar
-              </button>
-              
-              <button 
-                @click="openDeleteTableModal(table)" 
-                class="delete-button"
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div class="settings-section danger-zone">

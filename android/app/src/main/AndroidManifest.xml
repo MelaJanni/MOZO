@@ -23,6 +23,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Deep link de retorno de Google OAuth (in-app login) -->
+            <!-- OJO: Sustituir el esquema por com.googleusercontent.apps.<id_sin_suffix> si difiere -->
+        <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+            android:scheme="com.googleusercontent.apps.175482362472-d8i8so3lpdbkl30ls0gme012t18f9q8q"
+            android:path="/oauth2redirect" />
+            </intent-filter>
+
         </activity>
 
         <provider

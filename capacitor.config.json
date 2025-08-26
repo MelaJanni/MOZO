@@ -10,6 +10,11 @@
       "smallIcon": "ic_launcher_foreground",
       "iconColor": "#FF4081",
       "sound": "beep.wav"
+    },
+    "GooglePlus": {
+      "webClientId": "175482362472-sbae126lpnl34rlsf24p8lmdau1obob3.apps.googleusercontent.com",
+      "androidClientId": "175482362472-d8i8so3lpdbkl30ls0gme012t18f9q8q.apps.googleusercontent.com",
+      "iosClientId": "175482362472-qv7ql9v55gu9tq0um54u3u54up6584ud.apps.googleusercontent.com"
     }
   },
   "android": {

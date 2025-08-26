@@ -6,22 +6,22 @@ importScripts('https://www.gstatic.com/firebasejs/12.1.0/firebase-messaging-comp
 
 // Versión SW para diagnóstico incremental
 const SW_VERSION = '1.0.3-heartbeat';
-console.log('[SW][boot] Parseado firebase-messaging-sw.js version', SW_VERSION, 'timestamp', Date.now());
+//console.log('[SW][boot] Parseado firebase-messaging-sw.js version', SW_VERSION, 'timestamp', Date.now());
 
 // ==== Lifecycle diagnostics ====
 self.addEventListener('install', (e) => {
-  console.log('[SW][lifecycle] install');
+  //console.log('[SW][lifecycle] install');
   self.skipWaiting();
 });
 self.addEventListener('activate', (e) => {
-  console.log('[SW][lifecycle] activate');
+  //console.log('[SW][lifecycle] activate');
   e.waitUntil(clients.claim());
 });
 
 // Heartbeat cada 30s para verificar que el SW está vivo (solo en dev / localhost)
 if (location.hostname === 'localhost') {
   setInterval(() => {
-    console.log('[SW][heartbeat] vivo version', SW_VERSION, 'at', new Date().toISOString());
+    //console.log('[SW][heartbeat] vivo version', SW_VERSION, 'at', new Date().toISOString());
   }, 30000);
 }
 
@@ -38,16 +38,16 @@ const FALLBACK_CONFIG = {
 
 try {
   firebase.initializeApp(FALLBACK_CONFIG)
-  console.log('[SW][FCM] Firebase inicializado (compat 12) projectId=', FALLBACK_CONFIG.projectId, 'appId=', FALLBACK_CONFIG.appId)
+  //console.log('[SW][FCM] Firebase inicializado (compat 12) projectId=', FALLBACK_CONFIG.projectId, 'appId=', FALLBACK_CONFIG.appId)
 } catch (e) {
-  console.warn('[SW][FCM] Error inicializando Firebase:', e)
+  //console.warn('[SW][FCM] Error inicializando Firebase:', e)
 }
 
 const messaging = firebase.messaging()
 
 // Notificaciones en background (app cerrada/minimizada) + reenvío a clientes
 messaging.onBackgroundMessage(async (payload) => {
-  console.log('🔔 [SW] Background notification received (UNIFIED):', payload)
+  //console.log('🔔 [SW] Background notification received (UNIFIED):', payload)
 
   // Normalizar claves posibles de callId
   const data = payload.data || {}
@@ -84,7 +84,8 @@ messaging.onBackgroundMessage(async (payload) => {
     vibrate: [200, 100, 200],
     data: {
       ...data,
-      url: '/',
+      // prefer route for deep linking in the SPA
+      route: data.route || data.url || '/',
       callId,
       timestamp: Date.now()
     },
@@ -94,27 +95,24 @@ messaging.onBackgroundMessage(async (payload) => {
     ]
   }
 
-  console.log('🔔 [SW] Showing background notification:', { title: notificationTitle, options: notificationOptions })
+  //console.log('🔔 [SW] Showing background notification:', { title: notificationTitle, options: notificationOptions })
   await self.registration.showNotification(notificationTitle, notificationOptions)
   // Reenviar a pestañas (si las hubiera) para reconciliación futura al abrir
   try {
     const allClients = await clients.matchAll({ type: 'window', includeUncontrolled: true })
     allClients.forEach(c => c.postMessage({ type: 'fcm_event', payload }))
-    console.log('[SW] postMessage enviado a', allClients.length, 'clientes')
+    //console.log('[SW] postMessage enviado a', allClients.length, 'clientes')
   } catch(e){ console.warn('⚠️ [SW] postMessage background failed', e) }
   return
 })
 
-// Canal de comunicación a pestañas abiertas
-self.addEventListener('notificationclick', (event) => {
-  // ...existing code...
-})
+// (placeholder removed)
 
 self.addEventListener('push', (event) => {
   // Diagnóstico low-level: este evento se dispara para TODOS los push (incluyendo FCM) antes o además de onBackgroundMessage.
   try {
     const raw = event.data ? event.data.text() : null
-    console.log('[SW][push] Evento push bruto recibido raw=', raw)
+    //console.log('[SW][push] Evento push bruto recibido raw=', raw)
     // Intentar parsear JSON
     let parsed = null
     if (raw && raw.startsWith('{')) {
@@ -142,17 +140,17 @@ self.addEventListener('push', (event) => {
               data: { ...data, callId, fallback: true, timestamp: Date.now() },
               vibrate: [150,75,150]
             });
-            console.log('[SW][push][fallback] Notificación mostrada por listener push (data-only)');
+            //console.log('[SW][push][fallback] Notificación mostrada por listener push (data-only)');
           } catch (e) {
-            console.warn('[SW][push][fallback] Error mostrando notificación', e);
+            //console.warn('[SW][push][fallback] Error mostrando notificación', e);
           }
         })());
       }
     } else {
-      console.log('[SW][push] No se pudo parsear payload JSON')
+      //console.log('[SW][push] No se pudo parsear payload JSON');
     }
   } catch (e) {
-    console.warn('[SW][push] Error procesando evento push', e)
+    //console.warn('[SW][push] Error procesando evento push', e)
   }
 })
 
@@ -160,8 +158,8 @@ self.addEventListener('push', (event) => {
 
 // Manejar clics en notificaciones
 self.addEventListener('notificationclick', (event) => {
-  console.log('🔔 Notification clicked:', event)
-  
+  //console.log('🔔 Notification clicked:', event)
+
   event.notification.close()
   
   // Si se hizo clic en la acción "dismiss", solo cerrar
@@ -175,20 +173,21 @@ self.addEventListener('notificationclick', (event) => {
       // Si hay una ventana abierta, enfocarla
       for (const client of clientList) {
         if (client.url.includes(self.registration.scope) && 'focus' in client) {
-          console.log('🔔 Focusing existing window')
-          return client.focus()
+      //console.log('🔔 Focusing existing window')
+      try { client.postMessage({ type: 'notification_click', data: event.notification.data }) } catch(e){}
+      return client.focus()
         }
       }
       
       // Si no hay ventana abierta, abrir una nueva
-      const urlToOpen = event.notification.data?.url || '/'
-      console.log('🔔 Opening new window:', urlToOpen)
-      return clients.openWindow(urlToOpen)
+    const routeToOpen = event.notification.data?.route || '/'
+    //console.log('🔔 Opening new window route:', routeToOpen)
+    return clients.openWindow(routeToOpen)
     })
   )
 })
 
 // Manejar cierre de notificaciones
 self.addEventListener('notificationclose', (event) => {
-  console.log('🔔 Notification closed:', event.notification.tag)
+  //console.log('🔔 Notification closed:', event.notification.tag)
 })

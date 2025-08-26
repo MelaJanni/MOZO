@@ -46,7 +46,7 @@ onMounted(async () => {
   }
 })
 const deleteStaffMember = async () => {
-  if (confirmDeleteText.value !== 'ELIMINAR') return
+  if (confirmDeleteText.value !== 'DESVINCULAR') return
   isLoading.value = true
   error.value = ''
   try {
@@ -82,6 +82,11 @@ const updateEmployeeData = async (field, value) => {
       const dateObj = new Date(value);
       const display = dateObj.toLocaleDateString('es-ES');
       employee.value.birthdate_formatted = display;
+    }
+    if (field === 'hire_date') {
+      const dateObj = new Date(value);
+      const display = dateObj.toLocaleDateString('es-ES');
+      employee.value.hire_date_formatted = display;
     }
   } catch (err) {
     error.value = err.message || `Error al actualizar ${field}`;
@@ -135,20 +140,25 @@ const addReview = async () => {
 }
 const openWhatsApp = () => {
   if (employee.value && employee.value.phone) {
+    const cleanPhone = employee.value.phone.replace(/[^0-9]/g, '')
     const message = encodeURIComponent('Hola, te contacto desde la app MOZO.')
-    window.open(`https://wa.me/${employee.value.phone}?text=${message}`, '_blank')
-  } else {
-    alert('Este empleado no tiene un número de teléfono registrado.')
+    window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank')
+  }
+}
+const openEmail = () => {
+  if (employee.value && employee.value.email) {
+    const subject = encodeURIComponent('Contacto desde app MOZO')
+    const body = encodeURIComponent('Hola, te contacto desde la app MOZO.')
+    window.open(`mailto:${employee.value.email}?subject=${subject}&body=${body}`, '_blank')
   }
 }
 const goBack = () => {
   router.push('/admin/staff')
 }
 const genderOptions = [
-  { value: 'Masculino', label: 'Masculino' },
-  { value: 'Femenino', label: 'Femenino' },
-  { value: 'No binario', label: 'No binario' },
-  { value: 'Prefiero no especificar', label: 'Prefiero no especificar' }
+  { value: 'masculino', label: 'Masculino' },
+  { value: 'femenino', label: 'Femenino' },
+  { value: 'otro', label: 'Otro' }
 ]
 const positionOptions = [
   { value: 'Gerente', label: 'Gerente' },
@@ -158,10 +168,10 @@ const positionOptions = [
   { value: 'Limpieza', label: 'Limpieza' }
 ]
 const scheduleOptions = [
-  { value: 'Tiempo completo', label: 'Tiempo completo' },
-  { value: 'Medio tiempo', label: 'Medio tiempo' },
-  { value: 'Por horas', label: 'Por horas' },
-  { value: 'Fines de semana', label: 'Fines de semana' }
+  { value: 'full-time', label: 'Tiempo completo' },
+  { value: 'part-time', label: 'Medio tiempo' },
+  { value: 'hourly', label: 'Por horas' },
+  { value: 'weekends-only', label: 'Solo fines de semana' }
 ]
 const openAddReviewModal = () => {
   showAddReviewModal.value = true
@@ -209,7 +219,7 @@ const openConfirmDeleteModal = () => {
   showDeleteModal.value = true
 }
 const deleteStaff = async () => {
-  if (confirmDeleteText.value !== 'ELIMINAR') return
+  if (confirmDeleteText.value !== 'DESVINCULAR') return
   isLoading.value = true
   error.value = ''
   try {
@@ -246,8 +256,7 @@ const deleteStaff = async () => {
           <ProfileAvatar 
             :src="employee.avatar_url" 
             :alt="`Foto de ${employee.name}`"
-            :editable="true"
-            @file-selected="handleAvatarUpdate"
+            :editable="false"
           />
           <div class="profile-name-container">
             <EditableField
@@ -255,7 +264,7 @@ const deleteStaff = async () => {
               @update:value="updateEmployeeData('name', $event)"
               type="text"
               placeholder="Nombre completo"
-              :editable="true"
+              :editable="false"
               class="profile-name"
             />
           </div>
@@ -268,7 +277,7 @@ const deleteStaff = async () => {
               label="Fecha de nacimiento"
               @update:value="updateEmployeeData('birth_date', $event)"
               type="date"
-              :editable="true"
+              :editable="false"
             />
             <div v-if="calculatedAge" class="text-muted" style="font-size:0.875rem">Edad: {{ calculatedAge }} años</div>
           </div>
@@ -282,7 +291,7 @@ const deleteStaff = async () => {
               :max="2.5"
               :step="0.01"
               unit="mt"
-              :editable="true"
+              :editable="false"
             />
           </div>
           <div class="data-row">
@@ -294,7 +303,7 @@ const deleteStaff = async () => {
               :min="30"
               :max="200"
               unit="kg"
-              :editable="true"
+              :editable="false"
             />
           </div>
           <div class="data-row">
@@ -304,7 +313,7 @@ const deleteStaff = async () => {
               @update:value="updateEmployeeData('gender', $event)"
               type="select"
               :options="genderOptions"
-              :editable="true"
+              :editable="false"
             />
           </div>
           <div class="data-row">
@@ -316,7 +325,7 @@ const deleteStaff = async () => {
               :min="0"
               :max="50"
               unit="años"
-              :editable="true"
+              :editable="false"
             />
           </div>
           <div class="data-row">
@@ -328,7 +337,7 @@ const deleteStaff = async () => {
               :min="0"
               :max="50"
               unit="años de antigüedad"
-              :editable="true"
+              :editable="false"
             />
           </div>
           <div class="data-row">
@@ -337,7 +346,7 @@ const deleteStaff = async () => {
               label="Email"
               @update:value="updateEmployeeData('email', $event)"
               type="text"
-              :editable="true"
+              :editable="false"
             />
           </div>
           <div class="data-row">
@@ -346,16 +355,17 @@ const deleteStaff = async () => {
               label="Teléfono"
               @update:value="updateEmployeeData('phone', $event)"
               type="text"
-              :editable="true"
+              :editable="false"
             />
           </div>
           <div class="data-row">
             <EditableField
               :value="employee.hire_date"
+              :display-value="employee.hire_date_formatted"
               label="Fecha de contratación"
               @update:value="updateEmployeeData('hire_date', $event)"
               type="date"
-              :editable="true"
+              :editable="false"
             />
           </div>
           <div class="data-row">
@@ -405,7 +415,7 @@ const deleteStaff = async () => {
               @update:value="updateEmployeeData('schedule', $event)"
               type="select"
               :options="scheduleOptions"
-              :editable="true"
+              :editable="false"
             />
           </div>
           <div class="data-row">
@@ -414,7 +424,7 @@ const deleteStaff = async () => {
               label="Horario actual"
               @update:value="updateEmployeeData('currentSchedule', $event)"
               type="text"
-              :editable="true"
+              :editable="false"
             />
           </div>
         </div>
@@ -428,24 +438,26 @@ const deleteStaff = async () => {
           </BaseButton>
           <BaseButton 
             variant="secondary" 
-            @click="sendMessage"
+            @click="openWhatsApp"
             class="action-button"
+            :disabled="!employee.phone"
           >
-            Mandar mensaje
+            <i class="bi bi-whatsapp"></i> WhatsApp
           </BaseButton>
           <BaseButton 
-            variant="info" 
-            @click="showNotificationModal = true"
+            v-if="!employee.phone && employee.email"
+            variant="secondary" 
+            @click="openEmail"
             class="action-button"
           >
-            <i class="bi bi-paper-plane"></i> Enviar Notificación
+            <i class="bi bi-envelope"></i> Enviar Correo
           </BaseButton>
           <BaseButton 
             variant="danger" 
             @click="openConfirmDeleteModal"
             class="action-button"
           >
-            <i class="bi bi-trash"></i> Eliminar Empleado
+            <i class="bi bi-person-dash"></i> Desvincular
           </BaseButton>
         </div>
       </div>
@@ -488,14 +500,14 @@ const deleteStaff = async () => {
     </div>
     <BaseModal 
       v-model="showDeleteModal" 
-      title="Eliminar empleado" 
+      title="Desvincular empleado" 
       size="md"
     >
       <div class="confirm-content">
-        <p>¿Estás seguro de que deseas eliminar a {{ employee?.name }} del personal?</p>
+        <p>¿Estás seguro de que deseas desvincular a {{ employee?.name }} del personal?</p>
         <p class="confirm-warning">Esta acción no se puede deshacer.</p>
         <div class="confirm-input">
-          <label for="confirm-text">Escribe "ELIMINAR" para confirmar</label>
+          <label for="confirm-text">Escribe "DESVINCULAR" para confirmar</label>
           <input 
             type="text" 
             id="confirm-text" 
@@ -511,9 +523,9 @@ const deleteStaff = async () => {
         <button 
           class="btn btn-danger" 
           @click="deleteStaffMember" 
-          :disabled="confirmDeleteText !== 'ELIMINAR'"
+          :disabled="confirmDeleteText !== 'DESVINCULAR'"
         >
-          Eliminar
+          Desvincular
         </button>
       </template>
     </BaseModal>

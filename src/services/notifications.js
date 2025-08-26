@@ -1,4 +1,4 @@
-import apiService from './api'
+import { api, apiService } from './api'
 
 export default {
   
@@ -14,7 +14,13 @@ export default {
 
   async handleNotification(notificationId, action) {
     try {
-      const response = await apiService.handleNotification(notificationId, { action })
+      // Contrato: POST /user/notifications/{id}/read
+      if (!action || action === 'mark_as_read' || action === 'read') {
+        const response = await apiService.handleNotification(notificationId)
+        return response.data || response
+      }
+      // Fallback legacy si hubiese otras acciones soportadas en backend anterior
+      const response = await api.post(`notifications/handle/${notificationId}`, { action })
       return response.data
     } catch (error) {
       console.error('Error manejando notificación:', error)
@@ -231,10 +237,12 @@ export default {
 
   async deleteAllRead(notifications) {
     try {
+      // No hay endpoint de borrado en el contrato; intentar fallback legacy
       const promises = notifications.map(notification => 
-        this.handleNotification(notification.id, 'delete')
+        api.post(`notifications/handle/${notification.id}`, { action: 'delete' })
       )
-      return await Promise.all(promises)
+      const responses = await Promise.all(promises)
+      return responses.map(r => r.data)
     } catch (error) {
       console.error('Error eliminando todas las leídas:', error)
       throw error

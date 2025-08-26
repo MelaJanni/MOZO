@@ -12,6 +12,7 @@ import { useAuthStore } from '@/stores/auth'
 import notificationsService from './notifications'
 import firebaseService from './firebase'
 import { ref } from 'vue'
+import router from '@/router'
 
 // Reactive status for FCM configuration
 const fcmStatus = ref({ configured: false, tokenExists: false })
@@ -270,6 +271,30 @@ const addListeners = async () => {
       
       // Procesar diferentes tipos de notificación del backend
       const processedNotification = processBackendNotification(notification)
+
+      // Agregar a notifications store para que aparezca en UI
+      try {
+        import('@/stores/notifications').then(({ useNotificationsStore }) => {
+          const notificationsStore = useNotificationsStore()
+          const id = processedNotification.data?.staff_request_id || processedNotification.data?.id || `push-${Date.now()}`
+          const note = {
+            id,
+            type: processedNotification.data?.type || 'push',
+            data: {
+              title: processedNotification.title,
+              message: processedNotification.body,
+              route: processedNotification.data?.route || processedNotification.data?.url,
+              ...processedNotification.data
+            },
+            created_at: new Date().toISOString(),
+            read_at: null,
+            source: 'push-foreground'
+          }
+          notificationsStore.addNewNotification(note)
+        }).catch(err => console.error('Error adding push notification to store', err))
+      } catch (err) {
+        console.error('Error importing notifications store for pushNotificationReceived', err)
+      }
       
       // Mostrar notificación local si la app está en primer plano
       if (Capacitor.isPluginAvailable('LocalNotifications')) {
@@ -311,10 +336,19 @@ const addListeners = async () => {
       console.log('🔔 Push action performed:', JSON.stringify(notification, null, 2))
       
       // Aquí puedes manejar navegación basada en el payload de la notificación
-      const data = notification.notification.data
-      if (data && data.route) {
-        console.log('🔔 Navegando a:', data.route)
-        // Implementar navegación aquí si es necesario
+      const data = notification.notification && (notification.notification.data || notification.notification.extra || notification.notification)
+      try {
+        const route = data && (data.route || data.url)
+        if (route) {
+          console.log('🔔 Navegando a (mobile):', route)
+          // Navegar en la app si el router está disponible
+          try { router.push(route) } catch(e) { console.warn('Error navigating to route from push action', e) }
+        } else {
+          // Emitir evento para que cualquier componente lo maneje
+          window.dispatchEvent(new CustomEvent('pushNotificationAction', { detail: data }))
+        }
+      } catch (err) {
+        console.error('Error handling pushNotificationActionPerformed data', err)
       }
     })
 

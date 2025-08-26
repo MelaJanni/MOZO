@@ -302,6 +302,7 @@ class WaiterCallsService {
   async getWaiterBusinesses() {
     try {
       const response = await apiService.getWaiterBusinesses()
+      console.log('Negocios del mozo obtenidos:', response.data)
       return response.data
     } catch (error) {
       console.error('Error getting waiter businesses:', error)
@@ -364,6 +365,109 @@ class WaiterCallsService {
       return response.data
     } catch (error) {
       console.error('Error joining business with code:', error)
+      throw this.handleError(error)
+    }
+  }
+
+  // ===== SISTEMA ANTI-SPAM =====
+
+  /**
+   * Bloquear IP por spam
+   * POST /api/waiter/ip/block
+   */
+  async blockIpForSpam(callId, options = {}) {
+    try {
+      const payload = {
+        call_id: callId,
+        reason: options.reason || 'spam',
+        duration_hours: options.duration_hours || 24,
+        notes: options.notes || 'Bloqueado por spam'
+      }
+      
+      const response = await apiService.blockIpForSpam(payload)
+      return response.data
+    } catch (error) {
+      console.error('Error blocking IP for spam:', error)
+      throw this.handleError(error)
+    }
+  }
+
+  /**
+   * Desbloquear IP
+   * POST /api/waiter/ip/unblock
+   */
+  async unblockIp(ipAddress, businessId = null) {
+    try {
+      const payload = {
+        ip_address: ipAddress
+      }
+      
+      if (businessId) {
+        payload.business_id = businessId
+      }
+      
+      const response = await apiService.unblockIp(payload)
+      return response.data
+    } catch (error) {
+      console.error('Error unblocking IP:', error)
+      throw this.handleError(error)
+    }
+  }
+
+  /**
+   * Listar IPs bloqueadas
+   * GET /api/waiter/ip/blocked
+   */
+  async getBlockedIps(options = {}) {
+    try {
+      const params = {}
+      
+      if (options.active_only !== undefined) {
+        params.active_only = options.active_only
+      }
+      if (options.reason) {
+        params.reason = options.reason
+      }
+      if (options.per_page) {
+        params.per_page = options.per_page
+      }
+      
+      const response = await apiService.getBlockedIps(params)
+      return response.data
+    } catch (error) {
+      console.error('Error getting blocked IPs:', error)
+      throw this.handleError(error)
+    }
+  }
+
+  /**
+   * Debug de IP bloqueada
+   * GET /api/waiter/ip/debug
+   */
+  async debugBlockedIp(ipAddress, businessId = null) {
+    try {
+      const params = { ip_address: ipAddress }
+      if (businessId) params.business_id = businessId
+      const response = await apiService.debugBlockedIp(params)
+      return response.data
+    } catch (error) {
+      console.error('Error debugging blocked IP:', error)
+      throw this.handleError(error)
+    }
+  }
+
+  /**
+   * Desbloqueo forzado de IP
+   * POST /api/waiter/ip/force-unblock
+   */
+  async forceUnblockIp(ipAddress, businessId = null) {
+    try {
+      const payload = { ip_address: ipAddress }
+      if (businessId) payload.business_id = businessId
+      const response = await apiService.forceUnblockIp(payload)
+      return response.data
+    } catch (error) {
+      console.error('Error force-unblocking IP:', error)
       throw this.handleError(error)
     }
   }

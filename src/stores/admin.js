@@ -5,6 +5,14 @@ import { api, apiService } from '@/services/api'
 export const useAdminStore = defineStore('admin', () => {
   const businessId = ref(localStorage.getItem('businessId') || null)
   const businessData = ref(null)
+  const activeBusinessId = ref(null)
+  const tablesCount = ref(0)
+  const menusCount = ref(0)
+  const qrCodesCount = ref(0)
+  const invitationCode = ref(null)
+  const invitationUrl = ref(null)
+  const availableBusinesses = ref([])
+  const allBusinesses = ref([])
   const menus = ref([])
   const tables = ref([])
   const staffRequests = ref([])
@@ -15,46 +23,120 @@ export const useAdminStore = defineStore('admin', () => {
   const error = ref(null)
   const staffLinks = ref({ next: null, prev: null })
   const staffMeta = ref({ current_page: 1, last_page: 1 })
+  const requiresBusinessSetup = ref(false)
   
   const hasMenus = computed(() => menus.value.length > 0)
   const hasTables = computed(() => tables.value.length > 0)
   const pendingRequests = computed(() => staffRequests.value.filter(req => req.status === 'pending'))
   
-  const fetchBusinessData = async () => {
+  const fetchBusinessData = async (force = false) => {
+    // Si ya tenemos datos de negocio y no forzamos la recarga, devolver los existentes
+    if (!force && businessData.value && businessData.value.id) {
+      return businessData.value
+    }
+    
     isLoading.value = true
     error.value = null
-    
     try {
-      businessData.value = {
-        id: 'rest-1',
-        name: 'Mi Restaurante',
-        address: 'Calle Principal 123',
-        phone: '+34 678 123 456',
-        email: 'contacto@mirestaurante.com',
-        logo: '/src/assets/mozo-logo.svg',
-        description: 'El mejor restaurante de la ciudad',
-        openingHours: {
-          monday: { open: '12:00', close: '23:00' },
-          tuesday: { open: '12:00', close: '23:00' },
-          wednesday: { open: '12:00', close: '23:00' },
-          thursday: { open: '12:00', close: '23:00' },
-          friday: { open: '12:00', close: '00:00' },
-          saturday: { open: '12:00', close: '00:00' },
-          sunday: { open: '12:00', close: '23:00' }
-        },
-        tables: 20,
-        capacity: 80,
-        averageRating: 4.5
+      const resp = await apiService.getBusinessInfo()
+      const data = resp.data.business || {}
+      
+      //console.log('🔍 Respuesta de la API:', data)
+      
+      // Verificar si requiere setup de negocio
+      requiresBusinessSetup.value = data.requires_business_setup === true
+
+      //console.log('📊 requiresBusinessSetup establecido a:', requiresBusinessSetup.value)
+
+      if (requiresBusinessSetup.value) {
+        // No hay negocios, retornar estado de setup
+        //console.log('✅ Retornando estado de setup')
+        return {
+          requires_business_setup: true
+        }
       }
       
-      if (!businessId.value) {
-        businessId.value = businessData.value.id
-        localStorage.setItem('businessId', businessData.value.id)
+      const business = data.business || data
+      businessData.value = business
+      // campos adicionales del contrato
+      activeBusinessId.value = data.active_business_id ?? business?.id ?? null
+      tablesCount.value = data.tables_count ?? 0
+      menusCount.value = data.menus_count ?? 0
+      qrCodesCount.value = data.qr_codes_count ?? 0
+      invitationCode.value = data.invitation_code ?? null
+      invitationUrl.value = data.invitation_url ?? null
+      availableBusinesses.value = Array.isArray(data.available_businesses) ? data.available_businesses : []
+
+      if (activeBusinessId.value) {
+        businessId.value = activeBusinessId.value
+        localStorage.setItem('businessId', String(activeBusinessId.value))
+      } else if (business && business.id) {
+        businessId.value = business.id
+        localStorage.setItem('businessId', String(business.id))
       }
-      
-      return businessData.value
+      return {
+        business: businessData.value,
+        active_business_id: activeBusinessId.value,
+        tables_count: tablesCount.value,
+        menus_count: menusCount.value,
+        qr_codes_count: qrCodesCount.value,
+        invitation_code: invitationCode.value,
+        invitation_url: invitationUrl.value,
+  available_businesses: availableBusinesses.value
+      }
     } catch (err) {
       error.value = err.message || 'Error al cargar datos del negocio'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // Listar todos los negocios del admin
+  const fetchAllBusinesses = async () => {
+    // Si ya tenemos los datos y no han pasado más de 2 minutos, no hacer la petición
+    if (availableBusinesses.value && availableBusinesses.value.length > 0) {
+      return availableBusinesses.value
+    }
+    
+    isLoading.value = true
+    error.value = null
+    try {
+      const resp = await apiService.getAdminBusinesses()
+      const list = resp.data?.businesses ?? resp.data
+      allBusinesses.value = Array.isArray(list) ? list : []
+      // También actualizar availableBusinesses para el selector
+      availableBusinesses.value = allBusinesses.value
+      return allBusinesses.value
+    } catch (err) {
+      error.value = err.message || 'Error al listar negocios'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // Cambiar negocio activo: usa POST /role/select { role, business_id }
+  const selectActiveBusiness = async (businessIdToSelect) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      // Solicitamos token (puede o no venir uno nuevo, el backend lo permite reutilizar)
+      const resp = await apiService.selectRole('admin', businessIdToSelect)
+      const data = resp.data || {}
+      // Si viene un token nuevo, el interceptor ya lo guarda; aquí solo reflejamos estado local
+      activeBusinessId.value = businessIdToSelect
+      businessId.value = businessIdToSelect
+      localStorage.setItem('businessId', String(businessIdToSelect))
+      // refrescar datos dependientes del negocio
+      await Promise.all([
+        fetchBusinessData(),
+        fetchTables(),
+        fetchMenus()
+      ])
+      return data
+    } catch (err) {
+      error.value = err.message || 'Error al seleccionar negocio'
       throw err
     } finally {
       isLoading.value = false
@@ -124,12 +206,11 @@ export const useAdminStore = defineStore('admin', () => {
     
     try {
       const resp = await apiService.getTables()
-      tables.value = resp.data.tables || []
-      
-      return true
+      tables.value = resp.data?.tables || resp.data || []
+      return tables.value
     } catch (err) {
       error.value = err.message || 'Error al obtener mesas'
-      return false
+      throw err
     } finally {
       isLoading.value = false
     }
@@ -141,11 +222,12 @@ export const useAdminStore = defineStore('admin', () => {
     
     try {
       const resp = await apiService.createTable(tableData)
-      await fetchTables()
-      return true
+      const tbl = resp.data?.table || resp.data
+      if (tbl) tables.value.push(tbl)
+      return tbl
     } catch (err) {
       error.value = err.message || 'Error al crear mesa'
-      return false
+      throw err
     } finally {
       isLoading.value = false
     }
@@ -156,11 +238,10 @@ export const useAdminStore = defineStore('admin', () => {
     error.value = null
     try {
       const response = await apiService.updateTable(tableId, data)
+      const updated = response.data?.table || response.data
       const index = tables.value.findIndex(t => t.id === tableId)
-      if (index !== -1) {
-        tables.value[index] = response.data
-      }
-      return response.data
+      if (index !== -1 && updated) tables.value[index] = updated
+      return updated
     } catch (err) {
       error.value = err.message || 'Error al actualizar mesa'
       throw err
@@ -349,6 +430,62 @@ export const useAdminStore = defineStore('admin', () => {
       isLoading.value = false
     }
   }
+
+  const approveStaffRequest = async (staffId, approvalData = {}) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const response = await apiService.approveStaff(staffId, approvalData)
+      
+      // Actualizar listas locales
+      await fetchStaffRequests()
+      await fetchStaff()
+      
+      return response.data
+    } catch (err) {
+      error.value = err.message || 'Error al aprobar solicitud'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const rejectStaffRequest = async (staffId, rejectionData = {}) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const response = await apiService.rejectStaff(staffId, rejectionData)
+      
+      // Actualizar listas locales
+      await fetchStaffRequests()
+      await fetchArchivedRequests()
+      
+      return response.data
+    } catch (err) {
+      error.value = err.message || 'Error al rechazar solicitud'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const inviteStaffMember = async (staffId) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const response = await apiService.inviteStaffMember(staffId)
+      
+      // Actualizar listas locales
+      await fetchStaffRequests()
+      
+      return response.data
+    } catch (err) {
+      error.value = err.message || 'Error al enviar invitación'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
   
   const addReview = async (staffId, reviewData) => {
     isLoading.value = true
@@ -410,7 +547,9 @@ export const useAdminStore = defineStore('admin', () => {
 
   const reorderMenus = async (orderedIds) => {
     try {
-      await apiService.reorderMenus(orderedIds)
+      // construir payload: [{ menu_id, display_order }]
+      const order = orderedIds.map((id, idx) => ({ menu_id: id, display_order: idx + 1 }))
+      await apiService.reorderMenus(order)
       menus.value.sort((a,b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id))
     } catch (err) {
       console.error('Error reordenando menús', err)
@@ -452,10 +591,119 @@ export const useAdminStore = defineStore('admin', () => {
       isLoading.value = false
     }
   }
+
+  const regenerateQrCode = async (tableId) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      await apiService.regenerateQRCode(tableId)
+      await fetchTables()
+    } catch (err) {
+      error.value = err.message || 'Error al regenerar código QR'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const getSettings = async () => {
+    const resp = await apiService.getSettings()
+    return resp.data?.settings || resp.data
+  }
+
+  const updateBusinessData = async (settings) => {
+    const resp = await apiService.updateSettings({ settings })
+    return resp.data?.settings || resp.data
+  }
+
+  const regenerateInvitation = async () => {
+    const resp = await apiService.regenerateInvitationCode()
+    const data = resp.data || {}
+    invitationCode.value = data.invitation_code ?? invitationCode.value
+    invitationUrl.value = data.invitation_url ?? invitationUrl.value
+    return data
+  }
+
+  const createBusiness = async (businessData) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const resp = await apiService.createBusiness(businessData)
+      const data = resp.data || {}
+      if (resp.status === 201 || data.business) {
+        // OK
+      }
+      
+      // El negocio fue creado exitosamente
+      businessData.value = data.business
+      businessId.value = data.business?.id
+      activeBusinessId.value = data.business?.id
+      invitationCode.value = data.business?.invitation_code
+      invitationUrl.value = data.invitation_url
+      requiresBusinessSetup.value = false
+      
+      // Guardar en localStorage
+      if (businessId.value) {
+        localStorage.setItem('businessId', String(businessId.value))
+      }
+      
+      return data
+    } catch (err) {
+      // Si es validación 422, mapear errores
+      if (err.response && err.response.status === 422) {
+        const errors = err.response.data?.errors
+        const first = errors && Object.values(errors)[0]?.[0]
+        error.value = first || err.response.data?.message || 'Los datos proporcionados no son válidos'
+      } else {
+        error.value = err.message || 'Error al crear negocio'
+      }
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const joinBusinessWithCode = async (invitationCode) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const resp = await apiService.joinBusiness(invitationCode)
+      const data = resp.data || {}
+      
+      // Se unió al negocio exitosamente
+      businessData.value = data.business
+      businessId.value = data.business?.id
+      activeBusinessId.value = data.business?.id
+      requiresBusinessSetup.value = false
+      
+      // Guardar en localStorage
+      if (businessId.value) {
+        localStorage.setItem('businessId', String(businessId.value))
+      }
+      
+      // Recargar datos del negocio
+      await fetchBusinessData()
+      
+      return data
+    } catch (err) {
+      error.value = err.message || 'Error al unirse al negocio'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
   
   return {
       businessId,
     businessData,
+  activeBusinessId,
+  tablesCount,
+  menusCount,
+  qrCodesCount,
+  invitationCode,
+  invitationUrl,
+  availableBusinesses,
+  allBusinesses,
     menus,
     tables,
     staffRequests,
@@ -466,12 +714,14 @@ export const useAdminStore = defineStore('admin', () => {
     error,
     staffLinks,
     staffMeta,
+    requiresBusinessSetup,
     
       hasMenus,
     hasTables,
     pendingRequests,
     
       fetchBusinessData,
+  fetchAllBusinesses,
     fetchMenus,
     setDefaultMenu,
     uploadMenu,
@@ -484,6 +734,9 @@ export const useAdminStore = defineStore('admin', () => {
     handleStaffRequest,
     fetchStaff,
     inviteStaff,
+    approveStaffRequest,
+    rejectStaffRequest,
+    inviteStaffMember,
     fetchDashboardStats,
     fetchStaffMember,
     updateStaffMember,
@@ -495,6 +748,13 @@ export const useAdminStore = defineStore('admin', () => {
     reorderMenus,
     previewMenu,
     cloneTable,
-    generateQrCode
+  generateQrCode,
+  regenerateQrCode,
+  getSettings,
+  updateBusinessData,
+  regenerateInvitation,
+  selectActiveBusiness,
+  createBusiness,
+  joinBusinessWithCode
   }
 }) 

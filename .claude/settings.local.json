@@ -13,12 +13,21 @@
       "Bash(mkdir:*)",
       "Bash(npx cap:*)",
       "Bash(git checkout:*)",
-      "Bash(adb:*)"
+      "Bash(adb:*)",
+      "Bash(./gradlew:*)",
+      "Bash(java:*)",
+      "Bash(where java)",
+      "Bash(dir:*)",
+      "Read(/C:\\Program Files\\Eclipse Adoptium/**)",
+      "Read(/C:\\Program Files\\Eclipse Adoptium/**)",
+      "Bash(npm search:*)",
+      "WebFetch(domain:developers.google.com)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [
-      "C:\\c\\Users\\USUARIO\\Documents\\GitHub"
+      "C:\\c\\Users\\USUARIO\\Documents\\GitHub",
+      "C:\\Program Files\\Java"
     ]
   }
 }

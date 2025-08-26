@@ -1,19 +1,23 @@
 <script setup>
 import { computed, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useUiStore } from '@/stores/ui';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
 const uiStore = useUiStore();
 const authStore = useAuthStore();
+const { currentRole } = storeToRefs(authStore);
 const router = useRouter();
 const isOpen = computed(() => uiStore.isOffCanvasOpen);
-// Use the store's `currentRole` computed (selectedRole || user.role)
-const userRole = computed(() => authStore.currentRole);
+// Rol actual del usuario (admin|waiter)
+const userRole = computed(() => currentRole.value);
 
 onMounted(() => {
   // Helpful debug info when running on device (Android) to see why items may be hidden
   try {
-    //console.log('OffCanvasNavbar - mounted - isAuthenticated:', authStore.isAuthenticated, 'currentRole:', authStore.currentRole)
+    console.log('OffCanvasNavbar - mounted - userRole:', userRole.value);
+    console.log('OffCanvasNavbar - mounted - isAuthenticated:', authStore.isAuthenticated);
+    console.log('OffCanvasNavbar - mounted - currentRole:', authStore.currentRole);
   } catch (e) {
     /* no-op */
   }
@@ -21,7 +25,7 @@ onMounted(() => {
 const handleLogout = async () => {
   uiStore.closeOffCanvas();
   await authStore.logout();
-  router.push('/login');
+  router.push({ name: 'login' });
 };
 const navigate = (routeName) => {
   uiStore.closeOffCanvas();
@@ -39,33 +43,43 @@ const navigate = (routeName) => {
       <nav class="panel-nav">
         <ul>
           <li v-if="userRole === 'admin'">
-            <a @click="navigate('admin-home')">
+            <RouterLink :to="{ name: 'admin' }" class="nav-link" @click="uiStore.closeOffCanvas()">
               <i class="bi bi-speedometer2"></i> Dashboard
-            </a>
+            </RouterLink>
           </li>
           <li>
-            <a @click="navigate('admin-notification-debug')">
+            <RouterLink :to="{ name: 'admin-notification-debug' }" class="nav-link" @click="uiStore.closeOffCanvas()">
               <i class="bi bi-bug"></i> Debug Notificaciones
-            </a>
+            </RouterLink>
           </li>
           <li v-if="userRole === 'waiter'">
-            <a @click="navigate('waiter-dashboard')">
+            <RouterLink :to="{ name: 'waiter-dashboard' }" class="nav-link" @click="uiStore.closeOffCanvas()">
               <i class="bi bi-grid-1x2-fill"></i> Tablero
-            </a>
+            </RouterLink>
           </li>
           <li>
-            <a @click="navigate('profile')">
+            <RouterLink :to="{ name: 'staff-invitations' }" class="nav-link" @click="uiStore.closeOffCanvas()">
+              <i class="bi bi-envelope"></i> Invitaciones
+            </RouterLink>
+          </li>
+          <li v-if="userRole === 'admin'">
+            <RouterLink :to="{ name: 'admin-profile' }" class="nav-link" @click="uiStore.closeOffCanvas()">
               <i class="bi bi-person-fill"></i> Mi Perfil
-            </a>
+            </RouterLink>
+          </li>
+          <li v-if="userRole === 'waiter'">
+            <RouterLink :to="{ name: 'profile' }" class="nav-link" @click="uiStore.closeOffCanvas()">
+              <i class="bi bi-person-fill"></i> Mi Perfil
+            </RouterLink>
           </li>
           <li>
-            <a @click="navigate('role-selection')">
+            <RouterLink :to="{ name: 'role-selection' }" class="nav-link" @click="uiStore.closeOffCanvas()">
               <i class="bi bi-person-badge-fill"></i> Cambiar Rol
-            </a>
+            </RouterLink>
           </li>
           <li class="separator"></li>
           <li>
-            <a @click="handleLogout">
+            <a @click.prevent="handleLogout" class="nav-link">
               <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
             </a>
           </li>
@@ -152,7 +166,20 @@ const navigate = (routeName) => {
   cursor: pointer;
   font-weight: 500;
 }
+.panel-nav .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 1.5rem;
+  color: #343a40;
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 500;
+}
 .panel-nav li a:hover {
+  background-color: #f8f9fa;
+}
+.panel-nav .nav-link:hover {
   background-color: #f8f9fa;
 }
 .panel-nav li a .bi {
@@ -166,4 +193,4 @@ const navigate = (routeName) => {
   background-color: #e9ecef;
   margin: 1rem 1.5rem;
 }
-</style> 
+</style>

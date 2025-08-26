@@ -2,6 +2,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
+import { showSuccessToast } from '@/utils/notifications'
+import { createStaffApprovedNotification, createStaffRejectedNotification } from '@/services/staffNotifications'
 import BaseButton from '@/components/UI/BaseButton.vue'
 import BaseModal from '@/components/UI/BaseModal.vue'
 import RequestCard from '@/components/RequestCard.vue'
@@ -33,9 +35,11 @@ const filteredStaff = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter(employee => 
-      employee.name?.toLowerCase().includes(query) || 
-      employee.email?.toLowerCase().includes(query) ||
-      employee.position?.toLowerCase().includes(query)
+      employee.user?.name?.toLowerCase().includes(query) || 
+      employee.user?.email?.toLowerCase().includes(query) ||
+      employee.user?.user_profile?.display_name?.toLowerCase().includes(query) ||
+      employee.user?.user_profile?.bio?.toLowerCase().includes(query) ||
+      employee.user?.user_profile?.employment_type?.toLowerCase().includes(query)
     );
   }
   return filtered;
@@ -46,7 +50,7 @@ const displayedRequests = computed(() => {
 const staffStats = computed(() => {
   if (!staff.value.length) return { total: 0, avgRating: 0 };
   const total = staff.value.length;
-  const totalRating = staff.value.reduce((sum, emp) => sum + (emp.rating || 0), 0);
+  const totalRating = staff.value.reduce((sum, emp) => sum + (emp.user?.user_profile?.rating || 0), 0);
   const avgRating = totalRating / total;
   return {
     total,
@@ -76,7 +80,19 @@ const inviteStaff = async () => {
   isLoading.value = true;
   error.value = '';
   try {
-    await adminStore.inviteStaff({ email: inviteEmail.value, role: inviteRole.value });
+    const result = await adminStore.inviteStaff({ 
+      email: inviteEmail.value, 
+      role: inviteRole.value,
+      position: inviteRole.value === 'waiter' ? 'Mozo' : inviteRole.value
+    });
+    
+    // Mostrar mensaje de éxito
+    if (result.invitation_url) {
+      showSuccessToast(`Invitación enviada a ${inviteEmail.value}. Se ha enviado un enlace por email.`);
+    } else {
+      showSuccessToast(`Invitación creada para ${inviteEmail.value}`);
+    }
+    
     inviteEmail.value = '';
     inviteRole.value = 'waiter';
     showInviteModal.value = false;
@@ -90,7 +106,24 @@ const handleConfirmRequest = async (request) => {
   isLoading.value = true;
   error.value = '';
   try {
-    await adminStore.handleStaffRequest(request.id, 'confirm');
+    const requestId = request.id;
+    if (!requestId) {
+      console.error('Request object:', request);
+      throw new Error('ID de solicitud no encontrado');
+    }
+    
+    const approvalData = {
+      hire_date: new Date().toISOString().split('T')[0], // Fecha actual como hire_date
+      notes: 'Aprobado desde panel de administración'
+    };
+    
+    await adminStore.approveStaffRequest(requestId, approvalData);
+    
+    // Mostrar toast de éxito
+    showSuccessToast(`Solicitud de ${request.user?.name || request.user_profile?.display_name} aprobada exitosamente`);
+    
+    // La notificación al usuario la maneja automáticamente Firebase Realtime Database
+    // cuando el backend actualiza el estado y dispara los listeners
   } catch (err) {
     error.value = err.message || 'Error al confirmar solicitud';
   } finally {
@@ -102,9 +135,14 @@ const handleArchiveRequest = async (request) => {
   isLoading.value = true;
   error.value = '';
   try {
-    await adminStore.handleStaffRequest(request.id, action);
+    const requestId = request.id;
+    if (!requestId) {
+      console.error('Request object:', request);
+      throw new Error('ID de solicitud no encontrado');
+    }
+    await adminStore.handleStaffRequest(requestId, action);
   } catch (err) {
-    error.value = err.message || `Error al ${action === 'unarchive' ? 'desarchivar' : 'archivar'} solicitud`;
+    error.value = err.message || 'Error al archivar solicitud';
   } finally {
     isLoading.value = false;
   }
@@ -114,21 +152,44 @@ const handleUnarchiveRequest = async (request) => {
   isLoading.value = true;
   error.value = '';
   try {
-    await adminStore.handleStaffRequest(request.id, action);
+    // Usar el ID del registro en archived_staff (request.id)
+    const requestId = request.id;
+    if (!requestId) {
+      console.error('Request object:', request);
+      throw new Error('ID de solicitud archivada no encontrado');
+    }
+    console.log('Unarchiving request with ID:', requestId);
+    await adminStore.handleStaffRequest(requestId, action);
   } catch (err) {
+    console.error('Error unarchiving request:', err);
     error.value = err.message || 'Error al desarchivar solicitud';
   } finally {
     isLoading.value = false;
   }
 };
 const handleRejectRequest = async (request) => {
-  const action = 'reject';
   isLoading.value = true;
   error.value = '';
   try {
-    await adminStore.handleStaffRequest(request.id, action);
+    const requestId = request.id;
+    if (!requestId) {
+      console.error('Request object:', request);
+      throw new Error('ID de solicitud no encontrado');
+    }
+    
+    const rejectionData = {
+      notes: 'Rechazado desde panel de administración'
+    };
+    
+    await adminStore.rejectStaffRequest(requestId, rejectionData);
+    
+    // Mostrar toast de éxito
+    showSuccessToast(`Solicitud de ${request.user?.name || request.user_profile?.display_name} rechazada`);
+    
+    // La notificación al usuario la maneja automáticamente Firebase Realtime Database
+    // cuando el backend actualiza el estado y dispara los listeners
   } catch (err) {
-    error.value = err.message || `Error al ${action === 'delete' ? 'eliminar' : 'rechazar'} solicitud`;
+    error.value = err.message || 'Error al rechazar solicitud';
   } finally {
     isLoading.value = false;
   }
@@ -138,11 +199,45 @@ const confirmAllRequests = async () => {
   isLoading.value = true;
   error.value = '';
   try {
+    const approvalData = {
+      hire_date: new Date().toISOString().split('T')[0],
+      notes: 'Aprobación masiva desde panel de administración'
+    };
+    
     for (const request of staffRequests.value) {
-      await adminStore.handleStaffRequest(request.id, 'confirm');
+      const requestId = request.id;
+      if (requestId) {
+        await adminStore.approveStaffRequest(requestId, approvalData);
+      }
     }
+    
+    showSuccessToast(`${staffRequests.value.length} solicitudes aprobadas exitosamente`);
   } catch (err) {
     error.value = err.message || 'Error al confirmar todas las solicitudes';
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const handleInviteRequest = async (request) => {
+  isLoading.value = true;
+  error.value = '';
+  try {
+    const requestId = request.id;
+    if (!requestId) {
+      console.error('Request object:', request);
+      throw new Error('ID de solicitud no encontrado');
+    }
+    const result = await adminStore.inviteStaffMember(requestId);
+    
+    // Mostrar mensaje de éxito
+    if (result.invitation_url) {
+      showSuccessToast(`Invitación enviada a ${request.user?.name || request.user_profile?.display_name}. Se ha enviado el enlace por email/WhatsApp.`);
+    } else {
+      showSuccessToast(`Token de invitación generado para ${request.user?.name || request.user_profile?.display_name}`);
+    }
+  } catch (err) {
+    error.value = err.message || 'Error al enviar invitación';
   } finally {
     isLoading.value = false;
   }
@@ -153,7 +248,10 @@ const archiveAllRequests = async () => {
   error.value = '';
   try {
     for (const request of staffRequests.value) {
-      await adminStore.handleStaffRequest(request.id, 'archive');
+      const requestId = request.id;
+      if (requestId) {
+        await adminStore.handleStaffRequest(requestId, 'archive');
+      }
     }
   } catch (err) {
     error.value = err.message || 'Error al archivar todas las solicitudes';
@@ -170,7 +268,12 @@ const removeStaff = async () => {
   isLoading.value = true;
   error.value = '';
   try {
-    await adminStore.removeStaff(selectedEmployee.value.id);
+    // Usar staff_id si está disponible, o user.id como fallback
+    const staffId = selectedEmployee.value.staff_id || selectedEmployee.value.user?.id;
+    if (!staffId) {
+      throw new Error('ID de empleado no encontrado');
+    }
+    await adminStore.removeStaff(staffId);
     showConfirmModal.value = false;
     selectedEmployee.value = null;
   } catch (err) {
@@ -199,7 +302,8 @@ const getRoleName = (role) => {
   }
 };
 const viewStaffDetail = (employee) => {
-  router.push('/admin/staff/' + employee.id);
+  const staffId = employee.staff_id || employee.user?.id;
+  router.push('/admin/staff/' + staffId);
 };
 const openInviteModal = () => {
   showInviteModal.value = true;
@@ -277,6 +381,7 @@ const loadPrevPage = async () => {
               :request="request"
               :is-archived="showArchived"
               @confirm="handleConfirmRequest"
+              @invite="handleInviteRequest"
               @archive="handleArchiveRequest"
               @unarchive="handleUnarchiveRequest"
               @reject="handleRejectRequest"
@@ -365,7 +470,7 @@ const loadPrevPage = async () => {
       title="Desvincular empleado"
       size="sm"
     >
-      <p>¿Estás seguro de que deseas desvincular a {{ selectedEmployee?.name }}?</p>
+      <p>¿Estás seguro de que deseas desvincular a {{ selectedEmployee?.user?.name || selectedEmployee?.user?.user_profile?.display_name }}?</p>
       <p class="warning-text">Esta acción no se puede deshacer.</p>
       <template #footer>
         <button 

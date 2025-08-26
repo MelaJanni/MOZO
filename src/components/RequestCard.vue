@@ -12,7 +12,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['confirm', 'archive', 'reject', 'unarchive']);
+const emit = defineEmits(['confirm', 'archive', 'reject', 'unarchive', 'invite']);
 </script>
 
 <template>
@@ -21,10 +21,32 @@ const emit = defineEmits(['confirm', 'archive', 'reject', 'unarchive']);
       <i class="bi bi-x"></i>
     </button>
     <div class="requester-info">
-      <img :src="request.avatar" :alt="`Avatar de ${request.name}`" class="avatar" />
+      <img 
+        :src="request.user_profile?.avatar || '/default-avatar.png'" 
+        :alt="`Avatar de ${request.user?.name || request.user_profile?.display_name}`" 
+        class="avatar" 
+      />
       <div class="text-info">
-        <h4 class="name">{{ request.name }}</h4>
-        <p class="position">{{ request.position }}</p>
+        <h4 class="name">{{ request.user?.name || request.user_profile?.display_name }}</h4>
+        <p class="email">{{ request.user?.email }}</p>
+        <p class="phone" v-if="request.user_profile?.phone">{{ request.user_profile.phone }}</p>
+        <div class="profile-details">
+          <p class="experience" v-if="request.user_profile?.experience_years">
+            <i class="bi bi-briefcase"></i> {{ request.user_profile.experience_years }} años de experiencia
+          </p>
+          <p class="schedule" v-if="request.user_profile?.current_schedule">
+            <i class="bi bi-clock"></i> {{ request.user_profile.current_schedule }}
+          </p>
+          <p class="employment" v-if="request.user_profile?.employment_type">
+            <i class="bi bi-person-badge"></i> {{ request.user_profile.employment_type }}
+          </p>
+        </div>
+        <div class="skills" v-if="request.user_profile?.skills?.length">
+          <span class="skill-tag" v-for="skill in request.user_profile.skills" :key="skill">
+            {{ skill }}
+          </span>
+        </div>
+        <p class="bio" v-if="request.user_profile?.bio">{{ request.user_profile.bio }}</p>
       </div>
     </div>
     
@@ -32,6 +54,9 @@ const emit = defineEmits(['confirm', 'archive', 'reject', 'unarchive']);
       <template v-if="!isArchived">
         <button class="btn btn-primary" @click.stop="$emit('confirm', request)">
           <i class="bi bi-check-lg"></i> Confirmar
+        </button>
+        <button class="btn btn-info" @click.stop="$emit('invite', request)" :title="'Enviar invitación a ' + (request.user?.name || request.user_profile?.display_name)">
+          <i class="bi bi-envelope"></i> Invitar
         </button>
         <button class="btn btn-secondary" @click.stop="$emit('archive', request)">
           <i class="bi bi-archive"></i> Archivar
@@ -87,13 +112,56 @@ const emit = defineEmits(['confirm', 'archive', 'reject', 'unarchive']);
 .name {
   font-size: 1rem;
   font-weight: 600;
-  margin: 0;
+  margin: 0 0 0.25rem 0;
 }
 
-.position {
+.email {
   font-size: 0.875rem;
   color: #666;
-  margin: 0;
+  margin: 0 0 0.25rem 0;
+}
+
+.phone {
+  font-size: 0.875rem;
+  color: #666;
+  margin: 0 0 0.5rem 0;
+}
+
+.profile-details {
+  margin: 0.5rem 0;
+}
+
+.profile-details p {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0.25rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.skills {
+  margin: 0.5rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.skill-tag {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.bio {
+  font-size: 0.8rem;
+  color: #777;
+  margin: 0.5rem 0 0 0;
+  font-style: italic;
+  line-height: 1.4;
 }
 
 .actions {
@@ -123,6 +191,14 @@ const emit = defineEmits(['confirm', 'archive', 'reject', 'unarchive']);
 }
 .btn-primary:hover {
   background-color: #5933C3;
+}
+
+.btn-info {
+  background-color: #17a2b8;
+  color: white;
+}
+.btn-info:hover {
+  background-color: #138496;
 }
 
 .btn-secondary {

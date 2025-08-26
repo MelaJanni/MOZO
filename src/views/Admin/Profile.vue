@@ -4,20 +4,19 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import BaseButton from '@/components/UI/BaseButton.vue'
 import BaseModal from '@/components/UI/BaseModal.vue'
+import { apiService } from '@/services/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
 const user = ref({
-  name: '',
-  email: '',
-  phone: '',
+  display_name: '',
+  business_name: '',
+  position: '',
+  corporate_email: '',
+  corporate_phone: '',
   avatar: '',
-  role: 'admin',
-  business: {
-    name: '',
-    code: ''
-  }
+  business_id: null
 })
 
 const passwords = ref({
@@ -48,7 +47,7 @@ const doPasswordsMatch = computed(() => {
 })
 
 const isFormValid = computed(() => {
-  if (!user.value.name || !user.value.email) return false
+  if (!user.value.display_name) return false
   
   if (passwords.value.current || passwords.value.new || passwords.value.confirm) {
     return passwords.value.current && isPasswordValid.value && doPasswordsMatch.value
@@ -62,20 +61,34 @@ const loadUserData = async () => {
   error.value = ''
   
   try {
-    const userData = authStore.getUser() || {
-      id: '1',
-      name: 'Administrador',
-      email: 'admin@ejemplo.com',
-      phone: '555-987-6543',
-      avatar: 'https://randomuser.me/api/portraits/men/42.jpg',
-      role: 'admin',
-      business: {
-        name: 'Mi Restaurante',
-        code: 'FGT-464'
+    // Get active user profile
+    const response = await apiService.getActiveUserProfile()
+    const responseData = response.data.data
+    const profileData = responseData.profile_data
+    
+    if (responseData && responseData.type === 'admin') {
+      
+      user.value = {
+        display_name: responseData.display_name || '',
+        business_name: profileData.business_name || '',
+        position: profileData.position || 'Administrador',
+        corporate_email: profileData.corporate_email || '',
+        corporate_phone: profileData.corporate_phone || '',
+        avatar: responseData.avatar || '',
+        business_id: responseData.business_id
+      }
+    } else {
+      // Fallback data if no admin profile found
+      user.value = {
+        display_name: 'Administrador',
+        business_name: 'Mi Negocio',
+        position: 'Administrador',
+        corporate_email: '',
+        corporate_phone: '',
+        avatar: '',
+        business_id: null
       }
     }
-    
-    user.value = { ...userData }
   } catch (err) {
     console.error('Error al cargar datos del usuario:', err)
     error.value = 'No se pudieron cargar tus datos. Por favor, inténtalo de nuevo.'
@@ -111,51 +124,67 @@ const updateProfile = async () => {
   
   try {
     const formData = new FormData()
-    formData.append('name', user.value.name)
-    formData.append('email', user.value.email)
-    formData.append('phone', user.value.phone || '')
+    
+    // Nueva API simplificada - no requiere business_id
+    if (user.value.display_name) formData.append('display_name', user.value.display_name)
+    if (user.value.business_name) formData.append('business_name', user.value.business_name)
+    if (user.value.position) formData.append('position', user.value.position)
+    if (user.value.corporate_email) formData.append('corporate_email', user.value.corporate_email)
+    if (user.value.corporate_phone) formData.append('corporate_phone', user.value.corporate_phone)
     
     if (avatarFile.value) {
       formData.append('avatar', avatarFile.value)
     }
     
-    if (passwords.value.current && passwords.value.new) {
-      formData.append('current_password', passwords.value.current)
-      formData.append('password', passwords.value.new)
-      formData.append('password_confirmation', passwords.value.confirm)
+    const response = await apiService.updateAdminUserProfile(formData)
+    
+    // Update local data with response
+    if (response.data.data) {
+      user.value.avatar = response.data.data.avatar
+      user.value.display_name = response.data.data.display_name
     }
-    
-    console.log('Perfil actualizado:', {
-      name: user.value.name,
-      email: user.value.email,
-      phone: user.value.phone,
-      passwordChanged: !!passwords.value.current,
-      avatarChanged: !!avatarFile.value
-    })
-    
-    const currentUser = authStore.getUser()
-    if (currentUser) {
-      currentUser.name = user.value.name
-      currentUser.email = user.value.email
-      currentUser.phone = user.value.phone
-      if (avatarPreview.value) {
-        currentUser.avatar = avatarPreview.value
-      }
-      authStore.setUser(currentUser)
-    }
-    
-    passwords.value.current = ''
-    passwords.value.new = ''
-    passwords.value.confirm = ''
     
     avatarFile.value = null
+    avatarPreview.value = null
     
-    success.value = 'Perfil actualizado correctamente'
+    success.value = response.data.message || 'Perfil actualizado correctamente'
+    
+    // Handle password change separately if needed
+    if (passwords.value.current && passwords.value.new) {
+      await changePassword()
+    }
+    
   } catch (err) {
     console.error('Error al actualizar perfil:', err)
     error.value = err.response?.data?.message || 'No se pudo actualizar el perfil. Por favor, inténtalo de nuevo.'
   } finally {
     updating.value = false
+    
+    // Reload profile data after update (outside updating state)
+    if (!error.value) {
+      await loadUserData()
+    }
+  }
+}
+
+const changePassword = async () => {
+  if (!passwords.value.current || !passwords.value.new || !passwords.value.confirm) return
+  if (!isPasswordValid.value || !doPasswordsMatch.value) return
+  
+  try {
+    await apiService.changePassword({
+      current_password: passwords.value.current,
+      password: passwords.value.new,
+      password_confirmation: passwords.value.confirm
+    })
+    
+    passwords.value.current = ''
+    passwords.value.new = ''
+    passwords.value.confirm = ''
+    
+    success.value = 'Contraseña actualizada correctamente'
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Error al cambiar contraseña'
   }
 }
 
@@ -165,10 +194,8 @@ const deleteAccount = async () => {
   deleting.value = true
   
   try {
-    console.log('Cuenta eliminada')
-    
+    await apiService.deleteAccount({ password: passwords.value.current })
     await authStore.logout()
-    
     router.push('/login')
   } catch (err) {
     console.error('Error al eliminar cuenta:', err)
@@ -233,37 +260,15 @@ onMounted(() => {
           <div class="profile-info">
             <form @submit.prevent="updateProfile">
               <div class="form-group">
-                <label for="name">Nombre completo</label>
+                <label for="display-name">Nombre para mostrar</label>
                 <input 
                   type="text" 
-                  id="name" 
-                  v-model="user.name" 
+                  id="display-name" 
+                  v-model="user.display_name" 
                   class="form-control"
                   required
                   :disabled="updating"
-                />
-              </div>
-              
-              <div class="form-group">
-                <label for="email">Correo electrónico</label>
-                <input 
-                  type="email" 
-                  id="email" 
-                  v-model="user.email" 
-                  class="form-control"
-                  required
-                  :disabled="updating"
-                />
-              </div>
-              
-              <div class="form-group">
-                <label for="phone">Teléfono</label>
-                <input 
-                  type="tel" 
-                  id="phone" 
-                  v-model="user.phone" 
-                  class="form-control"
-                  :disabled="updating"
+                  placeholder="Tu nombre como administrador"
                 />
               </div>
               
@@ -272,22 +277,49 @@ onMounted(() => {
                 <input 
                   type="text" 
                   id="business-name" 
-                  v-model="user.business.name" 
+                  v-model="user.business_name" 
                   class="form-control"
                   :disabled="updating"
+                  placeholder="Nombre de tu negocio"
                 />
               </div>
               
               <div class="form-group">
-                <label for="business-code">Código del negocio</label>
+                <label for="position">Cargo/Posición</label>
                 <input 
                   type="text" 
-                  id="business-code" 
-                  v-model="user.business.code" 
+                  id="position" 
+                  v-model="user.position" 
                   class="form-control"
-                  disabled
+                  :disabled="updating"
+                  placeholder="Administrador, Gerente, etc."
                 />
               </div>
+              
+              <div class="form-group">
+                <label for="corporate-email">Email corporativo</label>
+                <input 
+                  type="email" 
+                  id="corporate-email" 
+                  v-model="user.corporate_email" 
+                  class="form-control"
+                  :disabled="updating"
+                  placeholder="email@empresa.com"
+                />
+              </div>
+              
+              <div class="form-group">
+                <label for="corporate-phone">Teléfono corporativo</label>
+                <input 
+                  type="tel" 
+                  id="corporate-phone" 
+                  v-model="user.corporate_phone" 
+                  class="form-control"
+                  :disabled="updating"
+                  placeholder="+1234567890"
+                />
+              </div>
+              
               
               <div class="profile-divider">
                 <h3>Cambiar contraseña</h3>
@@ -339,7 +371,16 @@ onMounted(() => {
                   :disabled="updating || !isFormValid"
                 >
                   <span v-if="updating" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Guardar cambios
+                  Guardar perfil
+                </button>
+                
+                <button 
+                  type="button" 
+                  class="btn btn-secondary"
+                  @click="changePassword"
+                  :disabled="updating || !passwords.current || !passwords.new || !passwords.confirm || !isPasswordValid || !doPasswordsMatch"
+                >
+                  Cambiar contraseña
                 </button>
                 
                 <button 

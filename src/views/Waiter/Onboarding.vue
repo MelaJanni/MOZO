@@ -106,7 +106,7 @@ const handleSubmit = async () => {
   try {
     await waiterStore.associateBusiness(fullCode);
     await authStore.fetchUser(); // Recargar datos de usuario para obtener la asociación
-    router.push({ name: 'waiter-dashboard' });
+  router.push({ name: 'waiter-dashboard' });
   } catch (err) {
     error.value = err.message || 'El código es incorrecto o ha expirado.';
     if ('vibrate' in navigator) {
@@ -118,7 +118,7 @@ const handleSubmit = async () => {
 };
 
 const goToProfile = () => {
-    router.push('/profile'); 
+  router.push({ name: 'profile' }); 
 };
 </script>
 

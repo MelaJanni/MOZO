@@ -38,9 +38,9 @@ class UnifiedWaiterNotifications {
 
         const waiterUnsubscribe = onValue(waiterRef, (snapshot) => {
             const callIds = snapshot.val() || [];
-            console.log('📋 UNIFIED: Llamadas activas del mozo:', callIds);
-            console.log('📋 UNIFIED: waiterId:', this.waiterId);
-            console.log('📋 UNIFIED: Firebase path:', `waiters/${this.waiterId}/active_calls`);
+            //console.log('📋 UNIFIED: Llamadas activas del mozo:', callIds);
+            //console.log('📋 UNIFIED: waiterId:', this.waiterId);
+            //console.log('📋 UNIFIED: Firebase path:', `waiters/${this.waiterId}/active_calls`);
 
             if (this.initializing && !this._initialSetProcessed) {
                 this._expectedInitialCallIds = new Set(callIds.map(id => String(id)));
@@ -254,6 +254,8 @@ class UnifiedWaiterNotifications {
             completed_at: unifiedCallData.completed_at,
             timestamp: unifiedCallData.called_at,
             waiter_id: unifiedCallData.waiter?.id || this.waiterId,
+            // Incluir información del cliente
+            client_info: unifiedCallData.client_info,
             // Mantener estructura original para compatibilidad
             table: unifiedCallData.table,
             waiter: unifiedCallData.waiter

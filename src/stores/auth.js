@@ -34,6 +34,14 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoading = ref(false)
   const error = ref(null)
   const selectedRole = ref(null)
+  
+  // Cache para evitar peticiones duplicadas
+  const cache = ref({
+    userFetch: null,
+    userFetchTimestamp: 0,
+    cacheDuration: 2 * 60 * 1000, // 2 minutos
+    pendingUserRequest: null // Promise pendiente
+  })
 
   const storedUser = localStorage.getItem('user')
   if (storedUser) {
@@ -193,24 +201,81 @@ export const useAuthStore = defineStore('auth', () => {
     return safeValue(selectedRole)
   }
 
-  const fetchUser = async () => {
-    // console.log('AuthStore - fetchUser iniciado')
-    if (user.value) {
-      // console.log('AuthStore - Usuario ya existe en el estado:', user.value)
-      return;
+  const fetchUser = async (force = false) => {
+    // Si hay una petición pendiente, esperarla en lugar de crear una nueva
+    if (cache.value.pendingUserRequest) {
+      console.log('📦 fetchUser: Esperando petición pendiente...')
+      return await cache.value.pendingUserRequest
     }
-
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        user.value = JSON.parse(storedUser);
-        // console.log('AuthStore - Usuario cargado de localStorage en fetchUser:', user.value)
-      } catch (err) {
-        // console.error('AuthStore - Error al parsear usuario en fetchUser:', err)
+    
+    // Si ya tenemos usuario y no forzamos la recarga, retornar sin hacer nada
+    if (!force && user.value) {
+      console.log('📦 fetchUser: Usuario ya existe en memoria')
+      return user.value
+    }
+    
+    // Verificar cache de tiempo
+    const now = Date.now()
+    if (!force && cache.value.userFetch && (now - cache.value.userFetchTimestamp < cache.value.cacheDuration)) {
+      console.log('📦 fetchUser: Usando datos del cache')
+      if (cache.value.userFetch) {
+        user.value = cache.value.userFetch
+        return user.value
       }
-    } else if (isAuthenticated.value) {
-      // console.log('AuthStore - Autenticado pero sin usuario en localStorage. Cerrando sesión.')
-      logout();
+    }
+    
+    // Primero intentar cargar desde localStorage
+    const storedUser = localStorage.getItem('user')
+    if (storedUser && !force) {
+      try {
+        const userObj = JSON.parse(storedUser)
+        user.value = userObj
+        cache.value.userFetch = userObj
+        cache.value.userFetchTimestamp = now
+        console.log('📦 fetchUser: Usuario cargado desde localStorage')
+        return user.value
+      } catch (err) {
+        console.error('Error parsing stored user:', err)
+      }
+    }
+    
+    // Si tenemos token pero no usuario, hacer petición al servidor
+    if (isAuthenticated.value && safeTokenValue(token)) {
+      console.log('📦 fetchUser: Obteniendo usuario del servidor...')
+      
+      // Crear promesa para evitar peticiones duplicadas
+      cache.value.pendingUserRequest = (async () => {
+        try {
+          const userData = await apiService.getCurrentUser()
+          if (userData) {
+            user.value = userData
+            cache.value.userFetch = userData
+            cache.value.userFetchTimestamp = now
+            
+            // Guardar en localStorage
+            localStorage.setItem('user', JSON.stringify(userData))
+            console.log('✅ fetchUser: Usuario obtenido y guardado')
+            return userData
+          } else {
+            console.warn('fetchUser: Token inválido, cerrando sesión')
+            await logout()
+            return null
+          }
+        } catch (err) {
+          console.error('Error fetching user:', err)
+          if (err.response?.status === 401) {
+            await logout()
+          }
+          throw err
+        } finally {
+          cache.value.pendingUserRequest = null
+        }
+      })()
+      
+      return await cache.value.pendingUserRequest
+    } else {
+      console.log('📦 fetchUser: No hay token de autenticación')
+      return null
     }
   }
   
@@ -231,6 +296,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   const logout = async () => {
     // console.log('AuthStore - Cerrando sesión')
+    
+    // Limpiar cache
+    cache.value.userFetch = null
+    cache.value.userFetchTimestamp = 0
+    cache.value.pendingUserRequest = null
     
     // Llamar al helper que intenta borrar el device token y hacer logout en backend
     try {
@@ -301,6 +371,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Función para intentar login automático con token existente
   const tryToLogin = async () => {
+    if (initialized.value) {
+      console.log('📦 tryToLogin: Ya inicializado, retornando estado actual');
+      return isAuthenticated.value;
+    }
+    
     // console.log('AuthStore - tryToLogin iniciado');
 
     const storedToken = localStorage.getItem('token');
@@ -308,6 +383,8 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (!storedToken) {
       // console.log('AuthStore - No hay token almacenado');
+      // Asegurar que el flujo de inicialización termine incluso sin token
+      initialized.value = true
       return false;
     }
 
@@ -318,14 +395,17 @@ export const useAuthStore = defineStore('auth', () => {
         const userObj = JSON.parse(storedUser);
         user.value = userObj;
         selectedRole.value = userObj.selectedRole || userObj.role;
+        // Actualizar cache con datos del localStorage
+        cache.value.userFetch = userObj;
+        cache.value.userFetchTimestamp = Date.now();
         // console.log('AuthStore - Usuario restaurado desde localStorage:', userObj);
       }
 
-      // Validar el token con el servidor
-      const isValidToken = await apiService.getCurrentUser();
-      if (!isValidToken) {
+      // Validar el token con el servidor usando fetchUser optimizado
+      const userData = await fetchUser(false); // No forzar, usar cache si es posible
+      if (!userData) {
         // console.warn('AuthStore - Token inválido, cerrando sesión.');
-        logout();
+        await logout();
         return false;
       }
 
@@ -341,6 +421,58 @@ export const useAuthStore = defineStore('auth', () => {
     }
   };
 
+  const loginWithGoogle = async (googleData) => {
+    isLoading.value = true
+    error.value = null
+    
+    try {
+      const resp = await apiService.loginWithGoogle(googleData)
+      const responseData = resp.data || {}
+      
+      const receivedToken = responseData.token || responseData.access_token || responseData.plainTextToken
+      user.value = responseData.user
+      token.value = receivedToken || null
+      isAuthenticated.value = true
+      selectedRole.value = responseData.user?.selectedRole || null
+      
+      const tokenValue = safeTokenValue(token)
+      if (tokenValue) {
+        localStorage.setItem('token', tokenValue)
+      }
+      
+      if (user.value) {
+        localStorage.setItem('user', JSON.stringify(user.value))
+      }
+
+      // Inicializar notificaciones y listeners en login vía Google (igual que login normal)
+      try {
+        const { initializePushNotifications } = await import('@/services/pushNotifications')
+        await initializePushNotifications()
+
+        const { useNotificationsStore } = await import('@/stores/notifications')
+        const notificationsStore = useNotificationsStore()
+        notificationsStore.initializeRealTimeNotifications()
+      } catch (notificationError) {
+        // console.warn('AuthStore - Error inicializando notificaciones (Google):', notificationError)
+      }
+
+      // Marcar flujo de inicialización completo tras login con Google
+      initialized.value = true
+
+      return responseData
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Error en login con Google'
+      token.value = null
+      user.value = null
+      isAuthenticated.value = false
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     user,
     token,
@@ -352,6 +484,7 @@ export const useAuthStore = defineStore('auth', () => {
     currentRole,
     
     login,
+    loginWithGoogle,
     register,
     logout,
     fetchUser,
