@@ -464,7 +464,47 @@ export const useAuthStore = defineStore('auth', () => {
       }
       
       if (user.value) {
+        // Completar datos de perfil con información de Google si falta
+        try {
+          const patchedUser = { ...user.value }
+          const googleName = googleData?.name || googleData?.display_name
+          const googleAvatar = googleData?.avatar || googleData?.imageUrl || googleData?.picture
+          const googleEmail = googleData?.email
+
+          // Preferir no sobreescribir si ya existen, salvo que estén vacíos
+          if ((!patchedUser.display_name || patchedUser.display_name === '') && googleName) {
+            patchedUser.display_name = googleName
+          }
+          if ((!patchedUser.name || patchedUser.name === '') && googleName) {
+            patchedUser.name = googleName
+          }
+          if ((!patchedUser.avatar || patchedUser.avatar === '') && googleAvatar) {
+            patchedUser.avatar = googleAvatar
+          }
+          if ((!patchedUser.email || patchedUser.email === '') && googleEmail) {
+            patchedUser.email = googleEmail
+          }
+          user.value = patchedUser
+        } catch (_) { /* noop */ }
+
         localStorage.setItem('user', JSON.stringify(user.value))
+      }
+
+      // Intento best-effort: si falta display_name y tenemos nombre de Google, actualizar perfil en backend
+      try {
+        const googleName = googleData?.name || googleData?.display_name
+        if (googleName && (!user.value?.display_name || user.value.display_name === '')) {
+          const formData = new FormData()
+          formData.append('display_name', googleName)
+          const upd = await apiService.updateProfile(formData)
+          const updatedUser = upd?.data?.user || upd?.data?.data || null
+          if (updatedUser) {
+            user.value = { ...user.value, ...updatedUser }
+            localStorage.setItem('user', JSON.stringify(user.value))
+          }
+        }
+      } catch (e) {
+        // Silencioso: si falla, no bloquear flujo
       }
 
       // Inicializar notificaciones y listeners en login vía Google (igual que login normal)
@@ -482,7 +522,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Marcar flujo de inicialización completo tras login con Google
       initialized.value = true
 
-      return responseData
+  return responseData
     } catch (err) {
       error.value = err.response?.data?.message || 'Error en login con Google'
       token.value = null

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, onUnmounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
 import { useAuthStore } from '@/stores/auth'
@@ -13,11 +13,15 @@ const error = ref('')
 const showBusinessDropdown = ref(false)
 const isLoadingBusinessSwitch = ref(false)
 const businessCode = ref('')
+let onDocumentClick
 
 // Computed properties for business management
 const availableBusinesses = computed(() => adminStore.availableBusinesses || [])
 const currentBusinessName = computed(() => {
   const current = availableBusinesses.value.find(b => b.id === adminStore.activeBusinessId)
+  if (adminStore.businessData?.id === adminStore.activeBusinessId && adminStore.businessData?.name) {
+    return adminStore.businessData.name
+  }
   return current?.name || adminStore.businessData?.name || 'Negocio'
 })
 const stats = ref({
@@ -83,19 +87,22 @@ onMounted(async () => {
   await loadData()
   
   // Cerrar dropdown al hacer clic fuera
-  document.addEventListener('click', (event) => {
+  onDocumentClick = (event) => {
     const businessDropdown = document.querySelector('.business-dropdown')
     if (businessDropdown && !businessDropdown.contains(event.target)) {
       showBusinessDropdown.value = false
     }
-  })
+  }
+  document.addEventListener('click', onDocumentClick)
   
   isLoading.value = false
 })
 
 onUnmounted(() => {
   // Limpiar event listeners
-  document.removeEventListener('click', () => {})
+  if (onDocumentClick) {
+    document.removeEventListener('click', onDocumentClick)
+  }
 })
 
 const navigateTo = (route) => {
@@ -164,6 +171,23 @@ const copyBusinessCode = () => {
       console.error('Error al copiar al portapapeles:', err)
     })
 }
+
+// Refrescar automáticamente cuando cambie el negocio activo (por selección o eliminación)
+watch(() => adminStore.activeBusinessId, async (newVal, oldVal) => {
+  if (!newVal || newVal === oldVal) return
+  try {
+    isLoading.value = true
+    // Forzar refresco de datos de negocio para asegurar nombre/códigos/contadores correctos
+    await adminStore.fetchBusinessData(true)
+    businessCode.value = adminStore.invitationCode || ''
+    // Recargar datos dependientes
+    await loadData()
+  } catch (e) {
+    console.warn('No se pudo refrescar datos tras cambio de negocio:', e)
+  } finally {
+    isLoading.value = false
+  }
+})
 </script>
 
 <template>

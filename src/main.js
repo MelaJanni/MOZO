@@ -16,6 +16,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 // Importar servicios de notificaciones
 import { initializePushNotifications } from './services/pushNotifications'
 import { runNotificationDiagnostics } from '@/utils/notificationDiagnostics'
+import { initOAuthHandler } from '@/utils/oauthHandler'
 
 
 const app = createApp(App)
@@ -23,6 +24,9 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
+
+// Capturar tokens OAuth2 ANTES de que Vue Router pueda interferir
+initOAuthHandler()
 
 // Esperar restauración de sesión y router listo antes de montar
 ;(async () => {
@@ -41,6 +45,7 @@ app.use(router)
 				await auth.loginWithGoogle({
 					provider: 'google',
 					id_token: redirectData.token,
+					google_token: redirectData.token,
 					email: redirectData.email,
 					name: redirectData.name,
 					avatar: redirectData.imageUrl,

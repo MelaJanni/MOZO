@@ -60,21 +60,12 @@
           <span class="text-muted">O continúa con</span>
         </div>
         
-        <!-- Contenedor para el botón GIS (solo web) -->
-        <div 
-          v-if="!isNativePlatform"
-          id="google-signin-button" 
-          class="d-flex justify-content-center mb-3"
-          style="min-height: 44px;"
-        ></div>
-        
-        <!-- Botón fallback si Google no carga -->
+        <!-- Botón de Google para todas las plataformas -->
         <button 
-          v-if="isNativePlatform || !isGoogleLoaded"
           type="button" 
           class="btn btn-outline-secondary w-100 mb-3"
           @click="handleGoogleLogin"
-          :disabled="loading || isInitializing"
+          :disabled="loading"
         >
           <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
           <i v-else class="bi bi-google me-2"></i> 
@@ -94,7 +85,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { useGoogleAuth } from '@/composables/useGoogleAuth'
 import { useNativeGoogleAuth } from '@/composables/useNativeGoogleAuth'
 import apiService from '@/services/api'
 import Swal from 'sweetalert2'
@@ -105,7 +95,6 @@ export default {
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
-  const { signInWithGoogleAndCheckUser, isInitializing, isGoogleLoaded, initializeGoogle } = useGoogleAuth()
   const { signInWithGoogle: signInNative, isNativePlatform, extractEmailFromToken } = useNativeGoogleAuth()
     
     const email = ref('')
@@ -144,62 +133,23 @@ export default {
 
         console.log('🔵 Iniciando autenticación con Google...', isNativePlatform ? 'NATIVO' : 'WEB')
         
-        let googleToken, userEmail
+        const result = await signInNative()
         
-        if (isNativePlatform) {
-          // Usar autenticación nativa para móviles
-          const result = await signInNative()
-          googleToken = result.token
-          userEmail = result.email
-        } else {
-          // Usar autenticación web
-          const result = await signInWithGoogleAndCheckUser()
-          googleToken = result.token
-          userEmail = result.email
+        // Si result es null, significa que se está procesando un redirect
+        if (result === null) {
+          error.value = 'Redirigiendo a Google Sign-In...'
+          return // No cambiar loading.value para mantener el indicador
         }
         
-        console.log('✅ Token de Google obtenido para:', userEmail)
-        
-        // Verificar si el usuario ya existe
-        let userExists = true
-        try {
-          await apiService.checkUserExists(userEmail)
-          console.log('👤 Usuario existe, procediendo con login...')
-        } catch (err) {
-          if (err.response?.status === 404) {
-            userExists = false
-            console.log('👤 Usuario no existe, se requerirá registro...')
-          } else {
-            throw err // Re-lanzar otros errores
-          }
-        }
-        
-        // Si el usuario no existe, mostrar confirmación de registro
-        if (!userExists) {
-          const result = await Swal.fire({
-            title: '¡Bienvenido a MOZO!',
-            html: `No tienes una cuenta registrada con <strong>${userEmail}</strong>.<br><br>¿Deseas crear una cuenta nueva y continuar?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#007bff',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: '✅ Sí, crear cuenta',
-            cancelButtonText: 'Cancelar',
-            reverseButtons: true
-          })
-
-          if (!result.isConfirmed) {
-            error.value = 'Registro cancelado'
-            return
-          }
-          
-          console.log('👤 Usuario confirmó registro automático')
-        }
+        console.log('✅ Token de Google obtenido para:', result.email)
         
         const loginData = {
-          google_token: googleToken,
+          google_token: result.token,
           fcm_token: localStorage.getItem('fcm_token') || undefined,
-          platform: isNativePlatform ? 'android' : 'web'
+          platform: isNativePlatform ? 'android' : 'web',
+          email: result.email,
+          name: result.name,
+          avatar: result.imageUrl
         }
 
         // Verificar si hay código de invitación en la URL
@@ -210,22 +160,9 @@ export default {
           console.log('🏢 Código de invitación detectado:', invitationCode)
         }
 
-        const actionText = userExists ? 'login' : 'registro y login'
-        console.log(`🚀 Enviando datos de ${actionText} al servidor...`)
+        console.log('🚀 Enviando datos de login/registro con Google al servidor...')
         
         const response = await authStore.loginWithGoogle(loginData)
-        
-        // Mostrar mensaje apropiado
-        if (!userExists) {
-          await Swal.fire({
-            title: '¡Cuenta creada!',
-            html: `Tu cuenta ha sido creada exitosamente con <strong>${userEmail}</strong>`,
-            icon: 'success',
-            confirmButtonText: 'Continuar',
-            timer: 3000,
-            timerProgressBar: true
-          })
-        }
         
         if (response.staff_request_created) {
           console.log(`✅ Solicitud de staff creada para: ${response.business_name}`)
@@ -265,147 +202,76 @@ export default {
       }
     }
     
-    // Función para renderizar el botón nativo de Google
-    const renderGoogleButton = async () => {
+    // Verificar resultado de redirect cuando el componente se monta
+    onMounted(async () => {
+      console.log('🔍 Login component mounted')
+      console.log('🔍 Is native platform:', isNativePlatform)
+      console.log('🔍 Current URL:', window.location.href)
+      console.log('🔍 Hash:', window.location.hash)
+      
+      // Verificar si hay un resultado de OAuth2 redirect pendiente
       try {
-        await initializeGoogle()
-        
-        if (typeof window.google !== 'undefined') {
-          const buttonContainer = document.getElementById('google-signin-button')
-          if (buttonContainer) {
-            // Limpiar contenedor
-            buttonContainer.innerHTML = ''
+        // Para web: verificar stored token O hash con access_token (OAuth2 implicit flow)
+        if (!isNativePlatform) {
+          // Verificar si hay token almacenado o hash con tokens
+          const hasStoredToken = sessionStorage.getItem('oauth_token_data')
+          const hasHashToken = window.location.hash.includes('access_token=') || window.location.hash.includes('id_token=')
+          
+          console.log('🔍 Checking OAuth tokens:', { hasStoredToken: !!hasStoredToken, hasHashToken })
+          
+          if (hasStoredToken || hasHashToken) {
+            console.log('✅ OAuth2 data detectado - procesando...', 
+                       hasStoredToken ? '(stored)' : '(hash)')
+            loading.value = true
             
-            // Renderizar botón nativo
-            window.google.accounts.id.renderButton(buttonContainer, {
-              theme: 'outline',
-              size: 'large',
-              text: 'signin_with',
-              width: 300,
-              locale: 'es'
-            })
+            try {
+              const result = await signInNative() // Esto procesará el OAuth redirect
             
-            // Configurar callback directo
-            window.google.accounts.id.initialize({
-              client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-              callback: async (response) => {
-                if (response.credential) {
-                  // Simular click en handleGoogleLogin pero con el token ya disponible
-                  await handleGoogleLoginWithToken(response.credential)
+              if (result) {
+                console.log('✅ Respuesta OAuth2 procesada:', result.email)
+                
+                const loginData = {
+                  google_token: result.token,
+                  fcm_token: localStorage.getItem('fcm_token') || undefined,
+                  platform: 'web',
+                  email: result.email,
+                  name: result.name,
+                  avatar: result.imageUrl
+                }
+
+                // Verificar código de invitación
+                const urlParams = new URLSearchParams(window.location.search)
+                const invitationCode = urlParams.get('invitation_code') || urlParams.get('code')
+                if (invitationCode) {
+                  loginData.business_invitation_code = invitationCode
+                }
+
+                const response = await authStore.loginWithGoogle(loginData)
+                
+                if (response.staff_request_created) {
+                  console.log(`✅ Solicitud de staff creada para: ${response.business_name}`)
+                }
+
+                // Redirección
+                const redirectUrl = localStorage.getItem('redirectAfterLogin')
+                if (redirectUrl) {
+                  localStorage.removeItem('redirectAfterLogin')
+                  router.push(redirectUrl)
+                } else {
+                  router.push({ name: 'role-selection' })
                 }
               }
-            })
-          }
-        }
-      } catch (error) {
-        console.error('Error rendering Google button:', error)
-      }
-    }
-    
-    // Función auxiliar para manejar login con token directo
-    const handleGoogleLoginWithToken = async (googleToken) => {
-      try {
-        loading.value = true
-        error.value = ''
-
-        // Extraer email del token
-        const payload = JSON.parse(atob(googleToken.split('.')[1]))
-        const userEmail = payload.email
-        
-        console.log('✅ Token de Google obtenido para:', userEmail)
-        
-        // Verificar si el usuario ya existe
-        let userExists = true
-        try {
-          await apiService.checkUserExists(userEmail)
-          console.log('👤 Usuario existe, procediendo con login...')
-        } catch (err) {
-          if (err.response?.status === 404) {
-            userExists = false
-            console.log('👤 Usuario no existe, se requerirá registro...')
-          } else {
-            throw err
+            } catch (err) {
+              console.error('❌ Error procesando OAuth2 redirect:', err)
+              error.value = err.response?.data?.message || err.message || 'Error procesando autenticación de Google'
+            } finally {
+              loading.value = false
+            }
           }
         }
         
-        // Si el usuario no existe, mostrar confirmación de registro
-        if (!userExists) {
-          const result = await Swal.fire({
-            title: '¡Bienvenido a MOZO!',
-            html: `No tienes una cuenta registrada con <strong>${userEmail}</strong>.<br><br>¿Deseas crear una cuenta nueva y continuar?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#007bff',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: '✅ Sí, crear cuenta',
-            cancelButtonText: 'Cancelar',
-            reverseButtons: true
-          })
-
-          if (!result.isConfirmed) {
-            error.value = 'Registro cancelado'
-            return
-          }
-        }
-        
-        const loginData = {
-          google_token: googleToken,
-          fcm_token: localStorage.getItem('fcm_token') || undefined,
-          platform: 'web'
-        }
-
-        // Verificar si hay código de invitación en la URL
-        const urlParams = new URLSearchParams(window.location.search)
-        const invitationCode = urlParams.get('invitation_code') || urlParams.get('code')
-        if (invitationCode) {
-          loginData.business_invitation_code = invitationCode
-        }
-
-        const response = await authStore.loginWithGoogle(loginData)
-        
-        // Mostrar mensaje apropiado
-        if (!userExists) {
-          await Swal.fire({
-            title: '¡Cuenta creada!',
-            html: `Tu cuenta ha sido creada exitosamente con <strong>${userEmail}</strong>`,
-            icon: 'success',
-            confirmButtonText: 'Continuar',
-            timer: 3000,
-            timerProgressBar: true
-          })
-        }
-        
-        if (response.staff_request_created) {
-          console.log(`✅ Solicitud de staff creada para: ${response.business_name}`)
-        }
-
-        // Redirección
-        const redirectUrl = localStorage.getItem('redirectAfterLogin')
-        if (redirectUrl) {
-          localStorage.removeItem('redirectAfterLogin')
-          router.push(redirectUrl)
-        } else {
-          router.push({ name: 'role-selection' })
-        }
-
-      } catch (err) {
-        console.error('❌ Error en autenticación con Google:', err)
-        
-        if (err.response?.status === 401) {
-          error.value = 'Token de Google inválido. Por favor, inténtalo de nuevo.'
-        } else {
-          error.value = err.response?.data?.message || err.message || 'Error al autenticarse con Google'
-        }
-      } finally {
-        loading.value = false
-      }
-    }
-    
-    // Renderizar botón cuando el componente se monta
-    onMounted(async () => {
-      // Check for pending redirect result first (for mobile)
-      if (isNativePlatform) {
-        try {
+        // Para móvil: verificar resultado de Firebase redirect (solo como fallback)
+        if (isNativePlatform) {
           const { getAuth } = await import('@/services/firebase')
           const { getRedirectResult, GoogleAuthProvider } = await import('firebase/auth')
           const auth = await getAuth()
@@ -413,9 +279,8 @@ export default {
           if (auth) {
             const result = await getRedirectResult(auth)
             if (result) {
-              console.log('🔄 Processing redirect result from Google Sign-In...')
+              console.log('🔄 Procesando resultado de Firebase redirect móvil...')
               
-              // Process the redirect result
               const user = result.user
               const credential = GoogleAuthProvider.credentialFromResult(result)
               
@@ -428,20 +293,51 @@ export default {
                 accessToken: credential?.accessToken
               }
               
-              console.log('✅ Redirect result processed:', googleAuthResult.email)
+              console.log('✅ Resultado de Firebase redirect procesado:', googleAuthResult.email)
               
-              // Continue with the authentication flow
-              await handleGoogleLoginWithToken(googleAuthResult.token)
-              return
+              loading.value = true
+              
+              const loginData = {
+                google_token: googleAuthResult.token,
+                fcm_token: localStorage.getItem('fcm_token') || undefined,
+                platform: 'android',
+                email: googleAuthResult.email,
+                name: googleAuthResult.name,
+                avatar: googleAuthResult.imageUrl
+              }
+
+              const urlParams = new URLSearchParams(window.location.search)
+              const invitationCode = urlParams.get('invitation_code') || urlParams.get('code')
+              if (invitationCode) {
+                loginData.business_invitation_code = invitationCode
+              }
+
+              try {
+                const response = await authStore.loginWithGoogle(loginData)
+                
+                if (response.staff_request_created) {
+                  console.log(`✅ Solicitud de staff creada para: ${response.business_name}`)
+                }
+
+                const redirectUrl = localStorage.getItem('redirectAfterLogin')
+                if (redirectUrl) {
+                  localStorage.removeItem('redirectAfterLogin')
+                  router.push(redirectUrl)
+                } else {
+                  router.push({ name: 'role-selection' })
+                }
+              } catch (err) {
+                console.error('❌ Error procesando login móvil con Google:', err)
+                error.value = err.response?.data?.message || err.message || 'Error al autenticarse con Google'
+              } finally {
+                loading.value = false
+              }
             }
           }
-        } catch (error) {
-          console.error('❌ Error processing redirect result:', error)
         }
-      }
-      
-      if (!isNativePlatform) {
-        await renderGoogleButton()
+        
+      } catch (error) {
+        console.error('❌ Error verificando resultado de redirect:', error)
       }
     })
     
@@ -451,8 +347,7 @@ export default {
       remember,
       error,
       loading,
-      isInitializing,
-      isGoogleLoaded,
+      isNativePlatform,
       isFormValid,
       handleLogin,
       handleGoogleLogin

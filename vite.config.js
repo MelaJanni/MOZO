@@ -19,6 +19,9 @@ export default defineConfig({
     open: true,
     hmr: {
       overlay: true
+    },
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups'
     }
   },
   css: {

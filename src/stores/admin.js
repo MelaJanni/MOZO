@@ -39,33 +39,45 @@ export const useAdminStore = defineStore('admin', () => {
     error.value = null
     try {
       const resp = await apiService.getBusinessInfo()
-      const data = resp.data.business || {}
-      
-      //console.log('🔍 Respuesta de la API:', data)
-      
-      // Verificar si requiere setup de negocio
-      requiresBusinessSetup.value = data.requires_business_setup === true
+      const root = resp.data || {}
 
-      //console.log('📊 requiresBusinessSetup establecido a:', requiresBusinessSetup.value)
+      // Verificar si requiere setup de negocio (tomado del objeto raíz)
+      requiresBusinessSetup.value = root.requires_business_setup === true
 
       if (requiresBusinessSetup.value) {
-        // No hay negocios, retornar estado de setup
-        //console.log('✅ Retornando estado de setup')
-        return {
-          requires_business_setup: true
-        }
+        return { requires_business_setup: true }
       }
-      
-      const business = data.business || data
-      businessData.value = business
-      // campos adicionales del contrato
-      activeBusinessId.value = data.active_business_id ?? business?.id ?? null
-      tablesCount.value = data.tables_count ?? 0
-      menusCount.value = data.menus_count ?? 0
-      qrCodesCount.value = data.qr_codes_count ?? 0
-      invitationCode.value = data.invitation_code ?? null
-      invitationUrl.value = data.invitation_url ?? null
-      availableBusinesses.value = Array.isArray(data.available_businesses) ? data.available_businesses : []
+
+      // Negocio actual: si viene en root.business, usarlo; si no, root puede ya ser el negocio
+      const business = root.business || root
+      businessData.value = business || null
+
+      // Campos adicionales desde el objeto raíz
+      activeBusinessId.value = root.active_business_id ?? business?.id ?? null
+      tablesCount.value = root.tables_count ?? 0
+      menusCount.value = root.menus_count ?? 0
+      qrCodesCount.value = root.qr_codes_count ?? 0
+      invitationCode.value = root.invitation_code ?? null
+      invitationUrl.value = root.invitation_url ?? null
+      availableBusinesses.value = Array.isArray(root.available_businesses) ? root.available_businesses : (availableBusinesses.value || [])
+
+      // Poblar listas detalladas si vienen embebidas en la respuesta
+      if (business && Array.isArray(business.tables)) {
+        tables.value = business.tables
+        // Si no venían contadores en root, derivarlos
+        if (root.tables_count == null) tablesCount.value = business.tables.length
+      }
+      if (business && Array.isArray(business.menus)) {
+        // Mapear a estructura usada en el front
+        menus.value = business.menus.map(m => ({
+          id: m.id,
+          name: m.name,
+          url: m.view_url || m.file_path,
+          thumbnailUrl: m.preview_url || m.thumbnail_url || '/src/assets/pdf-thumb.png',
+          isDefault: m.is_default
+        }))
+        if (root.menus_count == null) menusCount.value = menus.value.length
+      }
 
       if (activeBusinessId.value) {
         businessId.value = activeBusinessId.value
@@ -82,7 +94,7 @@ export const useAdminStore = defineStore('admin', () => {
         qr_codes_count: qrCodesCount.value,
         invitation_code: invitationCode.value,
         invitation_url: invitationUrl.value,
-  available_businesses: availableBusinesses.value
+        available_businesses: availableBusinesses.value
       }
     } catch (err) {
       error.value = err.message || 'Error al cargar datos del negocio'
@@ -130,7 +142,7 @@ export const useAdminStore = defineStore('admin', () => {
       localStorage.setItem('businessId', String(businessIdToSelect))
       // refrescar datos dependientes del negocio
       await Promise.all([
-        fetchBusinessData(),
+        fetchBusinessData(true),
         fetchTables(),
         fetchMenus()
       ])
@@ -692,6 +704,81 @@ export const useAdminStore = defineStore('admin', () => {
       isLoading.value = false
     }
   }
+
+  // Eliminar negocio actual u otro por ID
+  const deleteBusiness = async (id) => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const businessIdToDelete = id ?? activeBusinessId.value ?? businessId.value
+      if (!businessIdToDelete) throw new Error('No se encontró el ID del negocio a eliminar')
+      const wasActive = (activeBusinessId.value === businessIdToDelete) || (businessId.value === businessIdToDelete)
+
+      const resp = await apiService.deleteBusiness(businessIdToDelete)
+
+      // Actualizar listados desde el backend tras eliminar
+      let list = []
+      try {
+        const lresp = await apiService.getAdminBusinesses()
+        list = lresp.data?.businesses ?? lresp.data ?? []
+        if (!Array.isArray(list)) list = []
+      } catch (e) {
+        // fallback a filtrar local si falla la recarga
+        list = (allBusinesses.value || []).filter(b => b.id !== businessIdToDelete)
+      }
+      allBusinesses.value = list
+      availableBusinesses.value = list
+
+      if (list.length > 0) {
+        // Aún hay negocios. No marcar setup requerido.
+        requiresBusinessSetup.value = false
+
+        if (wasActive) {
+          // Elegir siguiente negocio: preferir is_active, si no, el primero
+          const next = list.find(b => b.is_active) || list[0]
+          if (next?.id) {
+            try {
+              await selectActiveBusiness(next.id)
+            } catch (e) {
+              // Si falla seleccionar, al menos setear localmente
+              activeBusinessId.value = next.id
+              businessId.value = next.id
+              localStorage.setItem('businessId', String(next.id))
+              try { await fetchBusinessData(true) } catch (e2) {}
+            }
+          }
+        } else {
+          // Si no era activo, mantener el activo actual si existe
+          if (!activeBusinessId.value && list[0]?.id) {
+            try { await selectActiveBusiness(list[0].id) } catch (e) {}
+          }
+        }
+
+        return { ...(resp.data || {}), redirected: 'admin', active_business_id: activeBusinessId.value }
+      }
+
+      // No quedan negocios: limpiar estado y requerir setup
+      activeBusinessId.value = null
+      businessId.value = null
+      businessData.value = null
+      menus.value = []
+      tables.value = []
+      invitationCode.value = null
+      invitationUrl.value = null
+      tablesCount.value = 0
+      menusCount.value = 0
+      qrCodesCount.value = 0
+      requiresBusinessSetup.value = true
+      localStorage.removeItem('businessId')
+
+      return { ...(resp.data || {}), redirected: 'onboarding' }
+    } catch (err) {
+      error.value = err.message || 'Error al eliminar negocio'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
   
   return {
       businessId,
@@ -755,6 +842,7 @@ export const useAdminStore = defineStore('admin', () => {
   regenerateInvitation,
   selectActiveBusiness,
   createBusiness,
-  joinBusinessWithCode
+  joinBusinessWithCode,
+  deleteBusiness
   }
 }) 

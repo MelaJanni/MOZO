@@ -20,6 +20,10 @@ const showAddTableModal = ref(false)
 const showEditTableModal = ref(false)
 const showDeleteTableModal = ref(false)
 const selectedTable = ref(null)
+const showDeleteBusinessModal = ref(false)
+const deleteConfirmText = ref('')
+const deleteBusinessError = ref('')
+const deletingBusinessId = ref(null)
 
 const newTable = reactive({
   number: '',
@@ -32,14 +36,16 @@ onMounted(async () => {
   error.value = ''
   
   try {
-    const [businessData, tablesData, allBiz] = await Promise.all([
-      adminStore.fetchBusinessData(),
-      adminStore.fetchTables(),
+    const [businessData, allBiz] = await Promise.all([
+      adminStore.fetchBusinessData(true),
       adminStore.fetchAllBusinesses().catch(() => [])
     ])
     
     business.value = businessData.business || {}
-    tables.value = tablesData || []
+    // Si las mesas ya vinieron embebidas en businessData, usarlas; si no, fallback a store
+    tables.value = Array.isArray(adminStore.tables) && adminStore.tables.length > 0
+      ? adminStore.tables
+      : []
     businesses.value = allBiz || []
   } catch (err) {
     error.value = err.message || 'Error al cargar datos'
@@ -173,6 +179,48 @@ const changeActiveBusiness = async (e) => {
     isLoading.value = false
   }
 }
+
+const openDeleteBusinessModal = () => {
+  deleteConfirmText.value = ''
+  deleteBusinessError.value = ''
+  // Resolver un ID inicial desde el store o el objeto local
+  deletingBusinessId.value = adminStore.activeBusinessId || adminStore.businessId || business.value?.id || null
+  showDeleteBusinessModal.value = true
+}
+
+const confirmDeleteBusiness = async () => {
+  if (deleteConfirmText.value.trim().toUpperCase() !== 'ELIMINAR') {
+    deleteBusinessError.value = 'Escribe ELIMINAR para confirmar.'
+    return
+  }
+  isLoading.value = true
+  deleteBusinessError.value = ''
+  try {
+    // Resolver ID desde store u objeto local; refrescar si no está
+    let id = adminStore.activeBusinessId || adminStore.businessId || business.value?.id || deletingBusinessId.value
+    if (!id) {
+      try { await adminStore.fetchBusinessData(true) } catch (e) {}
+      id = adminStore.activeBusinessId || adminStore.businessId || business.value?.id || deletingBusinessId.value
+    }
+    if (!id) {
+      deleteBusinessError.value = 'No se encontró el negocio activo.'
+      return
+    }
+    deletingBusinessId.value = id
+    const res = await adminStore.deleteBusiness(id)
+    showDeleteBusinessModal.value = false
+    // Redirigir según haya quedado otro negocio activo o no
+    if (res?.redirected === 'admin') {
+      router.push({ name: 'admin' })
+    } else {
+      router.push({ name: 'admin-onboard' })
+    }
+  } catch (err) {
+    deleteBusinessError.value = err.message || 'No se pudo eliminar el negocio'
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -272,11 +320,26 @@ const changeActiveBusiness = async (e) => {
       </div>
 
       <div class="settings-section danger-zone">
-        <h2>Cerrar Sesión</h2>
-        <p>Finaliza tu sesión actual de forma segura.</p>
-        <BaseButton @click="logout" variant="danger-outline">
-          Cerrar sesión
-        </BaseButton>
+        <h2>Zona de Peligro</h2>
+        <div class="danger-actions">
+          <div class="danger-block">
+            <h3>Eliminar negocio</h3>
+            <p>
+              Esta acción eliminará el negocio "{{ business.name }}" y todos sus datos asociados
+              (mesas, menús, códigos QR, staff, llamadas, archivos, pivotes). Es irreversible.
+            </p>
+            <BaseButton @click="openDeleteBusinessModal" variant="danger">
+              Eliminar negocio
+            </BaseButton>
+          </div>
+          <div class="danger-block">
+            <h3>Cerrar sesión</h3>
+            <p>Finaliza tu sesión actual de forma segura.</p>
+            <BaseButton @click="logout" variant="danger-outline">
+              Cerrar sesión
+            </BaseButton>
+          </div>
+        </div>
       </div>
     </div>
     
@@ -403,6 +466,34 @@ const changeActiveBusiness = async (e) => {
         
         <BaseButton @click="deleteTable" variant="danger" :loading="isLoading">
           Eliminar
+        </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- Modal de eliminación de negocio -->
+    <BaseModal 
+      v-model="showDeleteBusinessModal" 
+      title="Eliminar negocio" 
+      size="sm"
+      :static-backdrop="true"
+    >
+      <div class="confirm-content">
+        <p>
+          Vas a eliminar el negocio <strong>{{ business?.name }}</strong> y todos sus datos.
+        </p>
+        <p class="confirm-warning">Esta acción es permanente e irreversible.</p>
+        <div class="form-group mt-3">
+          <label>Para confirmar, escribe <strong>ELIMINAR</strong>:</label>
+          <input type="text" v-model="deleteConfirmText" placeholder="ELIMINAR" />
+        </div>
+        <p v-if="deleteBusinessError" class="error-text">{{ deleteBusinessError }}</p>
+      </div>
+      <template #footer>
+        <BaseButton @click="showDeleteBusinessModal = false" variant="outline">
+          Cancelar
+        </BaseButton>
+        <BaseButton @click="confirmDeleteBusiness" variant="danger" :loading="isLoading">
+          Eliminar definitivamente
         </BaseButton>
       </template>
     </BaseModal>
@@ -659,5 +750,24 @@ const changeActiveBusiness = async (e) => {
 
 .danger-zone h2 {
   color: #dc3545;
+}
+
+.danger-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.danger-block {
+  border: 1px solid #f5c2c7;
+  background: #fff;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.error-text {
+  color: var(--error-color);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
 }
 </style> 

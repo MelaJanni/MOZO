@@ -256,6 +256,7 @@ const apiService = {
   createBusiness: (data) => api.post('admin/business/create', data),
   joinBusiness: (invitationCode) => api.post('join-business', { invitation_code: invitationCode }),
   regenerateInvitationCode: () => api.post('admin/business/regenerate-invitation-code'),
+  deleteBusiness: (businessId) => api.delete(`admin/business/${businessId}`),
 
   // ===== UNIFIED FIREBASE CONFIG =====
   getFirebaseConfig: () => api.get('firebase/config'),
