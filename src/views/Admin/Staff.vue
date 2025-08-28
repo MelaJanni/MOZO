@@ -119,6 +119,13 @@ const handleConfirmRequest = async (request) => {
     
     await adminStore.approveStaffRequest(requestId, approvalData);
     
+    // Refresh the staff data to reflect changes
+    await Promise.all([
+      adminStore.fetchStaff(),
+      adminStore.fetchStaffRequests(),
+      adminStore.fetchArchivedRequests()
+    ]);
+    
     // Mostrar toast de éxito
     showSuccessToast(`Solicitud de ${request.user?.name || request.user_profile?.display_name} aprobada exitosamente`);
     
@@ -141,6 +148,13 @@ const handleArchiveRequest = async (request) => {
       throw new Error('ID de solicitud no encontrado');
     }
     await adminStore.handleStaffRequest(requestId, action);
+    
+    // Refresh the staff data to reflect changes
+    await Promise.all([
+      adminStore.fetchStaff(),
+      adminStore.fetchStaffRequests(),
+      adminStore.fetchArchivedRequests()
+    ]);
   } catch (err) {
     error.value = err.message || 'Error al archivar solicitud';
   } finally {
@@ -160,6 +174,13 @@ const handleUnarchiveRequest = async (request) => {
     }
     console.log('Unarchiving request with ID:', requestId);
     await adminStore.handleStaffRequest(requestId, action);
+    
+    // Refresh the staff data to reflect changes
+    await Promise.all([
+      adminStore.fetchStaff(),
+      adminStore.fetchStaffRequests(),
+      adminStore.fetchArchivedRequests()
+    ]);
   } catch (err) {
     console.error('Error unarchiving request:', err);
     error.value = err.message || 'Error al desarchivar solicitud';
@@ -182,6 +203,13 @@ const handleRejectRequest = async (request) => {
     };
     
     await adminStore.rejectStaffRequest(requestId, rejectionData);
+    
+    // Refresh the staff data to reflect changes
+    await Promise.all([
+      adminStore.fetchStaff(),
+      adminStore.fetchStaffRequests(),
+      adminStore.fetchArchivedRequests()
+    ]);
     
     // Mostrar toast de éxito
     showSuccessToast(`Solicitud de ${request.user?.name || request.user_profile?.display_name} rechazada`);
@@ -211,6 +239,13 @@ const confirmAllRequests = async () => {
       }
     }
     
+    // Refresh the staff data to reflect all changes
+    await Promise.all([
+      adminStore.fetchStaff(),
+      adminStore.fetchStaffRequests(),
+      adminStore.fetchArchivedRequests()
+    ]);
+    
     showSuccessToast(`${staffRequests.value.length} solicitudes aprobadas exitosamente`);
   } catch (err) {
     error.value = err.message || 'Error al confirmar todas las solicitudes';
@@ -236,6 +271,13 @@ const handleInviteRequest = async (request) => {
     } else {
       showSuccessToast(`Token de invitación generado para ${request.user?.name || request.user_profile?.display_name}`);
     }
+    
+    // Refresh the staff lists to reflect any changes
+    await Promise.all([
+      adminStore.fetchStaff(),
+      adminStore.fetchStaffRequests(),
+      adminStore.fetchArchivedRequests()
+    ]);
   } catch (err) {
     error.value = err.message || 'Error al enviar invitación';
   } finally {
@@ -253,6 +295,13 @@ const archiveAllRequests = async () => {
         await adminStore.handleStaffRequest(requestId, 'archive');
       }
     }
+    
+    // Refresh the staff data to reflect all changes
+    await Promise.all([
+      adminStore.fetchStaff(),
+      adminStore.fetchStaffRequests(),
+      adminStore.fetchArchivedRequests()
+    ]);
   } catch (err) {
     error.value = err.message || 'Error al archivar todas las solicitudes';
   } finally {
@@ -274,6 +323,13 @@ const removeStaff = async () => {
       throw new Error('ID de empleado no encontrado');
     }
     await adminStore.removeStaff(staffId);
+    
+    // Refresh the staff list to reflect the changes
+    await Promise.all([
+      adminStore.fetchStaff(),
+      adminStore.fetchStaffRequests()
+    ]);
+    
     showConfirmModal.value = false;
     selectedEmployee.value = null;
   } catch (err) {

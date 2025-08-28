@@ -5,6 +5,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationsStore } from '@/stores/notifications'
 
 import './assets/styles/main.scss'
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -32,6 +33,14 @@ initOAuthHandler()
 ;(async () => {
 	try {
 		const auth = useAuthStore()
+		const notifications = useNotificationsStore()
+		
+		// Initialize notification settings from localStorage
+		notifications.initializeSettings()
+		
+		// Request notification permission
+		await notifications.requestNotificationPermission()
+		
 		if (!auth.initialized) {
 			await auth.tryToLogin()
 		}

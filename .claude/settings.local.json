@@ -21,7 +21,9 @@
       "Read(/C:\\Program Files\\Eclipse Adoptium/**)",
       "Read(/C:\\Program Files\\Eclipse Adoptium/**)",
       "Bash(npm search:*)",
-      "WebFetch(domain:developers.google.com)"
+      "WebFetch(domain:developers.google.com)",
+      "Bash(npx vite:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

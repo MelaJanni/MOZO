@@ -116,9 +116,10 @@
           </router-link>
         </div>
         <div class="col-6">
-          <router-link to="/admin/staff" class="card dashboard-card text-center text-decoration-none">
+          <router-link to="/admin/staff" class="card dashboard-card text-center text-decoration-none position-relative">
             <div class="card-body">
               <i class="bi bi-person-fill"></i>
+              <span v-if="staffNotificationCount > 0" class="staff-notification-badge">{{ staffNotificationCount > 99 ? '99+' : staffNotificationCount }}</span>
             </div>
             <div class="card-footer">PERSONAL</div>
           </router-link>
@@ -186,6 +187,13 @@ export default {
     const requiresBusinessSetup = computed(() => {
       console.log('🔄 Computed requiresBusinessSetup evaluado:', adminStore.requiresBusinessSetup)
       return adminStore.requiresBusinessSetup && isDataLoaded.value
+    })
+    
+    // Staff notifications count (only staff request type)
+    const staffNotificationCount = computed(() => {
+      return notificationsStore.unreadNotifications.filter(n => 
+        n.type === 'staff_request'
+      ).length
     })
     
     // Watch para debug
@@ -362,8 +370,45 @@ export default {
       await loadBusinessData()
       // Inicializar notificaciones en tiempo real después de cargar datos del negocio
       try {
+        console.log('🚨🚨🚨 ADMIN DASHBOARD: About to call initializeRealTimeNotifications - NEW CODE! 🚨🚨🚨')
         await notificationsStore.initializeRealTimeNotifications()
         console.log('✅ Notificaciones en tiempo real iniciadas en Admin Dashboard')
+        
+        // Debug admin business data for real-time notifications
+        const businessId = adminStore.businessData?.id
+        console.log('🔍 Admin Dashboard: Business data:', adminStore.businessData)
+        console.log('🔍 Admin Dashboard: Business ID:', businessId)
+        console.log('🔍 Admin Dashboard: Notifications store connected:', notificationsStore.isConnected)
+        
+        // The real-time notifications are already initialized above via notificationsStore.initializeRealTimeNotifications()
+        // This handles admin notifications through the existing staff realtime system
+        
+        // TESTING: Add a global function to test Firebase writes
+        window.testFirebaseWrite = async () => {
+          try {
+            const { initializeFirebaseApp } = await import('@/services/firebase')
+            const { getDatabase, ref, set } = await import('firebase/database')
+            
+            const firebaseInstance = await initializeFirebaseApp()
+            if (firebaseInstance) {
+              const db = getDatabase(firebaseInstance.app)
+              const testPath = `businesses_staff/${businessId}/test_${Date.now()}`
+              
+              console.log('🧪 TESTING: Writing to path:', testPath)
+              await set(ref(db, testPath), {
+                status: 'pending',
+                name: 'Test User',
+                created_at: new Date().toISOString(),
+                test: true
+              })
+              console.log('🧪 TESTING: Test data written to Firebase!')
+            }
+          } catch (error) {
+            console.error('🧪 TESTING: Error writing test data:', error)
+          }
+        }
+        
+        console.log('🧪 TESTING: Use window.testFirebaseWrite() to test the Firebase listener')
       } catch (error) {
         console.error('❌ Error iniciando notificaciones en tiempo real:', error)
       }
@@ -392,6 +437,7 @@ export default {
       isDataLoaded,
       availableBusinesses,
       currentBusinessName,
+      staffNotificationCount,
       showBusinessDropdown,
       isLoadingBusinessSwitch,
       copyBusinessCode,
@@ -514,5 +560,27 @@ export default {
   background-color: #f8f9fa;
   border-radius: 4px;
   border: 1px solid #dee2e6;
+}
+
+.staff-notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ff4444;
+  color: white;
+  border-radius: 12px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+  line-height: 1;
+  box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
+  animation: pulseNotification 2s infinite;
+}
+
+@keyframes pulseNotification {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
 }
 </style>

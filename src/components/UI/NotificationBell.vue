@@ -76,17 +76,50 @@ function closeDropdown() {
   isOpen.value = false
 }
 
-function markAsRead(notification) {
+async function markAsRead(notification) {
   if (!notification.read_at) {
-    notificationsStore.handleNotification(notification.id, 'read')
+    try {
+      // Determine notification type and call appropriate handler
+      if (notification.type === 'waiter_call' || notification.type === 'waiter_notification') {
+        await notificationsStore.handleWaiterNotification(notification.id, 'mark_as_read')
+      } else {
+        await notificationsStore.handleNotification(notification.id, 'mark_as_read')
+      }
+      
+      // Force reactivity update - reload both types of notifications
+      await Promise.all([
+        notificationsStore.loadNotifications(),
+        notificationsStore.loadWaiterNotifications()
+      ])
+    } catch (error) {
+      console.error('Error marking notification as read:', error)
+    }
   }
 }
 
-function markAllAsRead() {
-  notificationsStore.allUnreadNotifications.forEach(notification => {
-    notificationsStore.handleNotification(notification.id, 'read')
-  })
-  closeDropdown()
+async function markAllAsRead() {
+  try {
+    const promises = notificationsStore.allUnreadNotifications.map(async (notification) => {
+      if (notification.type === 'waiter_call' || notification.type === 'waiter_notification') {
+        return notificationsStore.handleWaiterNotification(notification.id, 'mark_as_read')
+      } else {
+        return notificationsStore.handleNotification(notification.id, 'mark_as_read')
+      }
+    })
+    
+    await Promise.all(promises)
+    
+    // Force reactivity update - reload both types of notifications
+    await Promise.all([
+      notificationsStore.loadNotifications(),
+      notificationsStore.loadWaiterNotifications()
+    ])
+    
+    closeDropdown()
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error)
+    closeDropdown()
+  }
 }
 
 function formatTime(dateString) {

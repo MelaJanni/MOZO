@@ -34,6 +34,35 @@ const joinBusiness = async () => {
     staffData.value = response.data.data
     success.value = response.data.message
     
+    // Write to Firebase Realtime Database to notify admin
+    try {
+      console.log('🔔 JoinStaff: Writing staff request to Firebase...')
+      const { writeStaffRequest } = await import('@/services/staffRealtime')
+      
+      // Get business ID from response or staffData
+      const businessId = response.data.data?.business?.id || response.data.data?.business_id
+      
+      if (businessId) {
+        await writeStaffRequest(businessId, {
+          id: response.data.data?.id || Date.now(),
+          name: user.name || user.display_name || 'Usuario',
+          user_id: user.id,
+          status: response.data.data?.status || 'pending',
+          created_at: new Date().toISOString(),
+          last_request_id: response.data.data?.id || Date.now(),
+          last_request_name: user.name || user.display_name || 'Usuario',
+          last_request_status: response.data.data?.status || 'pending',
+          last_update: Date.now()
+        })
+        console.log('🔔 JoinStaff: Staff request written to Firebase successfully')
+      } else {
+        console.warn('🔔 JoinStaff: No business ID found in response')
+      }
+    } catch (firebaseError) {
+      console.error('🔔 JoinStaff: Error writing to Firebase:', firebaseError)
+      // Don't fail the whole process if Firebase write fails
+    }
+    
     // Redirect to waiter dashboard after 3 seconds
     setTimeout(() => {
       router.push('/waiter')

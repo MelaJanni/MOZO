@@ -36,6 +36,22 @@
       </div>
     </div>
 
+    <!-- Banner de desvinculación -->
+    <div v-if="state.uiFlags.unlinkedBanner" class="unlinked-banner">
+      <div class="banner-content">
+        <div class="banner-icon">
+          <i class="fas fa-unlink"></i>
+        </div>
+        <div class="banner-message">
+          <h4>Has sido desvinculado del negocio</h4>
+          <p>{{ state.uiFlags.unlinkedMessage || 'Ya no tienes acceso a las mesas de este negocio. Las mesas han sido desasignadas automáticamente.' }}</p>
+        </div>
+        <button @click="state.uiFlags.unlinkedBanner = false" class="banner-close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+
     <!-- Sección principal con dos columnas -->
     <div class="dashboard-content">
       <!-- Columna izquierda: Gestión de mesas -->
@@ -618,6 +634,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import waiterCallsService from '@/services/waiterCallsService'
+import api from '@/services/api'
 import { initializeUnifiedWaiterNotifications } from '@/services/firebaseUnifiedAdapter'
 import { showSuccessToast, showErrorToast, showConfirmDialog } from '@/utils/notifications'
 import TableSelector from '@/components/Waiter/TableSelector.vue'
@@ -649,6 +666,12 @@ const state = reactive({
   showBlockedIpsManager: false,
   blockedIps: [],
   showIpDebugPanel: false,
+  
+  // UI Flags from dashboard API
+  uiFlags: {
+    unlinkedBanner: false,
+    unlinkedMessage: ''
+  }
 })
 
 // Referencias reactivas para el template  
@@ -899,6 +922,74 @@ function handleCallMovedToHistory(ev) {
 }
 
 /**
+ * Handle staff request approval - reload dashboard data
+ */
+function handleStaffRequestApproved(ev) {
+  try {
+    console.log('🎉 Staff request approved! Reloading dashboard data...', ev.detail)
+    
+    // First, force reload business data from BusinessSelector
+    if (businessSelector.value && businessSelector.value.loadBusinesses) {
+      console.log('🔄 Forcing business data reload...')
+      businessSelector.value.loadBusinesses().then(() => {
+        console.log('✅ Business data reloaded, now loading dashboard data')
+        
+        // Then reload dashboard data with new business assignment
+        return loadDashboardData()
+      }).then(() => {
+        console.log('✅ Dashboard data reloaded after staff approval')
+        
+        // Restart real-time listeners with new business context
+        startRealtimeListeners()
+      }).catch((error) => {
+        console.error('❌ Error reloading after staff approval:', error)
+      })
+    } else {
+      console.warn('⚠️ BusinessSelector ref not available, falling back to dashboard reload only')
+      
+      // Fallback: reload dashboard data only
+      loadDashboardData().then(() => {
+        console.log('✅ Dashboard data reloaded after staff approval')
+        startRealtimeListeners()
+      }).catch((error) => {
+        console.error('❌ Error reloading dashboard after staff approval:', error)
+      })
+    }
+  } catch (err) {
+    console.warn('Error handling staff request approval:', err)
+  }
+}
+
+/**
+ * Handle waiter unlinked notification - show banner and reload data
+ */
+function handleWaiterUnlinked(ev) {
+  try {
+    console.log('🚫 Waiter unlinked from business! Processing unlink notification...', ev.detail)
+    
+    // Force reload dashboard info to get the unlinked banner flag
+    loadDashboardInfo().then(() => {
+      console.log('✅ Dashboard info reloaded after unlink notification')
+      
+      // Also reload business data to reflect changes
+      if (businessSelector.value && businessSelector.value.loadBusinesses) {
+        return businessSelector.value.loadBusinesses()
+      }
+    }).then(() => {
+      console.log('✅ Business data reloaded after unlink')
+      
+      // Reload dashboard data (should now show no assigned tables)
+      return loadDashboardData()
+    }).catch((error) => {
+      console.error('❌ Error handling waiter unlink:', error)
+    })
+    
+  } catch (err) {
+    console.warn('Error handling waiter unlink notification:', err)
+  }
+}
+
+/**
  * Completar llamada desde la sección historial.
  * Intentará usar UltraFast si está disponible, si no usará el servicio API.
  */
@@ -929,6 +1020,28 @@ let ultraFastNotifications = null
 // ===== MÉTODOS PRINCIPALES =====
 
 /**
+ * Cargar información del dashboard (UI flags, etc.)
+ */
+const loadDashboardInfo = async () => {
+  try {
+    const response = await api.getWaiterDashboard()
+    const data = response.data
+    
+    // Update UI flags
+    if (data.ui_flags) {
+      state.uiFlags.unlinkedBanner = data.ui_flags.unlinked_banner || false
+      state.uiFlags.unlinkedMessage = data.ui_flags.unlinked_message || ''
+    }
+    
+    return data
+  } catch (error) {
+    console.error('Error loading dashboard info:', error)
+    // Don't show toast for this, as it's not critical
+    return null
+  }
+}
+
+/**
  * Cargar datos iniciales
  */
 const loadDashboardData = async () => {
@@ -940,6 +1053,7 @@ const loadDashboardData = async () => {
   state.loading = true
   try {
     await Promise.all([
+      loadDashboardInfo(),
       loadAssignedTables(),
       loadPendingCalls(),
       loadAvailableTables(),
@@ -969,6 +1083,13 @@ onMounted(async () => {
     window.addEventListener('clearAllCalls', handleClearAllCalls)
     window.addEventListener('callAcknowledged', handleCallAcknowledged)
     window.addEventListener('callMovedToHistory', handleCallMovedToHistory)
+    
+    // Listen for staff request approval to reload dashboard data
+    window.addEventListener('staffRequestApproved', handleStaffRequestApproved)
+    
+    // Listen for waiter unlinked notification to show banner and reload data
+    window.addEventListener('waiterUnlinked', handleWaiterUnlinked)
+    
     window.__waiterDashboardListenersRegistered = true
   }
 
@@ -993,6 +1114,8 @@ onUnmounted(() => {
       window.removeEventListener('clearAllCalls', handleClearAllCalls)
       window.removeEventListener('callAcknowledged', handleCallAcknowledged)
       window.removeEventListener('callMovedToHistory', handleCallMovedToHistory)
+      window.removeEventListener('staffRequestApproved', handleStaffRequestApproved)
+      window.removeEventListener('waiterUnlinked', handleWaiterUnlinked)
       window.__waiterDashboardListenersRegistered = false
     }
   } catch (e) {
@@ -1111,7 +1234,17 @@ const activateTable = async (tableId) => {
     }
   } catch (error) {
     console.error('💥 Dashboard: Error completo activando mesa:', error)
-    showErrorToast('Error activando mesa')
+    
+    // Handle 403 errors specifically (waiter not confirmed staff)
+    if (error.response?.status === 403) {
+      console.log('🚫 403 error detected - waiter not confirmed staff, reloading dashboard info')
+      showErrorToast(error.response?.data?.message || 'No tienes permisos para activar mesas en este negocio')
+      
+      // Reload dashboard info to get updated UI flags (unlinked banner)
+      await loadDashboardInfo()
+    } else {
+      showErrorToast('Error activando mesa')
+    }
   }
 }
 
@@ -1334,7 +1467,17 @@ const onTablesSelected = async (selectedTableIds) => {
     }
   } catch (error) {
     console.error('💥 Dashboard: Error completo activando mesas múltiples:', error)
-    showErrorToast('Error activando mesas')
+    
+    // Handle 403 errors specifically (waiter not confirmed staff)
+    if (error.response?.status === 403) {
+      console.log('🚫 403 error detected - waiter not confirmed staff, reloading dashboard info')
+      showErrorToast(error.response?.data?.message || 'No tienes permisos para activar mesas en este negocio')
+      
+      // Reload dashboard info to get updated UI flags (unlinked banner)
+      await loadDashboardInfo()
+    } else {
+      showErrorToast('Error activando mesas')
+    }
   }
 }
 
@@ -2594,6 +2737,78 @@ const formatBlockDate = (dateString) => {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
+}
+
+/* Banner de desvinculación */
+.unlinked-banner {
+  margin: 16px 0;
+  animation: slideDown 0.3s ease-out;
+}
+
+.banner-content {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  box-shadow: 0 4px 20px rgba(238, 90, 82, 0.3);
+  position: relative;
+}
+
+.banner-icon {
+  font-size: 24px;
+  margin-top: 2px;
+  opacity: 0.9;
+}
+
+.banner-message {
+  flex: 1;
+}
+
+.banner-message h4 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.banner-message p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  opacity: 0.95;
+}
+
+.banner-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.banner-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>

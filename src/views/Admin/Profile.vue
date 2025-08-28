@@ -61,34 +61,42 @@ const loadUserData = async () => {
   error.value = ''
   
   try {
-    // Get active user profile
+    // Primero usar datos del store si están disponibles
+    const authUser = authStore.user
+    console.log('🔍 Profile: Auth store user data:', authUser)
+    
+    // Get active user profile from backend
     const response = await apiService.getActiveUserProfile()
     const responseData = response.data.data
     const profileData = responseData.profile_data
     
+    console.log('🔍 Profile: Backend response data:', responseData)
+    
     if (responseData && responseData.type === 'admin') {
-      
       user.value = {
-        display_name: responseData.display_name || '',
+        // Preferir datos del store (que vienen de Google) si están disponibles
+        display_name: responseData.display_name || authUser?.display_name || authUser?.name || '',
         business_name: profileData.business_name || '',
         position: profileData.position || 'Administrador',
-        corporate_email: profileData.corporate_email || '',
+        corporate_email: profileData.corporate_email || authUser?.email || '',
         corporate_phone: profileData.corporate_phone || '',
-        avatar: responseData.avatar || '',
+        avatar: responseData.avatar || authUser?.avatar || '',
         business_id: responseData.business_id
       }
     } else {
-      // Fallback data if no admin profile found
+      // Fallback usando datos de Google si están disponibles
       user.value = {
-        display_name: 'Administrador',
+        display_name: authUser?.display_name || authUser?.name || 'Administrador',
         business_name: 'Mi Negocio',
         position: 'Administrador',
-        corporate_email: '',
+        corporate_email: authUser?.email || '',
         corporate_phone: '',
-        avatar: '',
+        avatar: authUser?.avatar || '',
         business_id: null
       }
     }
+    
+    console.log('🔍 Profile: Final user data:', user.value)
   } catch (err) {
     console.error('Error al cargar datos del usuario:', err)
     error.value = 'No se pudieron cargar tus datos. Por favor, inténtalo de nuevo.'
