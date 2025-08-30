@@ -1,8 +1,5 @@
-// Importar nuestras variables personalizadas primero
-@import './variables';
-
-// Importaciones de Bootstrap
-@import "bootstrap/scss/bootstrap";
+// Este archivo asume que variables y Bootstrap ya fueron importados
+@use 'sass:color';
 
 // Definir la paleta de colores violeta
 $purple-light: #e1d4e9;
@@ -34,7 +31,7 @@ $border-radius-sm: .25rem;
   --danger-color: #{$danger};
   --light-color: #{$light};
   --dark-color: #{$dark};
-  --card-bg: #{$blue-medium};
+  --card-bg: #{$violet-400};
   --card-radius: #{$card-radius};
   
   --border-radius: #{$border-radius};
@@ -44,7 +41,7 @@ $border-radius-sm: .25rem;
   @media (prefers-color-scheme: dark) {
     --primary-color: #{$purple-dark};
     --secondary-color: #{$purple-medium};
-    --dark-color: #{darken($purple-dark, 10%)};
+  --dark-color: #{color.adjust($purple-dark, $lightness: -10%)};
   }
 }
 
@@ -142,7 +139,7 @@ body {
 
 // Degradados
 .bg-gradient-primary {
-  background: linear-gradient(180deg, $primary 0%, darken($primary, 10%) 100%);
+  background: linear-gradient(180deg, $primary 0%, #{color.adjust($primary, $lightness: -10%)} 100%);
 }
 
 // Utilidades para transparencia
@@ -268,8 +265,8 @@ body {
   background-color: var(--primary-color);
   border-color: var(--primary-color);
   &:hover {
-    background-color: darken($primary, 10%);
-    border-color: darken($primary, 10%);
+  background-color: #{color.adjust($primary, $lightness: -10%)};
+  border-color: #{color.adjust($primary, $lightness: -10%)};
   }
 }
 

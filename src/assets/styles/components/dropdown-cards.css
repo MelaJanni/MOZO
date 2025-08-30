@@ -1,0 +1,212 @@
+/* Dropdown Cards Component */
+.dropdown-cards {
+  display: flex;
+  gap: 8px;
+}
+.dropdown-cards .dropdown-card {
+  flex: 1;
+  background-color: rgb(243, 236, 255);
+  border: 1px solid rgba(159, 84, 253, 0.2);
+  border-radius: 8.5px;
+  height: 55px;
+  padding: 6px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+.dropdown-cards .dropdown-card:hover {
+  border-color: rgba(159, 84, 253, 0.4);
+  transform: translateY(-1px);
+}
+.dropdown-cards .dropdown-card .dropdown-icon {
+  color: var(--brand-primary);
+  font-size: 16px;
+  min-width: 16px;
+}
+.dropdown-cards .dropdown-card .dropdown-content {
+  flex: 1;
+}
+.dropdown-cards .dropdown-card .dropdown-content .dropdown-title {
+  color: rgb(16, 0, 43);
+  font-family: Inter, sans-serif;
+  font-size: 12.25px;
+  font-weight: 500;
+  line-height: 17.5px;
+  margin: 0 0 2px 0;
+}
+.dropdown-cards .dropdown-card .dropdown-content .dropdown-subtitle {
+  color: rgb(107, 114, 128);
+  font-family: Inter, sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 14px;
+  margin: 0;
+}
+.dropdown-cards .dropdown-card .dropdown-arrow {
+  color: var(--brand-primary);
+  font-size: 12px;
+  transition: transform 0.2s ease;
+  min-width: 12px;
+}
+.dropdown-cards .dropdown-card.open .dropdown-arrow {
+  transform: rotate(90deg);
+}
+
+/* Legacy bottom sheet styles removed after migrating to <BottomSheet> reusable component */
+/* Add Business Modal */
+.add-business-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.add-business-backdrop .add-business-content {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  position: relative;
+}
+.add-business-backdrop .add-business-content .modal-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+.add-business-backdrop .add-business-content .modal-header .close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: rgb(107, 114, 128);
+  cursor: pointer;
+}
+.add-business-backdrop .add-business-content .modal-title {
+  color: rgb(16, 0, 43);
+  -moz-column-gap: 7px;
+       column-gap: 7px;
+  display: flex;
+  font-family: Inter, sans-serif;
+  font-feature-settings: normal;
+  font-size: 15.75px;
+  font-variation-settings: normal;
+  font-weight: 600;
+  height: 17.5px;
+  line-height: 15.75px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 8px 0;
+}
+.add-business-backdrop .add-business-content .modal-subtitle {
+  color: rgb(107, 114, 128);
+  display: block;
+  font-family: Inter, sans-serif;
+  font-feature-settings: normal;
+  font-size: 12.25px;
+  font-variation-settings: normal;
+  height: 35px;
+  line-height: 17.5px;
+  text-align: center;
+  margin: 0 0 24px 0;
+}
+.add-business-backdrop .add-business-content .current-business {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background-color: rgb(248, 250, 252);
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+.add-business-backdrop .add-business-content .current-business .business-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: rgb(159, 84, 253);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+}
+.add-business-backdrop .add-business-content .current-business .business-details .business-current-title {
+  color: rgb(107, 114, 128);
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  margin: 0 0 4px 0;
+}
+.add-business-backdrop .add-business-content .current-business .business-details .business-current-name {
+  color: rgb(16, 0, 43);
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+.add-business-backdrop .add-business-content .invitation-section {
+  margin-bottom: 24px;
+}
+.add-business-backdrop .add-business-content .invitation-section .invitation-label {
+  color: rgb(16, 0, 43);
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  text-align: center;
+}
+.add-business-backdrop .add-business-content .invitation-section .code-inputs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.add-business-backdrop .add-business-content .invitation-section .code-inputs .code-input {
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgb(159, 84, 253);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: rgb(16, 0, 43);
+}
+.add-business-backdrop .add-business-content .invitation-section .code-inputs .code-input:first-child {
+  background-color: rgb(159, 84, 253);
+  color: white;
+}
+.add-business-backdrop .add-business-content .invitation-section .code-inputs .code-input:focus {
+  outline: none;
+  border-color: rgb(159, 84, 253);
+  box-shadow: 0 0 0 2px rgba(159, 84, 253, 0.2);
+}
+.add-business-backdrop .add-business-content .invitation-section .invitation-help {
+  color: rgb(107, 114, 128);
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  text-align: center;
+  margin: 0;
+}
+.add-business-backdrop .add-business-content .btn-validate-code {
+  width: 100%;
+  background-color: rgb(159, 84, 253);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: Inter, sans-serif;
+  cursor: pointer;
+}
+.add-business-backdrop .add-business-content .btn-validate-code:hover {
+  background-color: rgb(147, 71, 241);
+}/*# sourceMappingURL=dropdown-cards.css.map */

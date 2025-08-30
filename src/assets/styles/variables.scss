@@ -1,67 +1,68 @@
-// Definir paleta de colores violeta
-$purple-light: #e1d4e9;
-$purple-medium: #c3a8d4;
-$purple-dark: #a57cb9;
+// Paleta principal (Coolors + color de logo)
+// https://coolors.co/palette/10002b-240046-3c096c-5a189a-7b2cbf-9d4edd-c77dff-e0aaff
+$violet-900: #10002b;
+$violet-800: #240046;
+$violet-700: #3c096c;
+$violet-600: #5a189a;
+$violet-500: #7b2cbf;
+$violet-400: #9d4edd; // ~ principal
+$violet-300: #c77dff;
+$violet-200: #e0aaff;
+$brand-primary: #9f54fd; // color principal del logo
 
-// Definir paleta de colores azul
-$blue-light: #b3d7f2;
-$blue-medium: #67a7e6;  // Color de las tarjetas del dashboard
-$blue-dark: #3884c7;
+// Alias solicitados violet-100/200...
+$violet-100: $violet-200; // más claro disponible en paleta
+$violet-200a: #f8f4ff; // fondo de app (rgb(248,244,255))
 
-// Sobrescribir las variables de Bootstrap
-$primary: $blue-medium;  // Cambiado a azul
-$secondary: $purple-light;
-$success: #28a745;
-$info: #17a2b8;
-$warning: #ffc107;
-$danger: #dc3545;
+// Bootstrap base
+$primary: $brand-primary;
+$secondary: $violet-500;
+$success: #22c55e; // rgb(34,197,94)
+$warning: #f59e0b;
+$danger: #ef4444; // rgb(239,68,68)
 $light: #f8f9fa;
-$dark: $blue-dark;  // Cambiado a azul oscuro
+$dark: #0f172a;
 
-// Tipografía
-$font-family-sans-serif: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-$font-weight-normal: 400;
-$font-weight-bold: 700;
+// Tipografía base
+$font-family-primary: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+$font-family-secondary: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+$font-family-sans-serif: $font-family-primary; // Bootstrap compatibility
 $headings-font-weight: 600;
 
-// Bordes
-$border-radius: .5rem;
-$border-radius-lg: 1rem;
-$border-radius-sm: .25rem;
-$card-radius: 1.2rem;  // Nuevo radio para tarjetas del dashboard
+// Layout tokens
+$border-radius: 10.5px;
+$border-radius-lg: 15px;
+$border-radius-sm: 8.5px;
+$card-radius: 15px;
 
 // Sombras
-$box-shadow: 0 .5rem 1rem rgba($dark, .15);
-$box-shadow-sm: 0 .125rem .25rem rgba($dark, .075);
-$box-shadow-lg: 0 1rem 3rem rgba($dark, .175);
+$box-shadow: 0 .5rem 1rem rgba(0,0,0,.08);
+$box-shadow-sm: 0 .25rem .5rem rgba(0,0,0,.06);
+$box-shadow-lg: 0 1rem 3rem rgba(0,0,0,.12);
 
-// Personalización de botones
-$btn-font-weight: 500;
-$btn-border-radius: $border-radius;
-$btn-border-radius-lg: $border-radius-lg;
-$btn-border-radius-sm: $border-radius-sm;
-
-// Personalización de tarjetas
-$card-border-radius: $border-radius;
-$card-border-color: rgba($dark, .125);
-$card-cap-bg: rgba($primary, .03);
-
-// Personalización de modales
-$modal-content-border-radius: $border-radius-lg;
-$modal-header-border-color: rgba($dark, .1);
-$modal-footer-border-color: $modal-header-border-color;
-
-// Personalización de inputs
-$input-border-radius: $border-radius;
-$input-focus-border-color: tint-color($primary, 50%);
-$input-focus-box-shadow: 0 0 0 .25rem rgba($primary, .25);
-
-// Exportar las variables para usarlas en otros archivos
-:export {
-  primaryColor: $primary;
-  secondaryColor: $secondary;
-  darkColor: $dark;
-  lightColor: $light;
-  cardBg: $blue-medium;
-  cardRadius: $card-radius;
+// Export CSS variables
+:root {
+  --primary: #{$primary};
+  --secondary: #{$secondary};
+  --danger: #{$danger};
+  --success: #22c55e;
+  --warning: #{$warning};
+  --violet-100: #{$violet-100};
+  --violet-200: #{$violet-200};
+  --violet-300: #{$violet-300};
+  --violet-400: #{$violet-400};
+  --violet-500: #{$violet-500};
+  --violet-600: #{$violet-600};
+  --brand-primary: #{$brand-primary};
+  --bg-app: #{$violet-200a};
+  --radius: #{$border-radius};
+  
+  // Font families
+  --font-primary: #{$font-family-primary};
+  --font-secondary: #{$font-family-secondary};
+  
+  // Text colors
+  --text-primary: rgb(16, 0, 43);
+  --subtext-primary: rgb(107, 114, 128);
+  --text-input: rgb(16, 0, 43);
 }

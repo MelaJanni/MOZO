@@ -1,6 +1,16 @@
-:export {
-  primaryColor: #c3a8d4;
-  secondaryColor: #e1d4e9;
-  darkColor: #a57cb9;
-  lightColor: #f8f9fa;
+:root {
+  --primary: #9f54fd;
+  --secondary: #7b2cbf;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --violet-100: #e0aaff;
+  --violet-200: #e0aaff;
+  --violet-300: #c77dff;
+  --violet-400: #9d4edd;
+  --violet-500: #7b2cbf;
+  --violet-600: #5a189a;
+  --brand-primary: #9f54fd;
+  --bg-app: #f8f4ff;
+  --radius: 10.5px;
 }/*# sourceMappingURL=variables.css.map */

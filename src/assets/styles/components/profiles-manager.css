@@ -1,0 +1,150 @@
+/* Perfiles de Mesas - estilos del modal y listas (violeta) */
+.pm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  padding: 16px;
+}
+
+.pm-modal .modal-content {
+  background: oklch(98.5% 0.015 277deg);
+  border: 1px solid rgba(159, 84, 253, 0.25);
+  border-radius: 16px;
+  max-width: 720px;
+  width: 100%;
+}
+.pm-modal .modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(159, 84, 253, 0.18);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pm-modal .modal-header h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.pm-modal .modal-body {
+  padding: 16px 20px 20px;
+  max-height: 70vh;
+  overflow: auto;
+}
+.pm-modal .pm-field {
+  margin-bottom: 14px;
+}
+.pm-modal .pm-label {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pm-modal .pm-label .pm-chip {
+  margin-left: 8px;
+}
+.pm-modal .pm-input {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(159, 84, 253, 0.35);
+  background: #fff;
+  font-size: 14px;
+}
+.pm-modal .pm-input::-moz-placeholder {
+  color: var(--subtext-primary);
+}
+.pm-modal .pm-input::placeholder {
+  color: var(--subtext-primary);
+}
+.pm-modal .pm-chip {
+  background: oklch(78% 0.16 277deg);
+  color: #fff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.pm-modal .pm-section {
+  border: 1px solid rgba(159, 84, 253, 0.25);
+  border-radius: 14px;
+  background: #fff;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.pm-modal .pm-section .pm-section-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-primary);
+  margin: 0 0 10px 0;
+}
+.pm-modal .pm-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 520px) {
+  .pm-modal .pm-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.pm-modal .pm-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(159, 84, 253, 0.2);
+  border-radius: 12px;
+  padding: 10px;
+  background: oklch(98.5% 0.01 277deg);
+}
+.pm-modal .pm-option input {
+  accent-color: var(--brand-primary);
+}
+.pm-modal .pm-option .pm-option-text {
+  color: var(--text-primary);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.pm-modal .pm-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-top: 12px;
+}
+.pm-modal .pm-actions .btn-cancel {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid rgba(159, 84, 253, 0.25);
+  border-radius: 12px;
+  height: 44px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pm-modal .pm-actions .btn-primary {
+  background: var(--brand-primary);
+  color: #fff;
+  border: 0;
+  border-radius: 12px;
+  height: 44px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+/* Reutilizables */
+.pm-icon {
+  color: var(--brand-primary);
+}/*# sourceMappingURL=profiles-manager.css.map */

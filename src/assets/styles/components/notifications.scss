@@ -1,0 +1,178 @@
+/* Notifications Component */
+.notification-card {
+  background: linear-gradient(135deg, #ffffff 0%, #fefeff 100%);
+  border: 2px solid rgba(159, 84, 253, 0.2);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(159, 84, 253, 0.1);
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: rgba(159, 84, 253, 0.3);
+    box-shadow: 0 6px 16px rgba(159, 84, 253, 0.15);
+    transform: translateY(-1px);
+  }
+  
+  &.urgent {
+    background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+    border: 2px solid rgba(220, 38, 38, 0.3);
+    border-left: 6px solid #dc2626;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+
+    &:hover {
+      border-color: rgba(220, 38, 38, 0.4);
+      box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25);
+    }
+  }
+
+  &.completed {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 2px solid rgba(34, 197, 94, 0.2);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.1);
+
+    &:hover {
+      border-color: rgba(34, 197, 94, 0.3);
+      box-shadow: 0 6px 16px rgba(34, 197, 94, 0.15);
+    }
+  }
+  
+  .notification-icon {
+    color: rgb(159, 84, 253);
+    font-size: 16px;
+    margin-top: 2px;
+    
+    &.urgent {
+      color: var(--danger);
+    }
+  }
+  
+  .notification-content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    .notification-title {
+      color: rgb(16, 0, 43);
+      display: block;
+      font-family: Inter, sans-serif;
+      font-feature-settings: normal;
+      font-size: 14px;
+      font-variation-settings: normal;
+      font-weight: 600;
+      margin: 0 0 4px 0;
+    }
+    
+    .notification-message {
+      color: rgb(107, 114, 128);
+      display: block;
+      font-family: Inter, sans-serif;
+      font-feature-settings: normal;
+      font-size: 12.25px;
+      font-variation-settings: normal;
+      font-weight: 400;
+      margin: 0 0 12px 0;
+    }
+    
+    .notification-time {
+      color: rgb(107, 114, 128);
+      display: block;
+      font-family: Inter, sans-serif;
+      font-feature-settings: normal;
+      font-size: 10.5px;
+      font-variation-settings: normal;
+      font-weight: 400;
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      margin: 0;
+    }
+  }
+  
+  .notification-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    
+    &.has-full-width-btn {
+      flex-wrap: wrap;
+      
+      .btn-silenciar, .btn-recibido {
+        flex: 1;
+      }
+    }
+  }
+  
+  .notification-icon {
+    position: absolute;
+    left: 16px;
+    top: 16px;
+    color: var(--brand-primary);
+    
+    &.urgent {
+      color: var(--danger);
+    }
+  }
+  
+  &.has-icon .notification-content {
+    margin-left: 32px;
+  }
+}
+
+// IP Bloqueadas specific card
+.ip-blocked-card {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 2px solid rgba(220, 38, 38, 0.3);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+  transition: all 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  &:hover {
+    border-color: rgba(220, 38, 38, 0.4);
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.2);
+    transform: translateY(-1px);
+  }
+  
+  .ip-title {
+    color: #dc2626; // oklch(0.505 0.213 27.518)
+    display: block;
+    font-family: var(--font-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+  }
+  
+  .ip-address, .ip-reason {
+    color: #991b1b; // oklch(0.577 0.245 27.325)
+    display: block;
+    font-family: var(--font-secondary);
+    font-size: 12.25px;
+    font-weight: 400;
+    margin: 0 0 4px 0;
+  }
+  
+  .ip-time {
+    color: #991b1b;
+    display: block;
+    font-family: var(--font-secondary);
+    font-size: 10.5px;
+    font-weight: 400;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    margin: 0;
+  }
+  
+  .ip-actions {
+    margin-top: 12px;
+  }
+}

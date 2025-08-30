@@ -14,41 +14,36 @@
           <i class="fas fa-chevron-down" :class="{ 'rotated': showDropdown }"></i>
         </div>
       </div>
-
-      <!-- Dropdown de negocios -->
-      <div v-if="showDropdown" class="dropdown-menu">
-        <div class="dropdown-header">
-          <h4>Mis Negocios</h4>
-          <button @click="showDropdown = false" class="close-btn">
-            <i class="fas fa-times"></i>
-          </button>
+      <!-- Bottom sheet de negocios -->
+      <BottomSheet
+        v-model="showDropdown"
+        title="Seleccionar Negocio"
+        subtitle="Elige el restaurante donde estás trabajando"
+      >
+        <div class="mb-3">
+          <button class="bs-add-btn" @click="showJoinForm = true">+ Agregar Negocio</button>
         </div>
-
-        <div class="businesses-list">
+        <div class="bs-list">
           <button
             v-for="business in businesses"
             :key="business.id"
             @click="selectBusiness(business)"
-            class="business-item"
+            class="bs-item"
             :class="{ 'active': currentBusiness?.id === business.id }"
           >
-            <div class="business-info">
-              <div class="business-name">{{ business.name }}</div>
-              <div class="business-address">{{ business.address || 'Sin dirección' }}</div>
+            <div class="left">
+              <div class="bs-ico"><i class="fas fa-building"></i></div>
+              <div>
+                <div class="bs-name">{{ business.name }}</div>
+                <div class="bs-sub">{{ business.type || 'Fast Food' }} • {{ business.address || 'Sin dirección' }}</div>
+              </div>
             </div>
-            <div v-if="currentBusiness?.id === business.id" class="current-indicator">
-              <i class="fas fa-check"></i>
+            <div class="bs-right">
+              <i class="fas" :class="currentBusiness?.id === business.id ? 'fa-check' : 'fa-chevron-right'"></i>
             </div>
           </button>
         </div>
-
-        <div class="dropdown-footer">
-          <button @click="showJoinForm = true; showDropdown = false" class="join-btn">
-            <i class="fas fa-plus"></i>
-            Unirse a nuevo negocio
-          </button>
-        </div>
-      </div>
+      </BottomSheet>
     </div>
 
     <!-- Estado cuando no hay negocios -->
@@ -64,45 +59,30 @@
       </div>
     </div>
 
-    <!-- Modal para unirse a negocio -->
-    <div v-if="showJoinForm" class="modal-overlay" @click.self="closeJoinForm">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Unirse a negocio</h3>
-          <button @click="closeJoinForm" class="close-btn">
-            <i class="fas fa-times"></i>
-          </button>
+    <!-- Bottom sheet: Unirse a negocio -->
+    <BottomSheet v-model="showJoinForm" title="Unirse a negocio" subtitle="Ingresa el código del negocio">
+      <form @submit.prevent="joinBusiness">
+        <div class="form-group">
+          <label for="businessCode">Código del negocio</label>
+          <input
+            id="businessCode"
+            v-model="businessCode"
+            type="text"
+            class="form-input"
+            placeholder="Ej: ABC123"
+            :disabled="joining"
+            required
+          />
         </div>
-
-        <div class="modal-body">
-          <p>Ingresa el código del negocio al que deseas unirte:</p>
-          <form @submit.prevent="joinBusiness">
-            <div class="form-group">
-              <label for="businessCode">Código del negocio:</label>
-              <input
-                id="businessCode"
-                v-model="businessCode"
-                type="text"
-                class="form-input"
-                placeholder="Ej: ABC123"
-                :disabled="joining"
-                required
-              />
-            </div>
-          </form>
-        </div>
-
-        <div class="modal-footer">
-          <button @click="closeJoinForm" class="btn btn-secondary" :disabled="joining">
-            Cancelar
-          </button>
-          <button @click="joinBusiness" class="btn btn-primary" :disabled="joining || !businessCode.trim()">
+        <div class="d-flex gap-2 justify-content-end">
+          <button type="button" @click="closeJoinForm" class="btn btn-secondary" :disabled="joining">Cancelar</button>
+          <button type="submit" class="btn btn-primary" :disabled="joining || !businessCode.trim()">
             <i v-if="joining" class="fas fa-spinner fa-spin"></i>
             <span v-else>Unirse</span>
           </button>
         </div>
-      </div>
-    </div>
+      </form>
+    </BottomSheet>
   </div>
 </template>
 
@@ -111,6 +91,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import waiterCallsService from '@/services/waiterCallsService'
 import { showSuccessToast, showErrorToast } from '@/utils/notifications'
 import { createStaffJoinSuccessNotification } from '@/services/staffNotifications'
+import BottomSheet from '@/components/UI/BottomSheet.vue'
 
 // Props y emits
 const emit = defineEmits(['business-changed', 'businesses-loaded'])
@@ -322,134 +303,6 @@ defineExpose({
   transform: rotate(180deg);
 }
 
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  max-height: 400px;
-  overflow: hidden;
-  margin-top: 4px;
-}
-
-.dropdown-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #e9ecef;
-  background: #f8f9fa;
-}
-
-.dropdown-header h4 {
-  margin: 0;
-  font-size: 16px;
-  color: #2c3e50;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: #e9ecef;
-  color: #495057;
-}
-
-.businesses-list {
-  max-height: 250px;
-  overflow-y: auto;
-}
-
-.business-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 12px 16px;
-  background: none;
-  border: none;
-  border-bottom: 1px solid #f8f9fa;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: left;
-}
-
-.business-item:hover {
-  background: #f8f9fa;
-}
-
-.business-item.active {
-  background: #e3f2fd;
-  border-color: #007bff;
-}
-
-.business-info {
-  flex: 1;
-}
-
-.business-info .business-name {
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 2px;
-}
-
-.business-address {
-  font-size: 12px;
-  color: #6c757d;
-}
-
-.current-indicator {
-  color: #007bff;
-}
-
-.dropdown-footer {
-  padding: 16px;
-  border-top: 1px solid #e9ecef;
-  background: #f8f9fa;
-}
-
-.join-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: 1px solid #007bff;
-  background: white;
-  color: #007bff;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  width: 100%;
-  justify-content: center;
-}
-
-.join-btn:hover {
-  background: #007bff;
-  color: white;
-}
-
-.join-btn.primary {
-  background: #007bff;
-  color: white;
-}
-
-.join-btn.primary:hover {
-  background: #0056b3;
-}
-
 .no-business-state {
   display: flex;
   align-items: center;
@@ -485,49 +338,6 @@ defineExpose({
   font-size: 14px;
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 20px 0 20px;
-}
-
-.modal-header h3 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 18px;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.modal-body p {
-  margin-bottom: 16px;
-  color: #495057;
-}
-
 .form-group {
   margin-bottom: 16px;
 }
@@ -557,13 +367,6 @@ defineExpose({
 .form-input:disabled {
   background: #f8f9fa;
   color: #6c757d;
-}
-
-.modal-footer {
-  display: flex;
-  gap: 8px;
-  padding: 0 20px 20px 20px;
-  justify-content: flex-end;
 }
 
 .btn {

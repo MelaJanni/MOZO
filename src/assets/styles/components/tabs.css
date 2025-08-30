@@ -1,0 +1,98 @@
+/* Tabs Component */
+.tabs-container {
+  background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 100%);
+  border: 2px solid rgba(159, 84, 253, 0.15);
+  box-shadow: 0px 4px 12px rgba(159, 84, 253, 0.1);
+  display: flex;
+  border-radius: 16px;
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.tabs-container .tab-item {
+  flex: 1;
+  height: 34px;
+  border-radius: 10px;
+  font-family: Inter, sans-serif;
+  font-size: 12.25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--subtext-primary);
+  outline: none;
+  padding: 10px;
+}
+.tabs-container .tab-item:focus {
+  outline: none;
+}
+.tabs-container .tab-item.active {
+  background: linear-gradient(135deg, #9f54fd 0%, #7c3aed 100%);
+  color: rgb(255, 255, 255);
+  box-shadow: 0 3px 8px rgba(159, 84, 253, 0.3);
+  transform: translateY(-1px);
+}
+.tabs-container .tab-item.bloqueadas.active {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 3px 8px rgba(220, 38, 38, 0.3);
+}
+.tabs-container .tab-item:hover:not(.active) {
+  background: rgba(159, 84, 253, 0.1);
+  color: #9f54fd;
+}
+.tabs-container .tab-item .tab-badge {
+  background: linear-gradient(135deg, #9f54fd 0%, #7c3aed 100%);
+  color: rgb(255, 255, 255);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1.75px;
+  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.tab-item:not(.active) .tabs-container .tab-item .tab-badge {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+}
+.tab-item.bloqueadas.active .tabs-container .tab-item .tab-badge {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.2) 100%);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.tab-section.hidden {
+  display: none;
+}
+.tab-section .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.tab-section .section-header .section-title {
+  color: rgb(159, 84, 253);
+  font-family: Inter, sans-serif;
+  font-feature-settings: normal;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+.tab-section .section-header .section-subtitle {
+  color: rgb(107, 114, 128);
+  font-size: 12.25px;
+  font-family: Inter, sans-serif;
+  font-variation-settings: normal;
+  font-weight: 400;
+  margin: 0;
+}/*# sourceMappingURL=tabs.css.map */

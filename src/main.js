@@ -7,7 +7,7 @@ import router from './router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
 
-import './assets/styles/main.scss'
+import './assets/styles/styles.scss'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
 import * as bootstrap from 'bootstrap'

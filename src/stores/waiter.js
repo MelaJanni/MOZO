@@ -56,12 +56,17 @@ export const useWaiterStore = defineStore('waiter', () => {
     try {
       const [tablesData, profilesData, notificationsData] = await Promise.all([
         apiService.getWaiterTables(),
-        apiService.listWaiterProfiles(),
+        // Migrado a nuevos endpoints de perfiles de mesa
+        apiService.getWaiterTableProfiles(),
         apiService.getWaiterNotifications()
       ])
       const rawTables = tablesData.data?.tables ?? tablesData.data
       tables.value = Array.isArray(rawTables) ? rawTables.map(normalizeTable) : []
-      profiles.value = profilesData.data
+      // Respuesta robusta: aceptar { profiles } o el array directo
+      const pData = profilesData?.data
+      profiles.value = Array.isArray(pData)
+        ? pData
+        : (Array.isArray(pData?.profiles) ? pData.profiles : [])
       notifications.value = notificationsData.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al cargar los datos iniciales.'
@@ -104,19 +109,23 @@ export const useWaiterStore = defineStore('waiter', () => {
     }
   }
   
-  const createProfile = async (profileName) => {
+  // Nuevo contrato: payload { name: string, table_ids: number[] }
+  const createProfile = async (payload) => {
     try {
-      const response = await apiService.createWaiterProfile({ name: profileName })
-      profiles.value.push(response.data)
+      const response = await apiService.createWaiterTableProfile(payload)
+      // Re-cargar listado para mantener consistencia (IDs, flags de conflicto, etc.)
+      await fetchInitialData()
+      return response?.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al crear el perfil.'
       console.error(err)
+      throw err
     }
   }
   
   const deleteProfile = async (profileId) => {
     try {
-      await apiService.deleteWaiterProfile(profileId)
+      await apiService.deleteWaiterTableProfile(profileId)
       profiles.value = profiles.value.filter(p => p.id !== profileId)
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al eliminar el perfil.'

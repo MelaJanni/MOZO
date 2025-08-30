@@ -1,237 +1,194 @@
 <template>
-  <div class="table-profiles-manager">
-    <!-- Header con botón crear -->
-    <div class="profiles-header">
-      <div class="header-info">
-        <h3>
-          <i class="fas fa-bookmark"></i>
-          Mis Perfiles de Mesa
-        </h3>
-        <p class="header-description">
-          Crea perfiles con conjuntos de mesas para activar rápidamente
-        </p>
-      </div>
-      <button 
-        @click="showCreateModal = true" 
-        class="btn btn-primary"
-      >
-        <i class="fas fa-plus"></i>
-        Crear Perfil
-      </button>
-    </div>
-
-    <!-- Lista de perfiles existentes -->
-    <div class="profiles-list" v-if="!loading">
-      <div 
-        v-for="profile in profiles" 
-        :key="profile.id"
-        class="profile-card"
-        :class="{
-          'active': profile.is_active,
-          'has-conflicts': profile.conflict_tables?.length > 0
-        }"
-      >
-        <div class="profile-header">
-          <div class="profile-info">
-            <h4 class="profile-name">
-              {{ profile.name }}
-              <span v-if="profile.is_active" class="active-badge">ACTIVO</span>
-            </h4>
-            <div class="profile-meta">
-              <span class="table-count">
-                <i class="fas fa-table"></i>
-                {{ profile.table_numbers?.length || 0 }} mesas
-              </span>
-              <span class="created-date">
-                Creado {{ formatDate(profile.created_at) }}
-              </span>
-            </div>
+  <Teleport to="body">
+    <div class="pm-overlay" @click.self="$emit('close')">
+      <div class="pm-modal row">
+        <div class="pm-header col-12 px-4">
+            <div class="pm-title">
+            <i :class="viewMode === 'list' ? 'bi bi-geo-alt pm-icon' : 'bi bi-bookmark pm-icon'"></i>
+            <span>Gestionar Perfiles de Mesas</span>
           </div>
-          
-          <div class="profile-actions">
-            <button 
-              v-if="!profile.is_active"
-              @click="activateProfile(profile.id)"
-              class="action-btn activate"
-              :disabled="processing === profile.id"
-              title="Activar perfil"
-            >
-              <i class="fas fa-play"></i>
-            </button>
-            <button 
-              v-if="profile.is_active"
-              @click="deactivateProfile(profile.id)"
-              class="action-btn deactivate"
-              :disabled="processing === profile.id"
-              title="Desactivar perfil"
-            >
-              <i class="fas fa-pause"></i>
-            </button>
-            <button 
-              @click="editProfile(profile)"
-              class="action-btn edit"
-              title="Editar perfil"
-            >
-              <i class="fas fa-edit"></i>
-            </button>
-            <button 
-              @click="deleteProfile(profile.id, profile.name)"
-              class="action-btn delete"
-              title="Eliminar perfil"
-            >
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Mesas del perfil -->
-        <div class="profile-tables">
-          <div class="tables-list">
-            <span 
-              v-for="tableNumber in profile.table_numbers" 
-              :key="tableNumber"
-              class="table-tag"
-              :class="{
-                'conflict': profile.conflict_tables?.includes(tableNumber),
-                'assigned': isTableAssigned(tableNumber)
-              }"
-            >
-              Mesa {{ tableNumber }}
-              <i v-if="profile.conflict_tables?.includes(tableNumber)" 
-                class="fas fa-exclamation-triangle" 
-                title="En conflicto con otro mozo"></i>
-            </span>
-          </div>
-        </div>
-
-        <!-- Información de conflictos -->
-        <div v-if="profile.conflict_tables?.length > 0" class="conflict-info">
-          <i class="fas fa-exclamation-triangle"></i>
-          <span>{{ profile.conflict_tables.length }} mesa(s) en conflicto con otros mozos</span>
-        </div>
-
-        <!-- Información de estado -->
-        <div v-if="profile.is_active && profile.activation_summary" class="activation-summary">
-          <div class="summary-item success" v-if="profile.activation_summary.activated > 0">
-            <i class="fas fa-check"></i>
-            {{ profile.activation_summary.activated }} activadas
-          </div>
-          <div class="summary-item info" v-if="profile.activation_summary.already_yours > 0">
-            <i class="fas fa-user-check"></i>
-            {{ profile.activation_summary.already_yours }} ya eran tuyas
-          </div>
-          <div class="summary-item warning" v-if="profile.activation_summary.conflicts > 0">
-            <i class="fas fa-exclamation-triangle"></i>
-            {{ profile.activation_summary.conflicts }} en conflicto
-          </div>
-        </div>
-      </div>
-
-      <!-- Estado vacío -->
-      <div v-if="profiles.length === 0" class="empty-state">
-        <i class="fas fa-bookmark"></i>
-        <h4>No tienes perfiles creados</h4>
-        <p>Crea tu primer perfil para agrupar mesas que usas frecuentemente</p>
-        <button @click="showCreateModal = true" class="btn btn-primary">
-          <i class="fas fa-plus"></i>
-          Crear Primer Perfil
-        </button>
-      </div>
-    </div>
-
-    <!-- Loading state -->
-    <div v-if="loading" class="loading-state">
-      <i class="fas fa-spinner fa-spin"></i>
-      <p>Cargando perfiles...</p>
-    </div>
-
-    <!-- Modal crear/editar perfil -->
-    <div v-if="showCreateModal || editingProfile" class="modal-overlay" @click.self="closeModal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>
-            <i class="fas fa-bookmark"></i>
-            {{ editingProfile ? 'Editar Perfil' : 'Crear Nuevo Perfil' }}
-          </h3>
-          <button @click="closeModal" class="close-btn">
-            <i class="fas fa-times"></i>
+          <button @click="$emit('close')" class="pm-close" aria-label="Cerrar">
+            <i class="bi bi-x-lg"></i>
           </button>
         </div>
         
-        <div class="modal-body">
-          <form @submit.prevent="saveProfile">
-            <div class="form-group">
-              <label for="profileName">Nombre del perfil</label>
-              <input 
-                id="profileName"
-                v-model="formData.name"
-                type="text"
-                class="form-input"
-                placeholder="Ej: Zona A, Terraza, Mesas VIP..."
-                maxlength="50"
-                required
-              >
-              <small class="form-help">
-                Máximo 50 caracteres. Debe ser único.
-              </small>
+        <div class="pm-body col-12 px-4">
+          <!-- Vista STARTER: texto de ayuda + CTA grande + 1 tarjeta con acciones (play/edit/delete) -->
+          <template v-if="viewMode === 'starter'">
+            <div class="modal-description">
+              Crea perfiles con conjuntos de mesas para activar rápidamente
             </div>
+            <button @click="showCreateModal = true" class="add-profile-btn">
+              Agregar Nuevo Perfil
+            </button>
 
-            <div class="form-group">
-              <label>Selecciona las mesas (máximo 20)</label>
-              <div class="tables-grid">
-                <label 
-                  v-for="table in availableTablesForForm" 
-                  :key="table.id"
-                  class="table-checkbox"
-                  :class="{
-                    'selected': formData.table_ids.includes(table.id),
-                    'assigned': table.is_assigned_to_me,
-                    'conflict': table.is_assigned_to_other
-                  }"
-                >
-                  <input 
-                    type="checkbox"
-                    :value="table.id"
-                    v-model="formData.table_ids"
-                    :disabled="formData.table_ids.length >= 20 && !formData.table_ids.includes(table.id)"
-                  >
-                  <span class="table-info">
-                    <span class="table-number">Mesa {{ table.number }}</span>
-                    <span v-if="table.name && table.name !== `Mesa ${table.number}`" class="table-name">
-                      {{ table.name }}
+            <div v-if="!loading && profiles.length > 0" class="profiles-list">
+              <div
+                v-for="profile in profiles.slice(0,1)"
+                :key="profile.id"
+                class="profile-card simple starter"
+                :class="{ 'active': profile.is_active, 'has-conflicts': profile.conflict_tables?.length > 0 }"
+              >
+                <div class="profile-row">
+                  <div class="col-6 d-flex flex-column justify-content-center align-items-start">
+                    <h4 class="profile-name">{{ profile.name }}</h4>
+                    <span class="count-pill mt-2">
+                      {{ profile.table_numbers?.length || 0 }} mesas
                     </span>
-                    <span v-if="table.is_assigned_to_me" class="status-badge mine">Tuya</span>
-                    <span v-else-if="table.is_assigned_to_other" class="status-badge conflict">
-                      {{ table.assigned_waiter }}
-                    </span>
-                    <span v-else class="status-badge available">Disponible</span>
-                  </span>
-                </label>
+                  </div>
+                  <div class="row-right">
+                    <button @click="editProfile(profile)" class="action-btn edit" title="Editar perfil">
+                      <i class="fa-light fa-pen"></i>
+                    </button>
+                    <button @click="deleteProfile(profile.id, profile.name)" class="action-btn delete" title="Eliminar perfil">
+                      <i class="fas fa-light fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="profile.conflict_tables?.length > 0" class="conflict-info">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <span>{{ profile.conflict_tables.length }} mesa(s) en conflicto con otros mozos</span>
+                </div>
               </div>
-              <small class="form-help">
-                Seleccionadas: {{ formData.table_ids.length }}/20
-              </small>
+            </div>
+          </template>
+
+          <!-- Vista LIST: toolbar + listado de perfiles con iconos pequeños -->
+          <template v-else>
+            <div class="pm-toolbar mb-3">
+              <button class="toolbar-cta" @click="showCreateModal = true">
+                <i class="bi bi-plus"></i>
+                Agregar Nuevo Perfil
+              </button>
             </div>
 
-            <div class="form-actions">
-              <button type="button" @click="closeModal" class="btn btn-secondary">
-                Cancelar
-              </button>
-              <button 
-                type="submit" 
-                class="btn btn-primary"
-                :disabled="!formData.name.trim() || formData.table_ids.length === 0 || saving"
+            <div class="profiles-list" v-if="!loading && profiles.length > 0">
+              <div
+                v-for="profile in profiles"
+                :key="profile.id"
+                class="profile-card modern"
               >
-                <i v-if="saving" class="fas fa-spinner fa-spin"></i>
-                <i v-else class="fas fa-save"></i>
-                {{ editingProfile ? 'Actualizar' : 'Crear' }} Perfil
+                <div class="profile-row">
+                  <div class="profile-info">
+                    <div class="profile-name">{{ profile.name }}</div>
+                    <div v-if="profile.description" class="profile-description">{{ profile.description }}</div>
+                  </div>
+                  <div class="profile-actions">
+                    <span class="table-count-badge">{{ profile.table_numbers?.length || profile.table_ids?.length || 0 }} mesas</span>
+                    <button @click="editProfile(profile)" class="action-icon-btn edit" title="Editar">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button @click="deleteProfile(profile.id, profile.name)" class="action-icon-btn delete" title="Eliminar">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-else-if="!loading" class="empty-state">
+              <div class="empty-icon"><i class="bi bi-bookmark"></i></div>
+              <div class="empty-title">Sin perfiles aún</div>
+              <div class="empty-subtitle">Crea tu primer perfil para agrupar mesas por áreas</div>
+              <button class="create-first-btn" @click="showCreateModal = true">
+                <i class="bi bi-plus-circle"></i> Crear Perfil
               </button>
             </div>
-          </form>
+          </template>
+
+          <!-- Loading state -->
+          <div v-if="loading" class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Cargando perfiles...</p>
+          </div>
+
+          <!-- Modal crear/editar perfil - versión UI violeta (teleport al body) -->
+          <Teleport to="body">
+            <div v-if="showCreateModal || editingProfile" class="pm-overlay" @click.self="closeModal">
+              <div class="pm-modal">
+                <div class="pm-header">
+                  <div class="pm-title">
+                    <i class="bi bi-bookmark pm-icon"></i>
+                    <span>{{ editingProfile ? 'Editar Perfil de Mesas' : 'Agregar Perfil de Mesas' }}</span>
+                  </div>
+                  <button @click="closeModal" class="pm-close" aria-label="Cerrar">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+
+                <div class="pm-body">
+                  <form @submit.prevent="saveProfile">
+                    <!-- Nombre -->
+                    <div class="pm-field">
+                      <div class="pm-label">Nombre del Perfil *</div>
+                      <input
+                        v-model="formData.name"
+                        class="pm-input"
+                        type="text"
+                        placeholder="ej. Mesas Exteriores"
+                        maxlength="50"
+                        required
+                      />
+                    </div>
+
+                    <!-- Seleccionar mesas -->
+                    <div class="pm-field">
+                      <div class="pm-label-row">
+                        <span>Seleccionar Mesas *</span>
+                        <span class="pm-chip primary">{{ formData.table_ids.length }} seleccionadas</span>
+                      </div>
+
+                      <div class="pm-tables-container">
+                        <!-- Agrupado por zonas si existe nombre; si no, listado único -->
+                        <div class="pm-section" v-for="group in tableGroups" :key="group.title">
+                          <div class="pm-section-title">{{ group.title }}</div>
+                          <div class="pm-options">
+                            <label
+                              v-for="table in group.items"
+                              :key="table.id"
+                              class="pm-option"
+                              :class="{ disabled: formData.table_ids.length >= 20 && !formData.table_ids.includes(table.id) }"
+                            >
+                              <input
+                                type="checkbox"
+                                :value="table.id"
+                                v-model="formData.table_ids"
+                                :disabled="formData.table_ids.length >= 20 && !formData.table_ids.includes(table.id)"
+                              />
+                              <div class="pm-option-content">
+                                <div class="pm-option-text">Mesa {{ table.number }}</div>
+                              </div>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="pm-actions row">
+                      <button type="button" class="pm-btn outline col d-flex justify-content-center align-items-center" @click="closeModal">
+                        <i class="bi bi-x me-1"></i>
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        class="pm-btn primary col d-flex justify-content-center align-items-center"
+                        :disabled="!formData.name.trim() || formData.table_ids.length === 0 || saving"
+                      >
+                        <i v-if="saving" class="bi bi-arrow-repeat me-1"></i>
+                        <i v-else class="bi bi-check me-1"></i>
+                        {{ editingProfile ? 'Actualizar Perfil' : 'Crear Perfil' }}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </Teleport>
         </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup>
@@ -252,11 +209,15 @@ const props = defineProps({
   assignedTables: {
     type: Array,
     default: () => []
+  },
+  variant: { // 'starter' | 'list' | 'auto'
+    type: String,
+    default: 'auto'
   }
 })
 
 // Emits
-const emit = defineEmits(['profiles-updated'])
+const emit = defineEmits(['profiles-updated', 'close'])
 
 // Estado reactivo
 const state = reactive({
@@ -284,6 +245,13 @@ const showCreateModal = computed({
 const editingProfile = computed(() => state.editingProfile)
 const formData = computed(() => state.formData)
 
+// Modo de visualización (starter vs lista)
+const viewMode = computed(() => {
+  if (props.variant === 'starter' || props.variant === 'list') return props.variant
+  // auto: si hay 0 o 1 perfiles, mostrar starter; si hay varios, lista
+  return (state.profiles?.length || 0) <= 1 ? 'starter' : 'list'
+})
+
 // Tablas disponibles para el formulario
 const availableTablesForForm = computed(() => {
   const allTables = [...props.availableTables, ...props.assignedTables]
@@ -293,6 +261,30 @@ const availableTablesForForm = computed(() => {
     is_assigned_to_other: table.assigned_waiter && table.assigned_waiter !== 'Tú',
     assigned_waiter: table.assigned_waiter || 'Disponible'
   }))
+})
+
+// Agrupar por zonas heurísticas (Terraza/Interior/VIP/Barra) según nombre si está disponible
+const tableGroups = computed(() => {
+  const groups = [
+    { key: 'terraza', title: 'Terraza', items: [] },
+    { key: 'interior', title: 'Interior', items: [] },
+    { key: 'vip', title: 'VIP', items: [] },
+    { key: 'barra', title: 'Barra', items: [] }
+  ]
+  const other = { key: 'otras', title: 'Otras', items: [] }
+  const src = availableTablesForForm.value
+  for (const t of src) {
+    const name = (t.name || '').toLowerCase()
+    if (name.includes('terraza') || name.includes('exterior')) groups[0].items.push(t)
+    else if (name.includes('interior')) groups[1].items.push(t)
+    else if (name.includes('vip')) groups[2].items.push(t)
+    else if (name.includes('barra') || name.includes('bar')) groups[3].items.push(t)
+    else other.items.push(t)
+  }
+  const ordered = [...groups, other].filter(g => g.items.length > 0)
+  // ordenar cada grupo por número de mesa
+  for (const g of ordered) g.items.sort((a,b) => (a.number||0) - (b.number||0))
+  return ordered
 })
 
 // ===== MÉTODOS PRINCIPALES =====
@@ -495,48 +487,84 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.table-profiles-manager {
-  padding: 20px;
-  max-width: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+/* Main content styles */
+.profiles-content {
+  text-align: left;
+  margin-bottom: 32px;
 }
 
-.profiles-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.header-info h3 {
-  margin: 0 0 8px 0;
-  color: #2c3e50;
+.profiles-title {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 20px;
+  font-weight: 700;
+  color: rgb(16, 0, 43);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
 }
 
-.header-description {
-  margin: 0;
-  color: #6c757d;
+.profiles-title i {
+  color: #9f54fd;
+  font-size: 22px;
+}
+
+.profiles-subtitle {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
+  font-weight: 400;
+  color: #6b7280;
+  margin-bottom: 24px;
+  line-height: 1.4;
+}
+
+.add-profile-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #9f54fd 0%, #7c3aed 100%);
+  border: none;
+  border-radius: 16px;
+  padding: 9px;
+  color: white;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(159, 84, 253, 0.3);
+  letter-spacing: -0.01em;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(159, 84, 253, 0.4);
+  }
+
+  i {
+    font-size: 18px;
+  }
 }
 
 .profiles-list {
   display: grid;
-  gap: 20px;
+  gap: 16px;
 }
 
 .profile-card {
   background: white;
   border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 20px;
+  border-radius: 16px;
+  padding: 16px;
   transition: all 0.2s ease;
+  margin-top: 20px;
 }
+
+/* Variantes de tarjeta */
+.profile-card.starter { padding: 16px 16px; }
+.profile-card.compact { padding: 14px 16px; }
 
 .profile-card:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -552,21 +580,14 @@ onMounted(async () => {
   background: #fffdf5;
 }
 
-.profile-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
-}
-
-.profile-info {
-  flex: 1;
-}
+.profile-row { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.row-left { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.row-right { display:flex; align-items:center; gap:10px; flex-shrink:0; }
 
 .profile-name {
-  margin: 0 0 8px 0;
+  margin: 0;
   color: #2c3e50;
-  font-size: 18px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -582,12 +603,7 @@ onMounted(async () => {
   text-transform: uppercase;
 }
 
-.profile-meta {
-  display: flex;
-  gap: 16px;
-  font-size: 13px;
-  color: #6c757d;
-}
+.created-date { color:#6c757d; font-size:13px; }
 
 .table-count {
   display: flex;
@@ -597,44 +613,25 @@ onMounted(async () => {
 
 .profile-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .action-btn {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border: none;
-  border-radius: 4px;
+  border-radius: 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 16px;
   transition: all 0.2s ease;
 }
 
-.action-btn.activate {
-  background: #28a745;
-  color: white;
-}
-
-.action-btn.deactivate {
-  background: #6c757d;
-  color: white;
-}
-
-.action-btn.edit {
-  background: #007bff;
-  color: white;
-}
-
-.action-btn.delete {
-  background: #dc3545;
-  color: white;
-}
-
 .action-btn:hover:not(:disabled) {
-  transform: scale(1.05);
+  transform: translateY(-1px);
+  filter: brightness(1.03);
 }
 
 .action-btn:disabled {
@@ -719,21 +716,73 @@ onMounted(async () => {
   color: #856404;
 }
 
+/* Empty state styles */
 .empty-state {
   text-align: center;
-  padding: 40px 20px;
-  color: #6c757d;
+  padding: 40px 20px 20px;
+  margin-top: 40px;
 }
 
-.empty-state i {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  background: #e5e7eb;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
 }
 
-.empty-state h4 {
-  margin: 0 0 8px 0;
-  color: #495057;
+.empty-icon i {
+  font-size: 32px;
+  color: #9ca3af;
+}
+
+.empty-title {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #4b5563;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.empty-subtitle {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #6b7280;
+  line-height: 1.4;
+  margin-bottom: 24px;
+}
+
+.create-first-btn {
+  background: #3b82f6;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 32px;
+  color: white;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 8px rgba(59, 130, 246, 0.3);
+  letter-spacing: -0.01em;
+
+  &:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  }
+
+  i {
+    font-size: 16px;
+  }
 }
 
 .loading-state {
@@ -747,165 +796,334 @@ onMounted(async () => {
   margin-bottom: 12px;
 }
 
-/* Modal styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+/* Descripción superior del modal */
+.modal-description {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+
+/* Toolbar de la vista list */
+.pm-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.pm-toolbar .toolbar-cta {
+  width: 100%;
+  background: linear-gradient(135deg, #9f54fd 0%, #7c3aed 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  height: 44px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(159,84,253,.28);
+}
+.pm-toolbar .toolbar-cta i { font-size: 18px; }
+
+/* Chip suave como en el diseño */
+.pm-chip.soft {
+  background: #f1e9ff;
+  color: #6b2adf;
+  border: 1px solid rgba(159,84,253,.25);
 }
 
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  width: 90%;
+/* Chip tipo pill con burbuja numérica */
+.count-pill {
+  display:inline-flex; justify-content: center; align-items:center; gap:8px;
+  background:#efe7ff; color:#6b2adf; border:1px solid rgba(159,84,253,.25);
+  border-radius:999px; padding:6px 10px; font-weight:600; font-size:12px;
+}
+.count-pill .bubble {
+  width:22px; height:22px; border-radius:999px; background:white; color:#6b2adf;
+  display:flex; align-items:center; justify-content:center; border:1px solid rgba(159,84,253,.35);
+  font-size:12px; font-weight:700;
+}
+
+/* Modal styles with purple theme */
+.pm-overlay { 
+  position: fixed; 
+  inset: 0; 
+  background: rgba(0,0,0,.6); 
+  backdrop-filter: blur(4px); 
+  display: flex; 
+  align-items: center;
+  justify-content: center; 
+  z-index: 3500; 
+  padding: 20px;
+}
+
+.pm-modal { 
+  background: #ffffff; 
+  border: none; 
+  border-radius: 20px; 
+  width: 100%; 
   max-width: 600px;
   max-height: 90vh;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 25px 60px rgba(16,0,43,.15); 
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.3s ease-out;
 }
 
-.modal-header {
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.pm-header { 
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  padding: 12px 0; 
+  border-bottom: 1px solid rgba(159, 84, 253, 0.1);
+  flex-shrink: 0;
+}
+
+.pm-title { 
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  font-weight: 700; 
+  color: rgb(16,0,43); 
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.pm-title .pm-icon { 
+  color: var(--brand-primary, #9f54fd); 
+  font-size: 20px;
+}
+
+.pm-close { 
+  background: rgba(107, 114, 128, 0.1); 
+  border: none; 
+  color: #6b7280; 
+  width: 36px; 
+  height: 36px; 
+  border-radius: 50%; 
+  display: flex; 
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 16px;
+  cursor: pointer;
+}
+.pm-close:hover { 
+  background: rgba(159, 84, 253, 0.1); 
+  color: #9f54fd; 
+  transform: scale(1.1);
+}
+
+.pm-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Form styles */
+.pm-field {
+  margin-bottom: 24px;
+}
+
+.pm-label {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgb(16,0,43);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.pm-label-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e9ecef;
-  background: #f8f9fa;
-}
-
-.modal-header h3 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-  font-size: 16px;
-}
-
-.close-btn:hover {
-  background: #e9ecef;
-  color: #495057;
-}
-
-.modal-body {
-  padding: 20px;
-  overflow-y: auto;
-  max-height: calc(90vh - 140px);
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 6px;
+  margin-bottom: 12px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
   font-weight: 600;
-  color: #495057;
-  font-size: 14px;
+  color: rgb(16,0,43);
 }
 
-.form-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-size: 14px;
-  transition: border-color 0.2s ease;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
-
-.form-help {
-  display: block;
-  margin-top: 4px;
+.pm-chip {
+  padding: 6px 12px;
+  border-radius: 20px;
   font-size: 12px;
-  color: #6c757d;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
-.tables-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 8px;
-  max-height: 300px;
+.pm-chip.primary {
+  background: linear-gradient(135deg, #e8dbff 0%, #dac8ff 100%);
+  color: #6b2adf;
+  border: 1px solid rgba(159, 84, 253, 0.3);
+}
+
+.pm-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e9d8ff;
+  border-radius: 12px;
+  font-size: 16px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(159, 84, 253, 0.05);
+}
+
+.pm-input:focus {
+  outline: none;
+  border-color: #9f54fd;
+  box-shadow: 0 4px 12px rgba(159, 84, 253, 0.15);
+}
+
+.pm-input::placeholder {
+  color: #9ca3af;
+  font-size: 15px;
+}
+
+/* Tables container and sections */
+.pm-tables-container {
+  background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 100%);
+  border: 2px solid #e9d8ff;
+  border-radius: 16px;
+  padding: 20px;
+  max-height: 400px;
   overflow-y: auto;
-  padding: 4px;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
+  
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(159, 84, 253, 0.1);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(159, 84, 253, 0.4);
+    border-radius: 3px;
+    
+    &:hover {
+      background: rgba(159, 84, 253, 0.6);
+    }
+  }
 }
 
-.table-checkbox {
+.pm-section {
+  margin-bottom: 24px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.pm-section-title {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: rgb(16,0,43);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgba(159, 84, 253, 0.2);
+  letter-spacing: -0.01em;
+}
+
+.pm-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.pm-option {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 2px solid rgba(159, 84, 253, 0.15);
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(159, 84, 253, 0.05);
+
+  &:hover:not(.disabled) {
+    border-color: rgba(159, 84, 253, 0.3);
+    box-shadow: 0 4px 8px rgba(159, 84, 253, 0.1);
+    transform: translateY(-1px);
+  }
+
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
-.table-checkbox:hover {
-  background: #f8f9fa;
-}
-
-.table-checkbox.selected {
-  background: #e3f2fd;
-  border-color: #007bff;
-}
-
-.table-checkbox.assigned {
-  background: #f0f8f0;
-  border-color: #28a745;
-}
-
-.table-checkbox.conflict {
-  background: #fff8f0;
-  border-color: #ffc107;
-}
-
-.table-checkbox input {
+.pm-option input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(159, 84, 253, 0.3);
+  border-radius: 4px;
+  background: #ffffff;
+  cursor: pointer;
+  position: relative;
+  appearance: none;
   margin: 0;
+  transition: all 0.2s ease;
+
+  &:checked {
+    background: linear-gradient(135deg, #9f54fd 0%, #7c3aed 100%);
+    border-color: #9f54fd;
+
+    &::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+    }
+  }
+
+  &:hover:not(:disabled) {
+    border-color: rgba(159, 84, 253, 0.5);
+  }
 }
 
-.table-info {
+.pm-option-content {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.table-number {
+.pm-option-text {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
   font-weight: 600;
-  color: #2c3e50;
-  font-size: 13px;
+  color: rgb(16,0,43);
+  letter-spacing: -0.01em;
 }
 
-.table-name {
-  font-size: 11px;
-  color: #6c757d;
+.pm-option-meta {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
 }
 
 .status-badge {
@@ -931,49 +1149,175 @@ onMounted(async () => {
   color: #6c757d;
 }
 
-.form-actions {
+/* Modal actions */
+.pm-actions {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid #e9ecef;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(159, 84, 253, 0.1);
 }
 
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.pm-btn {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  padding: 12px 20px;
+  border-radius: 24px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+  cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  letter-spacing: -0.01em;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
 }
 
-.btn-primary {
-  background: #007bff;
+.pm-btn.outline {
+  background: transparent;
+  border: 2px solid rgba(159, 84, 253, 0.3);
+  color: #9f54fd;
+
+  &:hover:not(:disabled) {
+    background: rgba(159, 84, 253, 0.1);
+    border-color: rgba(159, 84, 253, 0.5);
+  }
+}
+
+.pm-btn.primary {
+  background: linear-gradient(135deg, #9f54fd 0%, #7c3aed 100%);
   color: white;
+  border: none;
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 4px 12px rgba(159, 84, 253, 0.3);
+  }
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: #0056b3;
+.pm-btn i {
+  font-size: 16px;
 }
 
-.btn-secondary {
-  background: #6c757d;
-  color: white;
+/* Tarjetas compactas del listado */
+.compact-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.compact-info { display:flex; flex-direction:column; gap:4px; }
+.compact-title { font-weight:700; font-size:16px; color:#111827; }
+.compact-sub { font-size:13px; color:#6b7280; }
+.compact-actions { display:flex; align-items:center; gap:10px; }
+.icon-btn { width:36px; height:36px; border:none; border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.icon-btn.edit { background:#e0e7ff; color:#1d4ed8; }
+.icon-btn.delete { background:#fee2e2; color:#b91c1c; }
+
+/* Estilos modernos para las tarjetas */
+.profile-card.modern {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.btn-secondary:hover {
-  background: #545b62;
+.profile-card.modern:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.profile-card.modern .profile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.profile-card.modern .profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.profile-card.modern .profile-name {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.profile-card.modern .profile-description {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.profile-card.modern .profile-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.table-count-badge {
+  background: #f3f4f6;
+  color: #6b7280;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  white-space: nowrap;
+}
+
+.action-icon-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.action-icon-btn.edit {
+  background: #f0f9ff;
+  color: #0369a1;
+}
+
+.action-icon-btn.edit:hover {
+  background: #e0f2fe;
+  color: #0c4a6e;
+}
+
+.action-icon-btn.delete {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.action-icon-btn.delete:hover {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 @media (max-width: 768px) {

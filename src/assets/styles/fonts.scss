@@ -1,0 +1,15 @@
+/* Fuentes y tokens tipográficos */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Families */
+  --font-primary: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-secondary: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  /* Text tokens */
+  --text-primary: oklch(24% 0.08 300);           /* ~ rgb(16,0,43) */
+  --subtext-primary: oklch(64% 0.04 260);        /* ~ rgb(107,114,128) */
+  --text-input: oklch(35% 0.06 300);
+}
+
+body { font-family: var(--font-primary); }

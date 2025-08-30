@@ -1,0 +1,63 @@
+.card-dropdown {
+  background-color: rgb(248, 244, 255);
+  border: 1px solid rgba(159, 84, 253, 0.2);
+  border-radius: 8.5px; height: 55px; min-width: 145px;
+  display: flex; align-items: center; padding: 10px 12px; column-gap: 8px;
+
+  .title { color: rgb(16, 0, 43); font-family: var(--font-secondary); font-size: 12.25px; font-weight: 500; line-height: 17.5px; }
+  .subtitle { color: rgb(107, 114, 128); font-family: var(--font-secondary); font-size: 11.5px; font-weight: 500; line-height: 14px; }
+}
+
+.divider-weak { border-top: 1px solid rgba(159, 84, 253, 0.2); }
+
+.section-head {
+  .title-primary { font-family: var(--font-secondary); font-size: 15.75px; font-weight: 600; line-height: 24.5px; color: var(--text-primary); }
+  .subtitle { color: rgb(107,114,128); font-size: 12.25px; font-family: var(--font-secondary); font-weight: 400; line-height: 17.5px; }
+  .btn-view-all { background: transparent; border: 1px solid rgb(159,84,253); color: rgb(159,84,253); font-family: var(--font-secondary); font-weight: 500; height: 31.2px; width: 82.9875px; line-height: 17.5px; font-size: 12.25px; border-radius: 10.5px; }
+}
+
+.more-inline { display: flex; align-items: center; justify-content: center; column-gap: 6px; color: rgb(16, 0, 43); font-family: var(--font-secondary); font-size: 10.5px; height: 24.5px; line-height: 14px; }
+
+.pagination-minor { color: rgb(107, 114, 128); display: block; font-family: var(--font-secondary); font-size: 10.5px; height: 13.9875px; }
+
+/* Card de mesa expandida */
+.table-card {
+  padding: 10px; width: 151.15px; height: 94.8px; color:#fff; cursor: default; display:flex; flex-direction: column; font-family: var(--font-secondary); font-size: 14px; font-weight: 600; border-radius: 12px; gap: 6px;
+  &.state-calling { background: #ef4444; }
+  &.state-urgent { background: #b91c1c; }
+  &.state-assigned { background: #7c3aed; }
+  &.state-muted { background: #6b7280; }
+
+  .table-number { color:#fff; font-family: var(--font-secondary); font-size: 17.5px; font-weight: 700; }
+  .table-state { color:#fff; font-size: 10.5px; font-weight: 500; }
+
+  .actions { margin-top: auto; display:flex; gap:8px;
+    .btn-ghost { background-color: oklab(0.999994 0.0000455677 0.0000200868 / 0.8); height: 24.5px; width: 61.575px; border-radius: 8.5px; border:0; display:flex; align-items:center; justify-content:center; column-gap:6px; color:#111; font-weight:600; font-size:12px; }
+  }
+}
+
+.legend-dots { display:flex; align-items:center; column-gap:8px;
+  .dot { width: 7px; height: 7px; border-radius: 3.5px; background-color: oklch(0.637 0.237 25.331); }
+  .txt { color: rgb(107,114,128); font-family: var(--font-secondary); font-size: 10.5px; }
+}
+
+/* Notificaciones list/cards */
+.notification-card {
+  display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid rgb(159,84,253); border-radius: 15px; padding: 14px;
+  .title { color: rgb(16, 0, 43); font-family: var(--font-secondary); font-size: 14px; font-weight: 600; }
+  .message { color: rgb(107,114,128); font-family: var(--font-secondary); font-size: 12.25px; font-weight: 400; }
+  .time { color: rgb(107,114,128); font-family: var(--font-secondary); font-size: 10.5px; font-weight: 400; }
+
+  .btn-silence { background: transparent; border-radius: 10.5px; border: 2px solid rgb(159,84,253); color: rgb(159,84,253); display:flex; column-gap:3.5px; font-family: var(--font-secondary); font-size: 12.25px; font-weight: 500; padding: 6px 10px; }
+  .btn-ok { background: rgb(34, 197, 94); color:#fff; border-radius: 10.5px; display:flex; column-gap:3.5px; font-family: var(--font-secondary); font-size: 12.25px; font-weight:500; padding: 6px 10px; }
+  .btn-block { background: rgb(239, 68, 68); color:#fff; border-radius: 10.5px; display:flex; column-gap:3.5px; font-family: var(--font-secondary); font-size: 12.25px; font-weight:500; padding: 6px 10px; }
+}
+
+/* IPs bloqueadas */
+.blocked-card {
+  border: 1px solid rgb(239,68,68); border-radius: 15px; background: oklch(.98 .01 17);
+  .title { color: oklch(0.505 0.213 27.518); font-family: var(--font-secondary); font-weight: 600; font-size: 14px; }
+  .sub { color: oklch(0.577 0.245 27.325); font-family: var(--font-secondary); font-size: 12.25px; }
+  .time { color: oklch(0.577 0.245 27.325); font-family: var(--font-secondary); font-size: 10.5px; }
+  .btn-unblock { background: transparent; border: 2px solid rgb(159,84,253); border-radius: 10.5px; color: rgb(159,84,253); font-weight: 600; }
+}

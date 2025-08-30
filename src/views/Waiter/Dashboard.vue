@@ -1,407 +1,365 @@
 <template>
   <!-- Wrapper agregado para asegurar un único nodo raíz (necesario para <Transition>) -->
-  <div class="waiter-dashboard-root">
-    <div class="waiter-dashboard">
-    <!-- Header con información del mozo -->
-    <div class="dashboard-header">
-      <div class="waiter-info">
-        <div class="waiter-avatar">
-          <i class="fas fa-user-circle"></i>
+  <div class="waiter-dashboard-root waiter-dashboard-page container">
+    
+    <div class="dashboard-content row">
+      <!-- Header Usuario -->
+      <div class="header-user pt-0 col-12 px-0">
+        <div class="user-avatar">{{ initials }}</div>
+        <div class="user-info">
+          <h5 class="user-name">{{ displayName }}</h5>
+          <p class="user-time">{{ nowString }}</p>
         </div>
-        <div class="waiter-details">
-          <h2>{{ authStore.user?.name || 'Mozo' }}</h2>
-          <div class="business-selector-container">
-            <BusinessSelector 
-              @business-changed="onBusinessChanged"
-              @businesses-loaded="onBusinessesLoaded"
-              ref="businessSelector"
-            />
+        <div class="notification-badge">{{ pendingCallsWithSpamInfo.length }}</div>
+      </div>
+    
+      <!-- Dropdown Cards -->
+      <div class="dropdown-cards col-12 d-flex justify-content-center align-items-center px-0">
+        <div class="row justify-content-between row__width">
+          <!-- Dropdown Selector de Negocio -->
+          <div class="dropdown-card col me-1" @click="showBusinessDropdown = !showBusinessDropdown">
+            <div class="dropdown-icon">
+              <i class="fas fa-building"></i>
+            </div>
+            <div class="dropdown-content">
+              <h6 class="dropdown-title">{{ currentBusiness?.name || "Café Central" }}</h6>
+              <p class="dropdown-subtitle">Fast Food</p>
+            </div>
+            <div class="dropdown-arrow">
+              <i class="fas fa-chevron-right"></i>
+            </div>
+          </div>
+          
+          <!-- Dropdown Selector de Perfiles -->
+          <div class="dropdown-card col ms-1" @click="showBusinessDropdown = false; showProfilesDropdown = !showProfilesDropdown">
+            <div class="dropdown-icon">
+              <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <div class="dropdown-content">
+              <h6 class="dropdown-title">Mesas Exteriores</h6>
+              <p class="dropdown-subtitle">12 mesas</p>
+            </div>
+            <div class="dropdown-arrow">
+              <i class="fas fa-chevron-right"></i>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="dashboard-stats">
-        <div class="stat-item">
-          <div class="stat-number">{{ assignedTables.length }}</div>
-          <div class="stat-label">Mesas asignadas</div>
+      <!-- Business BottomSheet -->
+      <BottomSheet
+        v-model="showBusinessDropdown"
+        title="Seleccionar Negocio"
+        subtitle="Elige el restaurante donde estás trabajando"
+        sheet-class="violet"
+        @after-leave="onBusinessSheetAfterLeave"
+      >
+        <button class="bs-add-btn" @click="queueOpenAddBusiness">+ Agregar Negocio</button>
+        <div class="bs-list mt-3">
+          <button
+            v-for="b in businesses"
+            :key="b.id"
+            class="bs-item"
+            :class="{ active: currentBusiness?.id === b.id }"
+            @click="selectBusiness(b)"
+          >
+            <div class="left">
+              <div class="bs-ico"><i class="fas fa-building"></i></div>
+              <div>
+                <div class="bs-name">{{ b.name }}</div>
+                <div class="bs-sub">{{ b.type || 'Restaurante' }} • {{ b.address || 'Sin dirección' }}</div>
+              </div>
+            </div>
+            <div class="bs-right">
+              <i class="fas" :class="currentBusiness?.id === b.id ? 'fa-check' : 'fa-chevron-right'"></i>
+            </div>
+          </button>
         </div>
-        <div class="stat-item urgent">
-          <div class="stat-number">{{ pendingCallsWithSpamInfo.length }}</div>
-          <div class="stat-label">Llamadas pendientes</div>
+      </BottomSheet>
+
+      <!-- Profiles BottomSheet -->
+      <BottomSheet
+        v-model="showProfilesDropdown"
+        title="Perfil de Mesas"
+        subtitle="Selecciona qué área de mesas quieres gestionar"
+        sheet-class="violet"
+      >
+        <button class="bs-add-btn" @click="showProfilesManager = true; showProfilesDropdown = false">+ Gestionar Perfiles</button>
+
+        <div class="bs-list mt-3">
+          <button class="bs-item" :class="{ active: selectedProfileId === 'exteriores' }" @click="selectProfile('exteriores')">
+            <div class="left">
+              <div class="bs-ico"><i class="fas fa-map-marker-alt"></i></div>
+              <div>
+                <div class="bs-name">Mesas Exteriores</div>
+                <div class="bs-sub">Terraza y área al aire libre • 12 mesas</div>
+              </div>
+            </div>
+            <div class="bs-right">
+              <i class="fas" :class="selectedProfileId === 'exteriores' ? 'fa-check' : 'fa-chevron-right'"></i>
+            </div>
+          </button>
+
+          <button class="bs-item" :class="{ active: selectedProfileId === 'interiores' }" @click="selectProfile('interiores')">
+            <div class="left">
+              <div class="bs-ico"><i class="fas fa-map-marker-alt"></i></div>
+              <div>
+                <div class="bs-name">Mesas Interiores</div>
+                <div class="bs-sub">Comedor principal • 20 mesas</div>
+              </div>
+            </div>
+            <div class="bs-right">
+              <i class="fas" :class="selectedProfileId === 'interiores' ? 'fa-check' : 'fa-chevron-right'"></i>
+            </div>
+          </button>
+
+          <button class="bs-item" :class="{ active: selectedProfileId === 'vip' }" @click="selectProfile('vip')">
+            <div class="left">
+              <div class="bs-ico"><i class="fas fa-map-marker-alt"></i></div>
+              <div>
+                <div class="bs-name">Área VIP</div>
+                <div class="bs-sub">Zona premium • 8 mesas</div>
+              </div>
+            </div>
+            <div class="bs-right">
+              <i class="fas" :class="selectedProfileId === 'vip' ? 'fa-check' : 'fa-chevron-right'"></i>
+            </div>
+          </button>
+
+          <button class="bs-item" :class="{ active: selectedProfileId === 'barra' }" @click="selectProfile('barra')">
+            <div class="left">
+              <div class="bs-ico"><i class="fas fa-map-marker-alt"></i></div>
+              <div>
+                <div class="bs-name">Barra</div>
+                <div class="bs-sub">Bebidas • 6 mesas</div>
+              </div>
+            </div>
+            <div class="bs-right">
+              <i class="fas" :class="selectedProfileId === 'barra' ? 'fa-check' : 'fa-chevron-right'"></i>
+            </div>
+          </button>
         </div>
-        <div class="stat-item">
-          <div class="stat-number">{{ silencedTables.length }}</div>
-          <div class="stat-label">Mesas silenciadas</div>
+      </BottomSheet>
+
+      <!-- Add Business Modal -->
+      <div v-if="showAddBusinessModal" class="add-business-backdrop" @click="showAddBusinessModal = false">
+        <div class="add-business-content" @click.stop>
+          
+          <div class="modal-icon">
+            <i class="fas fa-building"></i>
+          </div>
+          
+          <h3 class="modal-title">
+            <i class="fas fa-building"></i> Agregar Negocio
+          </h3>
+          <p class="modal-subtitle my-3">Ingresa el código de invitación para unirte a un nuevo negocio</p>
+          
+          <div class="invitation-section">
+            <h6 class="invitation-label">Código de Invitación</h6>
+            <div class="code-inputs">
+              <input type="text" maxlength="1" class="code-input" v-model="invitationCode[0]" />
+              <input type="text" maxlength="1" class="code-input" v-model="invitationCode[1]" />
+              <input type="text" maxlength="1" class="code-input" v-model="invitationCode[2]" />
+              <input type="text" maxlength="1" class="code-input" v-model="invitationCode[3]" />
+            </div>
+            <p class="invitation-help">Solicita este código al administrador del negocio</p>
+          </div>
+          
+          <button class="btn-validate-code">Validar Código</button>
         </div>
       </div>
-    </div>
 
-    <!-- Banner de desvinculación -->
-    <div v-if="state.uiFlags.unlinkedBanner" class="unlinked-banner">
-      <div class="banner-content">
-        <div class="banner-icon">
-          <i class="fas fa-unlink"></i>
-        </div>
-        <div class="banner-message">
-          <h4>Has sido desvinculado del negocio</h4>
-          <p>{{ state.uiFlags.unlinkedMessage || 'Ya no tienes acceso a las mesas de este negocio. Las mesas han sido desasignadas automáticamente.' }}</p>
-        </div>
-        <button @click="state.uiFlags.unlinkedBanner = false" class="banner-close">
-          <i class="fas fa-times"></i>
+      <div class="divider"></div>
+      <!-- Botones de acciones rápidas -->
+      <div class="quick-actions">
+        <button class="btn-none d-flex flex-column justify-content-center align-items-center" @click="onQuickActivateAll" :disabled="quickBusy">
+          <span class="quick-action-btn activate-all"><i class="fas" :class="quickBusy ? 'fa-spinner fa-spin' : 'fa-check'"></i></span>
+          Activar Todo
+        </button>
+        <button class="btn-none d-flex flex-column justify-content-center align-items-center" @click="onQuickSilenceAll" :disabled="quickBusy">  
+          <span class="quick-action-btn silence-all">
+            <i class="fas" :class="quickBusy ? 'fa-spinner fa-spin' : 'fa-bell-slash'"></i>
+          </span>
+          Silenciar Todo
+        </button>
+        <button class="btn-none d-flex flex-column justify-content-center align-items-center" @click="onQuickActivateSolo" :disabled="quickBusy">
+          <span class="quick-action-btn activate-solo"><i class="fas" :class="quickBusy ? 'fa-spinner fa-spin' : 'fa-bolt'"></i></span>
+          Activar Solitarias
         </button>
       </div>
-    </div>
-
-    <!-- Sección principal con dos columnas -->
-    <div class="dashboard-content">
-      <!-- Columna izquierda: Gestión de mesas -->
-      <div class="left-column">
-        <div class="section-card">
-          <div class="section-header">
-            <h3>
-              <i class="fas fa-table"></i>
-              Todas
-            </h3>
-            <div class="section-actions">
-              <button 
-                v-if="!needsBusiness" 
-                @click="showProfilesManager = true" 
-                class="action-btn info"
-              >
-                <i class="fas fa-bookmark"></i>
-                Perfiles
-              </button>
-              <button 
-                v-if="!needsBusiness" 
-                @click="showBlockedIpsManager = true" 
-                class="action-btn danger"
-              >
-                <i class="fas fa-shield-alt"></i>
-                Anti-Spam
-              </button>
-              <button 
-                v-if="!needsBusiness" 
-                @click="openIpDebugPanel" 
-                class="action-btn secondary"
-              >
-                <i class="fas fa-bug"></i>
-                IP Debug
-              </button>
-              <button 
-                v-if="!needsBusiness" 
-                @click="showTablesManager = true" 
-                class="action-btn secondary"
-              >
-                <i class="fas fa-cog"></i>
-                Gestionar Mesas
-              </button>
-              <button 
-                v-if="!needsBusiness" 
-                @click="showTableSelector = true" 
-                class="action-btn primary"
-              >
-                <i class="fas fa-plus"></i>
-                Activar Mesas
-              </button>
-              <button @click="refreshTables" class="action-btn" :disabled="loading">
-                <i class="fas fa-sync-alt" :class="{ 'fa-spin': loading }"></i>
-              </button>
-              <button @click="createTestCall" class="action-btn warning">
-                <i class="fas fa-flask"></i>
-                Test Call
-              </button>
+      <div class="divider"></div>
+      <!-- Sección de mesas -->
+      <div class="mesas-section">
+        <!-- Header de sección -->
+        <div class="section-header">
+          <div class="section-info">
+            <h3 class="section-title">Mesas - {{ currentBusiness?.name || 'Café Central' }}</h3>
+            <p class="section-subtitle">{{ urgentTablesCount }} con notificaciones • {{ assignedTables.length }} asignadas</p>
+          </div>
+          <button class="btn-ver-todas" @click="showAllTablesModal = true">Ver Todas</button>
+        </div>
+        
+        <!-- Controles de mesa -->
+        <div class="mesas-controls ">
+          <div class="control-left">
+            <div class="pagination-nav">
+              <button class="nav-btn" @click="prevPage" :disabled="currentPage === 1"><i class="fas fa-chevron-left"></i></button>
+              <span class="page-info">{{ currentPage }}/{{ totalPages }}</span>
+              <button class="nav-btn" @click="nextPage" :disabled="currentPage === totalPages"><i class="fas fa-chevron-right"></i></button>
             </div>
           </div>
+          <div class="badge-urgent">{{ urgentTablesCount }} urgentes</div>
+        </div>
 
-          <div class="tables-list">
-            <div 
-              v-for="table in assignedTables" 
-              :key="table.id"
-              class="table-item"
-              :class="{
-                'has-calls': table.pending_calls_count > 0,
-                'silenced': table.is_silenced
-              }"
-            >
-              <div class="table-info">
-                <div class="table-name">
-                  Mesa {{ table.number }}
-                  <span v-if="table.pending_calls_count > 0" class="urgency-icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                  </span>
-                  <span
-                    v-else-if="table.is_silenced"
-                    class="silence-icon"
-                    :title="table.silence?.remaining_time || 'Mesa silenciada'"
-                  >
-                    <i class="fas fa-volume-mute"></i>
-                  </span>
-                  <span v-else class="ok-icon">
-                    <i class="fas fa-check"></i>
-                  </span>
-                </div>
-                <div v-if="table.name && table.name !== `Mesa ${table.number}`" class="table-subtitle">
-                  {{ table.name }}
-                </div>
-                <div 
-                  v-if="table.is_silenced" 
-                  class="table-silenced-info"
-                >
-                  <i class="fas fa-volume-mute"></i>
-                  <span>
-                    {{ table.silence?.remaining_time || (table.silence?.reason === 'manual' ? 'Silenciada manualmente' : 'Mesa silenciada') }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="table-actions">
-                <button 
-                  @click="activateTable(table.id)"
-                  class="table-action-btn activate"
-                  title="Activar llamadas"
-                  v-if="table.actions_available?.can_activate"
-                >
-                  <i class="fas fa-check"></i>
-                </button>
-                <button 
-                  @click="silenceTable(table.id)"
-                  class="table-action-btn silence"
-                  title="Silenciar"
-                  v-if="table.actions_available?.can_silence"
-                >
-                  <i class="fas fa-volume-mute"></i>
-                </button>
-                <button 
-                  @click="unsilenceTable(table.id)"
-                  class="table-action-btn unsilence"
-                  title="Quitar silencio"
-                  v-if="table.actions_available?.can_unsilence"
-                >
-                  <i class="fas fa-volume-up"></i>
-                </button>
-                <button 
-                  @click="deactivateTable(table.id)"
-                  class="table-action-btn deactivate"
-                  title="Desactivar"
-                  v-if="table.actions_available?.can_deactivate"
-                >
-                  <i class="fas fa-times"></i>
-                </button>
-              </div>
+        <!-- Grid de mesas 2x3 -->
+        <div class="mesas-grid">
+          <div
+            v-for="table in pagedTables"
+            :key="table.id"
+            class="table-card"
+            :class="tableStatusClass(table)"
+          >
+            <div v-if="table.pending_calls_count > 0" class="notification-dot"></div>
+            <div class="table-number">{{ table.number }}</div>
+            <div class="table-status">
+              {{ table.pending_calls_count > 0 ? 'Llamando' : (table.is_silenced ? 'Silenciada' : 'Asignada') }}
             </div>
-
-            <!-- Mensaje si no hay mesas asignadas -->
-            <div v-if="assignedTables.length === 0" class="empty-state">
-              <i class="fas fa-table"></i>
-              <p v-if="!needsBusiness">No tienes mesas asignadas</p>
-              <p v-else>Selecciona un negocio para ver las mesas disponibles</p>
-              <button 
-                v-if="!needsBusiness" 
-                @click="showTableSelector = true" 
-                class="btn btn-primary"
-              >
-                Activar Mesas
-              </button>
+            <div class="table-actions">
+              <button class="action-btn" title="desasignar" @click="deactivateTable(table.id)"><i class="fa-thin fa-user-minus"></i></button>
+              <button v-if="!table.is_silenced" class="action-btn" title="silenciar" @click="silenceTable(table.id)"><i class="fa-thin fa-volume-slash"></i></button>
+              <button v-else class="action-btn" title="quitar silencio" @click="unsilenceTable(table.id)"><i class="fa-thin fa-volume"></i></button>
+            </div>
+            <div class="table-icon">
+              <i class="fa-thin" :class="table.pending_calls_count > 0 ? 'fa-triangle-exclamation' : (table.is_silenced ? 'fa-volume-slash' : 'fa-user-check')"></i>
             </div>
           </div>
+        </div>
+        
+        <!-- Indicadores de página -->
+        <div class="page-dots mb-3">
+          <span class="dots-text">({{ pageStart }}-{{ pageEnd }} de {{ assignedTables.length }})</span>
         </div>
       </div>
+      
 
-      <!-- Columna derecha: Notificaciones -->
-      <div class="right-column">
-        <div class="section-card">
-          <div class="section-header">
-            <h3>Notificaciones:</h3>
-          </div>
 
-          <div class="notifications-list" id="calls-container">
-            <div 
-              v-for="call in pendingCallsWithSpamInfo" 
-              :key="call.id"
-              class="notification-item"
-              :class="{
-                'urgent': call.urgency === 'high',
-                'old': call.minutes_ago > 5,
-                'potential-spam': call.is_potential_spam
-              }"
-            >
-              <div class="notification-info">
-                <div class="notification-title">
-                  Mesa {{ call.table_number || call.table?.number }}:
-                </div>
-                <div class="notification-message">
-                  {{ call.message || 'Solicita mozo' }}
-                </div>
-                <div class="notification-time">
-                  Hace {{ call.minutes_ago }}m
-                  <span v-if="call.urgency === 'high'" class="urgent-badge">URGENTE</span>
-                  <span v-if="call.is_potential_spam" class="spam-badge">
-                    POSIBLE SPAM ({{ call.ip_call_count }}x)
-                  </span>
-                </div>
-                <div v-if="call.client_info?.ip_address" class="client-info">
-                  IP: {{ call.client_info.ip_address }}
-                  <span v-if="call.client_info.source_type" class="source-badge">
-                    {{ call.client_info.source_type }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="notification-actions">
-                <button 
-                  @click="acknowledgeCall(call.id)"
-                  class="notification-action-btn ok"
-                  :disabled="processingCall === call.id"
-                  title="OK - Confirmar llamada"
-                >
-                  <i class="fas fa-check"></i>
-                </button>
-                <button 
-                  @click="completeCall(call.id)"
-                  class="notification-action-btn complete"
-                  :disabled="processingCall === call.id"
-                  title="Completar atención"
-                >
-                  <i class="fas fa-check-double"></i>
-                </button>
-                <button 
-                  @click="silenceTableFromCall(call.table.id)"
-                  class="notification-action-btn silence"
-                  title="Silenciar mesa"
-                >
-                  <i class="fas fa-volume-mute"></i>
-                </button>
-                <button 
-                  v-if="call.client_info?.ip_address"
-                  @click="blockIpForSpam(call)"
-                  class="notification-action-btn block-ip"
-                  :disabled="processingCall === call.id"
-                  title="Bloquear IP por spam"
-                >
-                  <i class="fas fa-ban"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- Mensaje si no hay notificaciones -->
-            <div v-if="pendingCallsWithSpamInfo.length === 0" class="empty-notifications">
-              <i class="fas fa-bell-slash"></i>
-              <p v-if="!needsBusiness">No hay llamadas pendientes</p>
-              <p v-else>Selecciona un negocio para ver las llamadas</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Historial de llamadas acknowledged/completed -->
-        <div class="section-card">
-          <div class="section-header">
-            <h3>Historial</h3>
-          </div>
-
-          <div class="acknowledged-list">
-            <div
-              v-for="call in callHistory"
-              :key="`hist-${call.id}`"
-              class="notification-item acknowledged"
-            >
-              <div class="notification-info">
-                <div class="notification-title">Mesa {{ call.table_number || call.table?.number }}:</div>
-                <div class="notification-message">{{ call.message || 'Solicita mozo' }}</div>
-                <div class="notification-time">{{ call.acknowledged_at ? 'Atendida' : '' }}</div>
-              </div>
-              <div class="notification-actions">
-                <button
-                  @click="completeFromHistory(call.id)"
-                  class="notification-action-btn complete"
-                  :disabled="processingCall === call.id"
-                  title="Completar desde historial"
-                >
-                  <i class="fas fa-check-double"></i>
-                </button>
-              </div>
-            </div>
-
-            <div v-if="callHistory.length === 0" class="empty-notifications">
-              <i class="fas fa-history"></i>
-              <p>No hay historial disponible</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- IPs Bloqueadas -->
-        <div class="section-card">
-          <div class="section-header">
-            <h3>
-              <i class="fas fa-ban"></i>
-              IPs Bloqueadas
-            </h3>
-            <button @click="loadBlockedIps" class="action-btn" :disabled="loading" title="Actualizar">
-              <i class="fas fa-sync-alt" :class="{ 'fa-spin': loading }"></i>
-            </button>
-          </div>
-
-          <div class="blocked-ips-list-sidebar">
-            <div
-              v-for="blockedIp in blockedIps"
-              :key="blockedIp.ip_address"
-              class="blocked-ip-item"
-            >
-              <div class="blocked-ip-info">
-                <div class="blocked-ip-address">
-                  <i class="fas fa-shield-alt"></i>
-                  {{ blockedIp.ip_address }}
-                </div>
-                <div class="blocked-ip-details">
-                  <div class="blocked-detail">
-                    <strong>Razón:</strong> {{ blockedIp.reason }}
-                  </div>
-                  <div class="blocked-detail">
-                    <strong>Por:</strong> {{ blockedIp.blocked_by }}
-                  </div>
-                  <div class="blocked-detail">
-                    <strong>Fecha:</strong> {{ formatBlockDate(blockedIp.blocked_at) }}
-                  </div>
-                  <div v-if="blockedIp.expires_at" class="blocked-detail expires">
-                    <strong>Expira:</strong> {{ formatBlockDate(blockedIp.expires_at) }}
-                  </div>
-                  <div v-else class="blocked-detail permanent">
-                    <strong>Duración:</strong> Permanente
-                  </div>
-                  <div v-if="blockedIp.notes" class="blocked-detail notes">
-                    <strong>Notas:</strong> {{ blockedIp.notes }}
-                  </div>
-                </div>
-              </div>
-
-              <div class="blocked-ip-actions">
-                <button
-                  @click="unblockIp(blockedIp.ip_address)"
-                  class="blocked-action-btn unblock"
-                  title="Desbloquear IP"
-                >
-                  <i class="fas fa-unlock"></i>
-                  Desbloquear
-                </button>
-              </div>
-            </div>
-
-            <div v-if="blockedIps.length === 0" class="empty-notifications">
-              <i class="fas fa-shield-check"></i>
-              <p v-if="!needsBusiness">No hay IPs bloqueadas</p>
-              <p v-else>Selecciona un negocio para ver IPs bloqueadas</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Botón para salir -->
-        <div class="section-card">
-          <button @click="endShift" class="end-shift-btn">
-            <i class="fas fa-sign-out-alt"></i>
-            Salir y desactivar notificaciones
+      <!-- Tabs de notificaciones -->
+      <div class="tabs-container col-12 d-flex justify-content-center align-items-center">
+        <div class="row w-100 justify-content-between">
+          <button class="tab-item col-4" :class="{ active: activeNotificationTab === 'pendientes' }" @click="activeNotificationTab = 'pendientes'">
+            Pendientes
+            <span class="tab-badge">{{ pendingCallsWithSpamInfo.length }}</span>
+          </button>
+          <button class="tab-item col-4" :class="{ active: activeNotificationTab === 'historial' }" @click="activeNotificationTab = 'historial'">
+            Historial
+          </button>
+          <button class="tab-item bloqueadas col-4" :class="{ active: activeNotificationTab === 'bloqueadas' }" @click="activeNotificationTab = 'bloqueadas'">
+            Bloqueadas
           </button>
         </div>
       </div>
+
+      <!-- Sección de notificaciones pendientes -->
+      <div v-if="activeNotificationTab === 'pendientes'" class="notifications-section col-12">
+        <div class="row section-header mb-4">
+          <div class="col-12 d-flex justify-content-between align-items-center px-0">
+            <h3 class="section-title">Notificaciones Pendientes</h3>
+            <p class="section-subtitle">{{ pendingCallsWithSpamInfo.length }} sin atender</p>
+          </div>
+        </div>
+
+        <div class="notifications-list row">
+          <div v-for="call in pendingCallsWithSpamInfo" :key="call.id" class="notification-card" :class="{ urgent: call.is_potential_spam }">
+            <div class="row notification-content w-100 p-2">
+              <div class="col-12 d-flex justify-content-between align-items-center px-0">
+                <h6 class="notification-title">Mesa {{ call.table_number || call.table?.number }}</h6>
+                <p class="notification-time">{{ call.minutes_ago ? `Hace ${call.minutes_ago} min` : '' }}</p>
+              </div>
+              <div class=" col-12 px-0">
+                <p class="notification-message">{{ call.message || 'Llamada' }}<span v-if="call.is_potential_spam"> • posible spam ({{ call.ip_call_count }})</span></p>
+              </div>
+              <div class="col-12">
+                <div class="row notification-actions">
+                  <button class="btn-silenciar col" @click="silenceTableFromCall(call.table_id || call.table?.id)">
+                    <i class="fas fa-volume-mute"></i> Silenciar
+                  </button>
+                  <button class="btn-recibido col" @click="acknowledgeCall(call.id)" :disabled="processingCall === call.id">
+                    <i class="fas" :class="processingCall === call.id ? 'fa-spinner fa-spin' : 'fa-check'"></i> Recibido
+                  </button>
+                  <button class="btn-bloquear-ip col" @click="blockIpForSpam(call)">
+                    <i class="fas fa-ban"></i> Bloquear IP
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sección de Historial -->
+      <div v-if="activeNotificationTab === 'historial'" class="notifications-section col-12">
+        <div class="row section-header mb-4">
+          <div class="col-12 d-flex justify-content-between align-items-center px-0">
+            <h3 class="section-title">Historial</h3>
+            <p class="section-subtitle">{{ callHistory.length }} completadas</p>
+          </div>
+        </div>
+        <div class="notifications-list row">
+          <div v-for="call in callHistory" :key="call.id" class="notification-card completed col-12 px-0">
+            <div class="row notification-content w-100 p-2">
+              <div class="col-12 d-flex justify-content-between align-items-center">
+                <h6 class="notification-title">Mesa {{ call.table_number || call.table?.number }}</h6>
+                <p class="notification-time">{{ call.minutes_ago ? `Hace ${call.minutes_ago} min` : '' }}</p>
+              </div>
+              <div class=" col-12">
+                <p class="notification-message">{{ call.message || 'Llamada completada' }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sección de IPs Bloqueadas -->
+      <div v-if="activeNotificationTab === 'bloqueadas'" class="notifications-section col-12">
+        <div class="row section-header mb-4">
+          <div class="col-12 d-flex justify-content-between align-items-center px-0">
+            <h3 class="section-title">IPs Bloqueadas</h3>
+            <p class="section-subtitle">{{ blockedIps.length }} bloqueada(s)</p>
+          </div>
+        </div>
+
+        <div class="notifications-list row">
+          <div class="ip-blocked-card col-12">
+            <div class="row notification-content w-100 p-2">
+              <div class="col-12 d-flex justify-content-between align-items-center px-0">
+                <div class="ip-title">Mesa 5</div>
+                <div class="ip-time">Hace 1 hora</div>
+              </div>
+              <div class="col-12 px-0">
+                <div class="ip-address">IP: 192.168.1.45</div>
+                <div class="ip-reason">Razón: Spam múltiple</div>
+              </div>
+              <div class="col-12">
+                <div class="row notification-actions">
+                  <button class="btn-bloquear-ip col">Desbloquear IP</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
+    
+    <!-- Contenido eliminado de columnas - ahora todo en una sola columna -->
+    
+    <!-- Elementos ocultos para mantener funcionalidad -->
+    <div style="display: none;">
+      <BusinessSelector 
+        @business-changed="onBusinessChanged"
+        @businesses-loaded="onBusinessesLoaded"
+        ref="businessSelector"
+      />
 
     <!-- Modal selector de mesas -->
     <TableSelector 
@@ -434,28 +392,15 @@
       </div>
     </div>
 
-    <!-- Modal gestor de perfiles de mesa -->
-    <div v-if="showProfilesManager && currentBusiness" class="modal-overlay" @click.self="showProfilesManager = false">
-      <div class="modal-content large">
-        <div class="modal-header">
-          <h3>
-            <i class="fas fa-bookmark"></i>
-            Perfiles de Mesa
-          </h3>
-          <button @click="showProfilesManager = false" class="close-btn">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="modal-body">
-          <TableProfilesManager 
-            :business-id="currentBusiness.id"
-            :available-tables="availableTables"
-            :assigned-tables="assignedTables"
-            @profiles-updated="onProfilesUpdated"
-          />
-        </div>
-      </div>
-    </div>
+    <!-- Gestor de perfiles de mesa -->
+    <TableProfilesManager 
+      v-if="showProfilesManager && currentBusiness"
+      :business-id="currentBusiness.id"
+      :available-tables="availableTables"
+      :assigned-tables="assignedTables"
+      @profiles-updated="onProfilesUpdated"
+      @close="showProfilesManager = false"
+    />
 
     <!-- Modal gestor de IPs bloqueadas -->
     <div v-if="showBlockedIpsManager && currentBusiness" class="modal-overlay" @click.self="showBlockedIpsManager = false">
@@ -625,7 +570,29 @@
           </div>
         </div>
       </div>
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-content">
+        <span class="app-name">MozoApp</span>
+        <span class="app-version">v0.0.111</span>
+      </div>
+    </footer>
+    
     </div>
+    <!-- Modal: Ver todas las mesas -->
+    <AllTablesModal
+      v-if="showAllTablesModal"
+      :title="currentBusiness?.name ? `Mesas ${currentBusiness.name}` : ''"
+      :tables="allTablesList"
+      :assigned-ids="assignedIds"
+      :silenced-ids="silencedIds"
+      :pending-by-table-id="pendingByTableId"
+      @close="showAllTablesModal = false"
+      @assign="onAssignTable"
+      @unassign="onUnassignTable"
+      @silence="onSilenceTable"
+      @unsilence="onUnsilenceTable"
+    />
   </div>
 </template>
 
@@ -642,6 +609,9 @@ import BusinessSelector from '@/components/Waiter/BusinessSelector.vue'
 import BusinessTablesManager from '@/components/Waiter/BusinessTablesManager.vue'
 import TableProfilesManager from '@/components/Waiter/TableProfilesManager.vue'
 import DebugApiTester from '@/components/Waiter/DebugApiTester.vue'
+import TableCard from '@/components/Waiter/TableCard.vue'
+import BottomSheet from '@/components/UI/BottomSheet.vue'
+import AllTablesModal from '@/components/Waiter/AllTablesModal.vue'
 
 
 // Stores
@@ -664,6 +634,7 @@ const state = reactive({
   showTablesManager: false,
   showProfilesManager: false,
   showBlockedIpsManager: false,
+  showAllTablesModal: false,
   blockedIps: [],
   showIpDebugPanel: false,
   
@@ -671,7 +642,11 @@ const state = reactive({
   uiFlags: {
     unlinkedBanner: false,
     unlinkedMessage: ''
-  }
+  },
+  // UI helpers
+  quickBusy: false,
+  currentPage: 1,
+  pageSize: 6
 })
 
 // Referencias reactivas para el template  
@@ -695,16 +670,34 @@ const showBlockedIpsManager = computed({
   get: () => state.showBlockedIpsManager,
   set: (value) => state.showBlockedIpsManager = value
 })
+const showAllTablesModal = computed({
+  get: () => state.showAllTablesModal,
+  set: (v) => state.showAllTablesModal = v
+})
 const showIpDebugPanel = computed({
   get: () => state.showIpDebugPanel,
   set: (value) => state.showIpDebugPanel = value
 })
+const quickBusy = computed(() => state.quickBusy)
+const currentPage = computed(() => state.currentPage)
+const pageSize = computed(() => state.pageSize)
 
 // Estado debug IP
 const ipDebugInput = ref('')
 const ipDebugLoading = ref(false)
 const ipDebugResult = ref(null)
 const ipDebugError = ref(null)
+
+// Estados de dropdowns
+const showBusinessDropdown = ref(false)
+const showProfilesDropdown = ref(false)
+const selectedProfileId = ref('exteriores')
+const showAddBusinessModal = ref(false)
+// Flag para abrir el modal de "Agregar Negocio" justo después de cerrar el sheet
+const shouldOpenAddBusinessAfterClose = ref(false)
+
+// Código de invitación
+const invitationCode = ref(['', '', '', ''])
 
 // Referencias reactivas para el template
 const blockedIps = computed(() => state.blockedIps || [])
@@ -716,7 +709,63 @@ const currentBusiness = computed(() => state.currentBusiness)
 const needsBusiness = computed(() => state.needsBusiness)
 const businessName = computed(() => state.currentBusiness?.name || 'Seleccionar Negocio')
 
+// Cierre del sheet de perfiles (usa animación del BottomSheet)
+const handleCloseProfilesDropdown = (maybeEventOrFlag = false, maybeOpenManager) => {
+  const openManager = typeof maybeEventOrFlag === 'boolean' ? maybeEventOrFlag : !!maybeOpenManager
+  if (!showProfilesDropdown.value) return
+  showProfilesDropdown.value = false
+  if (openManager) {
+    // Abrir gestor tras cerrar (la animación la maneja el componente)
+    setTimeout(() => { showProfilesManager.value = true }, 0)
+  }
+}
+
+// Selección de perfil
+const selectProfile = (profileId) => {
+  selectedProfileId.value = profileId
+  handleCloseProfilesDropdown(false)
+}
+
+// Disparar apertura de modal tras cerrar el sheet de negocios
+const queueOpenAddBusiness = () => {
+  shouldOpenAddBusinessAfterClose.value = true
+  showBusinessDropdown.value = false
+}
+const onBusinessSheetAfterLeave = () => {
+  if (shouldOpenAddBusinessAfterClose.value) {
+    shouldOpenAddBusinessAfterClose.value = false
+    showAddBusinessModal.value = true
+  }
+}
+
+// UI header helpers
+const displayName = computed(() => authStore.user?.name || 'Ana Martinez')
+const initials = computed(() => (displayName.value || 'A').charAt(0).toUpperCase())
+const nowString = ref('')
+const updateTime = () => {
+  const d = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  nowString.value = `${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+updateTime()
+setInterval(updateTime, 60 * 1000)
+
 // Computed properties
+// Tabs de filtrado de mesas
+const activeTab = ref('todas')
+const activeNotificationTab = ref('pendientes')
+const tablesWithCalls = computed(() => assignedTables.value.filter(t => (t.pending_calls_count || 0) > 0))
+const filteredTables = computed(() => {
+  switch (activeTab.value) {
+    case 'con-llamadas':
+      return tablesWithCalls.value
+    case 'silenciadas':
+      return assignedTables.value.filter(t => t.is_silenced)
+    default:
+      return assignedTables.value
+  }
+})
+
 // pendingCalls se calcula dinámicamente filtrando por activeCalls (si existe)
 const pendingCalls = computed(() => {
   try {
@@ -772,6 +821,100 @@ const assignedTables = computed(() => {
     }
   })
 })
+
+// Paginación de mesas asignadas
+const totalPages = computed(() => Math.max(1, Math.ceil(assignedTables.value.length / state.pageSize)))
+const pagedTables = computed(() => {
+  const start = (state.currentPage - 1) * state.pageSize
+  return assignedTables.value.slice(start, start + state.pageSize)
+})
+const pageStart = computed(() => ((state.currentPage - 1) * state.pageSize) + 1)
+const pageEnd = computed(() => Math.min(state.currentPage * state.pageSize, assignedTables.value.length))
+const urgentTablesCount = computed(() => tablesWithCalls.value.length)
+const nextPage = () => { if (state.currentPage < totalPages.value) state.currentPage++ }
+const prevPage = () => { if (state.currentPage > 1) state.currentPage-- }
+const tableStatusClass = (t) => {
+  if ((t.pending_calls_count || 0) > 0) return 'status-llamando'
+  if (t.is_silenced) return 'status-desasignada'
+  return 'status-asignada'
+}
+
+// Unificar todas las mesas disponibles + asignadas (evita duplicados por id)
+const allTablesList = computed(() => {
+  const map = new Map()
+  ;(state.availableTables || []).forEach(t => map.set(t.id, t))
+  ;(state.assignedTables || []).forEach(t => map.set(t.id, { ...map.get(t.id), ...t }))
+  return Array.from(map.values())
+})
+
+const assignedIds = computed(() => (state.assignedTables || []).map(t => t.id))
+const silencedIds = computed(() => (state.silencedTables || []).map(t => t.id))
+const pendingByTableId = computed(() => {
+  const counts = {}
+  for (const call of state.pendingCalls || []) {
+    const tid = call.table_id || call.table?.id
+    if (!tid) continue
+    counts[tid] = (counts[tid] || 0) + 1
+  }
+  return counts
+})
+
+// Handlers para modal "Ver Todas"
+async function onAssignTable(id) { await activateTable(id) }
+async function onUnassignTable(id) { await deactivateTable(id) }
+async function onSilenceTable(id) { await silenceTable(id) }
+async function onUnsilenceTable(id) { await unsilenceTable(id) }
+
+// Acciones rápidas
+const onQuickActivateAll = async () => {
+  if (state.quickBusy) return
+  try {
+    state.quickBusy = true
+    // activar todas las disponibles
+    const ids = (state.availableTables || []).map(t => t.id)
+    if (ids.length === 0) return
+    const resp = await waiterCallsService.activateMultipleTables(ids)
+    if (resp.success) {
+      showSuccessToast(resp.message || `${ids.length} mesas activadas`)
+      await loadAssignedTables(); await loadAvailableTables(); startRealtimeListeners()
+    } else {
+      showErrorToast(resp.message || 'No se pudo activar todo')
+    }
+  } finally { state.quickBusy = false }
+}
+
+const onQuickSilenceAll = async () => {
+  if (state.quickBusy) return
+  try {
+    state.quickBusy = true
+    const ids = (state.assignedTables || []).map(t => t.id)
+    if (ids.length === 0) return
+    const resp = await waiterCallsService.silenceMultipleTables(ids, 30, 'Silencio masivo desde dashboard')
+    if (resp.success) {
+      showSuccessToast('Mesas silenciadas por 30 min')
+      await loadAssignedTables(); await loadSilencedTables()
+    } else {
+      showErrorToast(resp.message || 'No se pudo silenciar')
+    }
+  } finally { state.quickBusy = false }
+}
+
+// Activar solitarias = activar mesas disponibles que no están asignadas a ningún mozo
+const onQuickActivateSolo = async () => {
+  if (state.quickBusy) return
+  try {
+    state.quickBusy = true
+    const ids = (state.availableTables || []).filter(t => !t.assigned_waiter_id).map(t => t.id)
+    if (ids.length === 0) return
+    const resp = await waiterCallsService.activateMultipleTables(ids)
+    if (resp.success) {
+      showSuccessToast(resp.message || `${ids.length} mesas (solitarias) activadas`)
+      await loadAssignedTables(); await loadAvailableTables(); startRealtimeListeners()
+    } else {
+      showErrorToast(resp.message || 'No se pudo activar solitarias')
+    }
+  } finally { state.quickBusy = false }
+}
 
 // Computed para detectar IPs sospechosas (más de 2 llamadas en 10 minutos)
 const ipCallCounts = computed(() => {
@@ -1804,1011 +1947,28 @@ const formatBlockDate = (dateString) => {
     return 'Fecha inválida'
   }
 }
+
+// ===== DROPDOWN HANDLERS =====
+
+/**
+ * Seleccionar un negocio del dropdown (con backend)
+ */
+const selectBusiness = async (business) => {
+  try {
+    const resp = await waiterCallsService.setActiveWaiterBusiness(business.id)
+    if (resp.success) {
+      showBusinessDropdown.value = false
+      state.currentBusiness = business
+      showSuccessToast(`Negocio "${business.name}" seleccionado`)
+      // refrescar dashboard y reiniciar realtime
+      await loadDashboardData()
+      startRealtimeListeners()
+    } else {
+      showErrorToast(resp.message || 'No se pudo seleccionar el negocio')
+    }
+  } catch (e) {
+    console.error('Error selecting business from dashboard:', e)
+    showErrorToast('Error seleccionando negocio')
+  }
+}
 </script>
-
-<style scoped>
-.waiter-dashboard {
-  min-height: 100vh;
-  background: #f5f5f5;
-  padding: 16px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.dashboard-header {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.waiter-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.waiter-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: #007bff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 24px;
-}
-
-.waiter-details h2 {
-  margin: 0 0 4px 0;
-  color: #2c3e50;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.business-selector-container {
-  margin-top: 8px;
-  max-width: 280px;
-}
-
-.dashboard-stats {
-  display: flex;
-  gap: 24px;
-}
-
-.stat-item {
-  text-align: center;
-}
-
-.stat-number {
-  font-size: 24px;
-  font-weight: bold;
-  color: #007bff;
-  margin-bottom: 4px;
-}
-
-.stat-item.urgent .stat-number {
-  color: #dc3545;
-}
-
-.stat-label {
-  font-size: 11px;
-  color: #6c757d;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.dashboard-content {
-  display: grid;
-  grid-template-columns: 1fr 350px;
-  gap: 20px;
-}
-
-.section-card {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.section-header h3 {
-  margin: 0;
-  color: #2c3e50;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.section-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  padding: 6px 12px;
-  border: 1px solid #dee2e6;
-  background: white;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  transition: all 0.2s ease;
-}
-
-.action-btn:hover:not(:disabled) {
-  background: #f8f9fa;
-  border-color: #adb5bd;
-}
-
-.action-btn.primary {
-  background: #007bff;
-  color: white;
-  border-color: #007bff;
-}
-
-.action-btn.primary:hover {
-  background: #0056b3;
-}
-
-.action-btn.secondary {
-  background: #6c757d;
-  color: white;
-  border-color: #6c757d;
-}
-
-.action-btn.secondary:hover {
-  background: #545b62;
-}
-
-.action-btn.info {
-  background: #17a2b8;
-  color: white;
-  border-color: #17a2b8;
-}
-
-.action-btn.info:hover {
-  background: #138496;
-}
-
-.action-btn.warning {
-  background: #ff9800;
-  color: white;
-  border-color: #ff9800;
-}
-
-.action-btn.warning:hover {
-  background: #f57c00;
-}
-
-.action-btn.danger {
-  background: #dc3545;
-  color: white;
-  border-color: #dc3545;
-}
-
-.action-btn.danger:hover {
-  background: #c82333;
-}
-
-.action-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.tables-list {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.table-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  margin-bottom: 8px;
-  background: #f8f9fa;
-  transition: all 0.2s ease;
-}
-
-.table-item.has-calls {
-  border-color: #dc3545;
-  background: #fff5f5;
-  animation: pulse-border 2s infinite;
-}
-
-.table-item.silenced {
-  border-color: #6c757d;
-  background: #f6f6f6;
-  opacity: 0.8;
-}
-
-.table-info {
-  flex: 1;
-}
-
-.table-name {
-  font-weight: 600;
-  color: #2c3e50;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.table-subtitle {
-  font-size: 12px;
-  color: #6c757d;
-  margin-top: 2px;
-}
-
-.table-silenced-info {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: #6c757d;
-  margin-top: 4px;
-  font-style: italic;
-}
-
-.urgency-icon {
-  color: #dc3545;
-}
-
-.silence-icon {
-  color: #6c757d;
-}
-
-.ok-icon {
-  color: #28a745;
-}
-
-.table-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.table-action-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  transition: all 0.2s ease;
-}
-
-.table-action-btn.activate {
-  background: #28a745;
-  color: white;
-}
-
-.table-action-btn.silence {
-  background: #ffc107;
-  color: #212529;
-}
-
-.table-action-btn.unsilence {
-  background: #28a745;
-  color: white;
-}
-
-.table-action-btn.deactivate {
-  background: #dc3545;
-  color: white;
-}
-
-.table-action-btn:hover {
-  transform: scale(1.05);
-}
-
-.notifications-list {
-  max-height: 350px;
-  overflow-y: auto;
-}
-
-.notification-item {
-  padding: 12px;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  margin-bottom: 8px;
-  background: #f8f9fa;
-  transition: all 0.2s ease;
-}
-
-.notification-item.urgent {
-  border-color: #dc3545;
-  background: #fff5f5;
-  animation: pulse-border 2s infinite;
-}
-
-.notification-item.old {
-  border-color: #fd7e14;
-  background: #fff8f0;
-}
-
-.notification-info {
-  margin-bottom: 8px;
-}
-
-.notification-title {
-  font-weight: 600;
-  color: #2c3e50;
-  font-size: 14px;
-}
-
-.notification-message {
-  font-size: 13px;
-  color: #495057;
-  margin: 4px 0;
-}
-
-.notification-time {
-  font-size: 11px;
-  color: #6c757d;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.urgent-badge {
-  background: #dc3545;
-  color: white;
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-size: 9px;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-.notification-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.notification-action-btn {
-  flex: 1;
-  padding: 6px 8px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-}
-
-.notification-action-btn.ok {
-  background: #007bff;
-  color: white;
-}
-
-.notification-action-btn.complete {
-  background: #28a745;
-  color: white;
-}
-
-.notification-action-btn.silence {
-  background: #6c757d;
-  color: white;
-  flex: none;
-  width: 32px;
-}
-
-.notification-action-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.notification-action-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.end-shift-btn {
-  width: 100%;
-  padding: 12px;
-  border: 2px solid #dc3545;
-  background: white;
-  color: #dc3545;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-}
-
-.end-shift-btn:hover {
-  background: #dc3545;
-  color: white;
-}
-
-.empty-state,
-.empty-notifications {
-  text-align: center;
-  padding: 32px 16px;
-  color: #6c757d;
-}
-
-.empty-state i,
-.empty-notifications i {
-  font-size: 32px;
-  margin-bottom: 12px;
-  opacity: 0.5;
-}
-
-.empty-state p,
-.empty-notifications p {
-  margin-bottom: 12px;
-}
-
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s ease;
-}
-
-.btn-primary {
-  background: #007bff;
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #0056b3;
-}
-
-@keyframes pulse-border {
-  0% { border-color: #dc3545; }
-  50% { border-color: rgba(220, 53, 69, 0.5); }
-  100% { border-color: #dc3545; }
-}
-
-@media (max-width: 1024px) {
-  .dashboard-content {
-    grid-template-columns: 1fr;
-  }
-  
-  .dashboard-header {
-    flex-direction: column;
-    gap: 12px;
-    text-align: center;
-  }
-  
-  .dashboard-stats {
-    justify-content: center;
-  }
-}
-
-/* Modal styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-}
-
-.modal-content.large {
-  width: 95vw;
-  height: 90vh;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e9ecef;
-  background: #f8f9fa;
-}
-
-.modal-header h3 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-  font-size: 16px;
-}
-
-.close-btn:hover {
-  background: #e9ecef;
-  color: #495057;
-}
-
-.modal-body {
-  padding: 0;
-  overflow-y: auto;
-  max-height: calc(90vh - 80px);
-}
-
-/* Estilos Anti-Spam */
-.notification-item.potential-spam {
-  border-color: #fd7e14;
-  background: #fff8ed;
-  animation: spam-pulse 3s infinite;
-}
-
-@keyframes spam-pulse {
-  0% { border-color: #fd7e14; }
-  50% { border-color: #dc3545; }
-  100% { border-color: #fd7e14; }
-}
-
-.spam-badge {
-  background: #fd7e14;
-  color: white;
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-size: 9px;
-  font-weight: bold;
-  text-transform: uppercase;
-  margin-left: 8px;
-}
-
-.client-info {
-  font-size: 11px;
-  color: #6c757d;
-  margin-top: 4px;
-  padding: 4px 8px;
-  background: #f8f9fa;
-  border-radius: 4px;
-}
-
-.source-badge {
-  background: #e9ecef;
-  color: #495057;
-  padding: 1px 4px;
-  border-radius: 3px;
-  font-size: 10px;
-  margin-left: 8px;
-}
-
-.notification-action-btn.block-ip {
-  background: #dc3545;
-  color: white;
-  flex: none;
-  width: 32px;
-}
-
-.notification-action-btn.block-ip:hover:not(:disabled) {
-  background: #c82333;
-}
-
-/* Modal Anti-Spam */
-.anti-spam-section {
-  padding: 20px;
-}
-
-.spam-alerts {
-  background: #fff8ed;
-  border: 1px solid #fd7e14;
-  border-radius: 6px;
-  padding: 16px;
-  margin-bottom: 24px;
-}
-
-.spam-alerts h4 {
-  color: #fd7e14;
-  margin: 0 0 16px 0;
-  font-size: 14px;
-}
-
-.suspicious-ip-card {
-  background: white;
-  border: 1px solid #fd7e14;
-  border-radius: 4px;
-  padding: 12px;
-  margin-bottom: 12px;
-}
-
-.ip-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.call-count {
-  background: #dc3545;
-  color: white;
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: bold;
-}
-
-.ip-calls {
-  margin: 8px 0;
-}
-
-.mini-call {
-  font-size: 11px;
-  color: #6c757d;
-  padding: 2px 0;
-}
-
-.btn-block-ip {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.btn-block-ip:hover {
-  background: #c82333;
-}
-
-.blocked-ips-list {
-  background: white;
-}
-
-.blocked-ips-list .section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.blocked-ips-list h4 {
-  margin: 0;
-  color: #dc3545;
-  font-size: 14px;
-}
-
-.blocked-ip-cards {
-  display: grid;
-  gap: 12px;
-}
-
-.blocked-ip-card {
-  border: 1px solid #dc3545;
-  border-radius: 6px;
-  padding: 16px;
-  background: #fff5f5;
-}
-
-.blocked-ip-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.ip-address {
-  font-family: monospace;
-  font-weight: bold;
-  color: #dc3545;
-  font-size: 14px;
-}
-
-.block-reason {
-  background: #dc3545;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  text-transform: uppercase;
-}
-
-.blocked-ip-details {
-  margin: 12px 0;
-}
-
-.detail-item {
-  font-size: 12px;
-  margin: 4px 0;
-  color: #495057;
-}
-
-.blocked-ip-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transition: all 0.2s ease;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #545b62;
-}
-
-.btn-warning {
-  background: #ffc107;
-  color: #212529;
-}
-
-.btn-warning:hover {
-  background: #e0a800;
-}
-
-.btn-sm {
-  padding: 4px 8px;
-  font-size: 11px;
-}
-
-/* Estilos para la sección de IPs bloqueadas en el sidebar */
-.blocked-ips-list-sidebar {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.blocked-ip-item {
-  padding: 12px;
-  border: 1px solid #dc3545;
-  border-radius: 6px;
-  margin-bottom: 12px;
-  background: #fff5f5;
-  transition: all 0.2s ease;
-}
-
-.blocked-ip-item:hover {
-  border-color: #c82333;
-  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.1);
-}
-
-.blocked-ip-address {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: monospace;
-  font-weight: bold;
-  color: #dc3545;
-  font-size: 13px;
-  margin-bottom: 8px;
-}
-
-.blocked-ip-address i {
-  color: #dc3545;
-}
-
-.blocked-ip-details {
-  margin: 8px 0 12px 0;
-}
-
-.blocked-detail {
-  font-size: 11px;
-  margin: 3px 0;
-  color: #495057;
-  line-height: 1.3;
-}
-
-.blocked-detail strong {
-  color: #212529;
-  font-weight: 600;
-}
-
-.blocked-detail.expires {
-  color: #fd7e14;
-}
-
-.blocked-detail.permanent {
-  color: #dc3545;
-  font-weight: 500;
-}
-
-.blocked-detail.notes {
-  font-style: italic;
-  color: #6c757d;
-  max-width: 100%;
-  word-wrap: break-word;
-}
-
-.blocked-ip-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 8px;
-}
-
-.blocked-action-btn {
-  padding: 4px 8px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.blocked-action-btn.unblock {
-  background: #ffc107;
-  color: #212529;
-}
-
-.blocked-action-btn.unblock:hover {
-  background: #e0a800;
-  transform: translateY(-1px);
-}
-
-.blocked-action-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Responsive ajustes para la sección de bloqueados */
-@media (max-width: 768px) {
-  .blocked-ip-item {
-    padding: 10px;
-  }
-  
-  .blocked-ip-address {
-    font-size: 12px;
-  }
-  
-  .blocked-detail {
-    font-size: 10px;
-  }
-  
-  .blocked-action-btn {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-}
-
-@media (max-width: 768px) {
-  .waiter-dashboard {
-    padding: 12px;
-  }
-  
-  .section-card {
-    padding: 16px;
-  }
-  
-  .dashboard-stats {
-    gap: 16px;
-  }
-  
-  .modal-content.large {
-    width: 95vw;
-    height: 95vh;
-  }
-  
-  .modal-body {
-    max-height: calc(95vh - 80px);
-  }
-  
-  .anti-spam-section {
-    padding: 12px;
-  }
-  
-  .blocked-ip-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-}
-
-/* Banner de desvinculación */
-.unlinked-banner {
-  margin: 16px 0;
-  animation: slideDown 0.3s ease-out;
-}
-
-.banner-content {
-  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-  color: white;
-  padding: 20px;
-  border-radius: 12px;
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  box-shadow: 0 4px 20px rgba(238, 90, 82, 0.3);
-  position: relative;
-}
-
-.banner-icon {
-  font-size: 24px;
-  margin-top: 2px;
-  opacity: 0.9;
-}
-
-.banner-message {
-  flex: 1;
-}
-
-.banner-message h4 {
-  margin: 0 0 8px 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.banner-message p {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.4;
-  opacity: 0.95;
-}
-
-.banner-close {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
-  padding: 8px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 14px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s;
-}
-
-.banner-close:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>
