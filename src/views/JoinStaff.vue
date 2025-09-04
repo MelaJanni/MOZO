@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import BaseButton from '@/components/UI/BaseButton.vue'
 import { apiService } from '@/services/api'
-import logo from '@/assets/mozo-logo.svg'
+import logo from '@/assets/mozo-logo.jpeg'
 
 const route = useRoute()
 const router = useRouter()

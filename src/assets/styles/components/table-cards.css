@@ -16,24 +16,94 @@
   border-radius: 12px;
   position: relative;
 }
-.table-card.status-1 {
-  background-color: var(--danger);
+.table-card.status-1, .table-card.status-llamando {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: pulse 2s ease-in-out infinite alternate;
+}
+.table-card.status-1 .table-number, .table-card.status-1 .table-status, .table-card.status-llamando .table-number, .table-card.status-llamando .table-status {
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.table-card.status-1 .table-icon, .table-card.status-llamando .table-icon {
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.table-card.status-1 .action-btn, .table-card.status-llamando .action-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  -webkit-backdrop-filter: blur(10px);
+          backdrop-filter: blur(10px);
+}
+.table-card.status-1 .action-btn:hover, .table-card.status-llamando .action-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 .table-card.status-urgente {
-  background-color: var(--danger);
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 .table-card.status-llamando-orange {
-  background-color: #ff8c00;
+  background: linear-gradient(135deg, #ff8c00 0%, #ea580c 100%);
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 .table-card.status-asignada {
-  background-color: var(--brand-primary);
+  background: linear-gradient(135deg, #9f54fd 0%, #7c3aed 100%);
+  box-shadow: 0 4px 12px rgba(159, 84, 253, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
-.table-card.status-disponible {
-  background-color: #d1d5db;
-  color: var(--text-primary);
+.table-card.status-asignada .table-number, .table-card.status-asignada .table-status {
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.table-card.status-asignada .table-icon {
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.table-card.status-asignada .action-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  -webkit-backdrop-filter: blur(10px);
+          backdrop-filter: blur(10px);
+}
+.table-card.status-asignada .action-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+.table-card.status-disponible, .table-card.status-desasignada {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  color: #64748b;
+  box-shadow: 0 4px 12px rgba(148, 163, 184, 0.2);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+.table-card.status-disponible .table-number, .table-card.status-disponible .table-status, .table-card.status-desasignada .table-number, .table-card.status-desasignada .table-status {
+  color: #64748b;
+}
+.table-card.status-disponible .table-icon, .table-card.status-desasignada .table-icon {
+  color: #94a3b8;
+}
+.table-card.status-disponible .action-btn, .table-card.status-desasignada .action-btn {
+  background: rgba(148, 163, 184, 0.1);
+  color: #64748b;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+.table-card.status-disponible .action-btn:hover, .table-card.status-desasignada .action-btn:hover {
+  background: rgba(148, 163, 184, 0.2);
+  color: #475569;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .table-card.status-silenciada {
-  background-color: #6b7280;
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .table-card .table-number {
   color: rgb(255, 255, 255);
@@ -60,31 +130,57 @@
   margin-top: auto;
 }
 .table-card .table-actions .action-btn {
-  background-color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(8px);
+          backdrop-filter: blur(8px);
   height: 24.5px;
   width: 61.575px;
   border-radius: 8.5px;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-primary);
   cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+.table-card .table-actions .action-btn:hover {
+  background: rgb(255, 255, 255);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 .status-disponible .table-card .table-actions .action-btn {
-  background-color: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.1);
   color: var(--subtext-primary);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+.status-disponible .table-card .table-actions .action-btn:hover {
+  background: rgba(0, 0, 0, 0.2);
 }
 .table-card .notification-dot {
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background-color: white;
+  background: radial-gradient(circle, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 2px rgba(255, 255, 255, 0.3);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 2px rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 4px rgba(255, 255, 255, 0.5);
+  }
+  100% {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 2px rgba(255, 255, 255, 0.3);
+  }
 }
 .table-card .warning-icon {
   position: absolute;
@@ -92,6 +188,20 @@
   right: 8px;
   color: white;
   font-size: 16px;
+}
+.table-card .table-icon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: white;
+  font-size: 18px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+.status-disponible .table-card .table-icon {
+  color: var(--subtext-primary);
+  text-shadow: none;
+  filter: none;
 }
 
 .table-pagination {

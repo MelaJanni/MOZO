@@ -42,7 +42,8 @@ const handleFileChange = (e) => {
 </script>
 <template>
   <div class="profile-avatar" :class="{ editable: editable }" @click="handleClick">
-    <img :src="imageUrl" :alt="alt" class="avatar-image" />
+    <img v-if="imageUrl" :src="imageUrl" :alt="alt" class="avatar-image" />
+    <i v-else class="bi bi-person-fill avatar-icon"></i>
     <div v-if="editable" class="avatar-overlay">
       <i class="bi bi-camera"></i>
     </div>
@@ -64,19 +65,30 @@ const handleFileChange = (e) => {
   position: relative;
   width: 120px;
   height: 120px;
-  border-radius: 50%;
+  border-radius: 24px;
   overflow: hidden;
-  background-color: #f0f0f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--violet-300) 100%);
+  box-shadow: 0 4px 12px rgba(159, 84, 253, 0.2);
 }
+
 .avatar-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+
+.avatar-icon {
+  font-size: 48px;
+  color: white;
+}
+
 .editable {
   cursor: pointer;
 }
+
 .avatar-overlay {
   position: absolute;
   top: 0;
@@ -89,14 +101,18 @@ const handleFileChange = (e) => {
   justify-content: center;
   opacity: 0;
   transition: opacity 0.2s;
+  border-radius: 24px;
 }
+
 .editable:hover .avatar-overlay {
   opacity: 1;
 }
+
 .avatar-overlay i {
   color: white;
   font-size: 1.5rem;
 }
+
 .avatar-loading {
   position: absolute;
   top: 0;
@@ -107,7 +123,9 @@ const handleFileChange = (e) => {
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 24px;
 }
+
 .spinner {
   width: 24px;
   height: 24px;
@@ -116,16 +134,23 @@ const handleFileChange = (e) => {
   border-top-color: white;
   animation: spin 1s ease-in-out infinite;
 }
+
 .file-input {
   display: none;
 }
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
 @media (min-width: 768px) {
   .profile-avatar {
     width: 150px;
     height: 150px;
+  }
+  
+  .avatar-icon {
+    font-size: 60px;
   }
 }
 </style> 

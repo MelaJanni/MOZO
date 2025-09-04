@@ -95,23 +95,27 @@ const modalClasses = computed(() => {
 <template>
   <div ref="modalElement" class="modal fade" tabindex="-1" aria-hidden="true">
     <div :class="modalClasses">
-      <div class="modal-content rounded-4">
-        <div class="modal-header">
-          <h5 class="modal-title">{{ title }}</h5>
-          <button 
-            type="button" 
-            class="btn-close" 
-            @click="emit('update:modelValue', false)" 
-            aria-label="Close"
-          ></button>
+      <div class="modal-content rounded-4 justify-content-center align-items-center">
+        <div class="modal-header  row row__width">
+          <div class="col-12 d-flex justify-content-between align-items-center px-0">
+            <h5 class="modal-title">{{ title }}</h5>
+            <button 
+              type="button" 
+              class="btn-close" 
+              @click="emit('update:modelValue', false)" 
+              aria-label="Close"
+            ></button>
+          </div>
         </div>
-        
-        <div class="modal-body">
+
+        <div class="modal-body row row__width justify-content-center align-items-center">
           <slot></slot>
         </div>
         
-        <div v-if="$slots.footer" class="modal-footer">
-          <slot name="footer"></slot>
+        <div v-if="$slots.footer" class="modal-footer row row__width">
+          <div class="col-12 d-flex justify-content-end align-items-center px-0 mx-0">
+            <slot name="footer"></slot>
+          </div>
         </div>
       </div>
     </div>
@@ -202,5 +206,8 @@ const modalClasses = computed(() => {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
+}
+.modal-body{
+  overflow-x: hidden;
 }
 </style>

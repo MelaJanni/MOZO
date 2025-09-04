@@ -324,7 +324,10 @@ const apiService = {
   // ===== TABLE PROFILES APIs =====
   
   // Perfiles de mesa para mozos
-  getWaiterTableProfiles: () => api.get('waiter/table-profiles'),
+  getWaiterTableProfiles: (params = {}) => {
+    const queryParams = new URLSearchParams(params).toString()
+    return api.get(`waiter/table-profiles${queryParams ? `?${queryParams}` : ''}`)
+  },
   getWaiterTableProfile: (profileId) => api.get(`waiter/table-profiles/${profileId}`),
   createWaiterTableProfile: (data) => api.post('waiter/table-profiles', data),
   updateWaiterTableProfile: (profileId, data) => api.put(`waiter/table-profiles/${profileId}`, data),

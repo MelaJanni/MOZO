@@ -323,7 +323,7 @@
 .empty-state i,.empty-notifications i{ font-size:32px; margin-bottom:12px; opacity:.5; }
 
 /* ----- Modales del dashboard ----- */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:2000; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:9300; }
 .modal-content { background:#fff; border-radius: 8px; max-width: 90vw; max-height: 90vh; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.2); }
 .modal-content.large { width: 95vw; height: 90vh; }
 .modal-header { display:flex; justify-content: space-between; align-items:center; padding: 20px; border-bottom: 1px solid #e9ecef; background: #f8f9fa; }

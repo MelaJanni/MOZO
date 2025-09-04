@@ -387,16 +387,16 @@ class UltraFastWaiterNotifications {
 
     // 📢 MOSTRAR UPDATE DE STATUS
     showStatusUpdate(message) {
-        const statusDiv = document.createElement('div');
-        statusDiv.className = 'status-update';
-        statusDiv.textContent = `⚡ ${message}`;
-        document.body.appendChild(statusDiv);
+        // const statusDiv = document.createElement('div');
+        // statusDiv.className = 'status-update';
+        // statusDiv.textContent = `⚡ ${message}`;
+        // document.body.appendChild(statusDiv);
         
-        setTimeout(() => statusDiv.classList.add('show'), 10);
-        setTimeout(() => {
-            statusDiv.classList.remove('show');
-            setTimeout(() => statusDiv.remove(), 200);
-        }, 2000);
+        // setTimeout(() => statusDiv.classList.add('show'), 10);
+        // setTimeout(() => {
+        //     statusDiv.classList.remove('show');
+        //     setTimeout(() => statusDiv.remove(), 200);
+        // }, 2000);
     }
 
     // 🧹 LIMPIAR TODAS LAS LLAMADAS

@@ -10,7 +10,7 @@
           <h5 class="user-name">{{ displayName }}</h5>
           <p class="user-time">{{ nowString }}</p>
         </div>
-        <div class="notification-badge">{{ pendingCallsWithSpamInfo.length }}</div>
+  <div class="notification-badge" v-show="newPendingCount > 0">{{ newPendingCount }}</div>
       </div>
     
       <!-- Dropdown Cards -->
@@ -22,8 +22,8 @@
               <i class="fas fa-building"></i>
             </div>
             <div class="dropdown-content">
-              <h6 class="dropdown-title">{{ currentBusiness?.name || "Café Central" }}</h6>
-              <p class="dropdown-subtitle">Fast Food</p>
+              <h6 class="dropdown-title">{{ currentBusiness?.name || "Sin negocio" }}</h6>
+              <p class="dropdown-subtitle">{{ currentBusiness?.type || "Seleccionar negocio" }}</p>
             </div>
             <div class="dropdown-arrow">
               <i class="fas fa-chevron-right"></i>
@@ -36,8 +36,8 @@
               <i class="fas fa-map-marker-alt"></i>
             </div>
             <div class="dropdown-content">
-              <h6 class="dropdown-title">Mesas Exteriores</h6>
-              <p class="dropdown-subtitle">12 mesas</p>
+              <h6 class="dropdown-title">{{ getActiveProfileName() }}</h6>
+              <p class="dropdown-subtitle">{{ assignedTables.length }} mesa{{ assignedTables.length === 1 ? '' : 's' }}</p>
             </div>
             <div class="dropdown-arrow">
               <i class="fas fa-chevron-right"></i>
@@ -86,81 +86,76 @@
       >
         <button class="bs-add-btn" @click="showProfilesManager = true; showProfilesDropdown = false">+ Gestionar Perfiles</button>
 
-        <div class="bs-list mt-3">
-          <button class="bs-item" :class="{ active: selectedProfileId === 'exteriores' }" @click="selectProfile('exteriores')">
-            <div class="left">
-              <div class="bs-ico"><i class="fas fa-map-marker-alt"></i></div>
-              <div>
-                <div class="bs-name">Mesas Exteriores</div>
-                <div class="bs-sub">Terraza y área al aire libre • 12 mesas</div>
-              </div>
-            </div>
-            <div class="bs-right">
-              <i class="fas" :class="selectedProfileId === 'exteriores' ? 'fa-check' : 'fa-chevron-right'"></i>
-            </div>
-          </button>
+        <!-- Loading de perfiles -->
+        <div v-if="state.profilesLoading" class="bs-loading mt-3">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span>Cargando perfiles...</span>
+        </div>
 
-          <button class="bs-item" :class="{ active: selectedProfileId === 'interiores' }" @click="selectProfile('interiores')">
+        <div v-else class="bs-list mt-3">
+          
+          <!-- Opción para mostrar todas las mesas -->
+          <button class="bs-item" :class="{ active: selectedProfileId === null }" @click="selectProfile(null)">
             <div class="left">
-              <div class="bs-ico"><i class="fas fa-map-marker-alt"></i></div>
+              <div class="bs-ico"><i class="fas fa-table"></i></div>
               <div>
-                <div class="bs-name">Mesas Interiores</div>
-                <div class="bs-sub">Comedor principal • 20 mesas</div>
+                <div class="bs-name">Todas las Mesas</div>
+                <div class="bs-sub">Ver todas las mesas asignadas • {{ assignedTables.length }} mesas</div>
               </div>
             </div>
             <div class="bs-right">
-              <i class="fas" :class="selectedProfileId === 'interiores' ? 'fa-check' : 'fa-chevron-right'"></i>
+              <i class="fas" :class="selectedProfileId === null ? 'fa-check' : 'fa-chevron-right'"></i>
             </div>
           </button>
-
-          <button class="bs-item" :class="{ active: selectedProfileId === 'vip' }" @click="selectProfile('vip')">
+          
+          <!-- Perfiles reales del backend -->
+          <button 
+            v-for="profile in state.availableProfiles" 
+            :key="profile.id"
+            class="bs-item" 
+            :class="{ active: selectedProfileId === profile.id }" 
+            @click="selectProfile(profile.id)"
+          >
             <div class="left">
-              <div class="bs-ico"><i class="fas fa-map-marker-alt"></i></div>
+              <div class="bs-ico"><i class="fas fa-bookmark"></i></div>
               <div>
-                <div class="bs-name">Área VIP</div>
-                <div class="bs-sub">Zona premium • 8 mesas</div>
+                <div class="bs-name">{{ profile.name }}</div>
+                <div class="bs-sub">{{ profile.description || 'Perfil personalizado' }} • {{ getProfileTablesInfo(profile) }}</div>
               </div>
             </div>
             <div class="bs-right">
-              <i class="fas" :class="selectedProfileId === 'vip' ? 'fa-check' : 'fa-chevron-right'"></i>
+              <i class="fas" :class="selectedProfileId === profile.id ? 'fa-check' : 'fa-chevron-right'"></i>
             </div>
           </button>
-
-          <button class="bs-item" :class="{ active: selectedProfileId === 'barra' }" @click="selectProfile('barra')">
-            <div class="left">
-              <div class="bs-ico"><i class="fas fa-map-marker-alt"></i></div>
-              <div>
-                <div class="bs-name">Barra</div>
-                <div class="bs-sub">Bebidas • 6 mesas</div>
-              </div>
+          
+          <!-- Estado vacío si no hay perfiles -->
+          <div v-if="state.availableProfiles.length === 0" class="bs-empty">
+            <div class="empty-icon">
+              <i class="fas fa-bookmark"></i>
             </div>
-            <div class="bs-right">
-              <i class="fas" :class="selectedProfileId === 'barra' ? 'fa-check' : 'fa-chevron-right'"></i>
+            <div class="empty-text">
+              <h4>No tienes perfiles creados</h4>
+              <p>Crea perfiles para agrupar mesas por áreas</p>
             </div>
-          </button>
+          </div>
         </div>
       </BottomSheet>
 
       <!-- Add Business Modal -->
       <div v-if="showAddBusinessModal" class="add-business-backdrop" @click="showAddBusinessModal = false">
         <div class="add-business-content" @click.stop>
-          
-          <div class="modal-icon">
-            <i class="fas fa-building"></i>
-          </div>
-          
-          <h3 class="modal-title">
-            <i class="fas fa-building"></i> Agregar Negocio
-          </h3>
           <p class="modal-subtitle my-3">Ingresa el código de invitación para unirte a un nuevo negocio</p>
           
           <div class="invitation-section">
             <h6 class="invitation-label">Código de Invitación</h6>
             <div class="code-inputs">
-              <input type="text" maxlength="1" class="code-input" v-model="invitationCode[0]" />
-              <input type="text" maxlength="1" class="code-input" v-model="invitationCode[1]" />
-              <input type="text" maxlength="1" class="code-input" v-model="invitationCode[2]" />
-              <input type="text" maxlength="1" class="code-input" v-model="invitationCode[3]" />
+              <input 
+                type="text" 
+                maxlength="10" 
+                class="code-input-full" 
+                v-model="invitationCode"
+                placeholder="Ingresa el código de invitación"
+              />
             </div>
             <p class="invitation-help">Solicita este código al administrador del negocio</p>
           </div>
@@ -193,8 +188,8 @@
         <!-- Header de sección -->
         <div class="section-header">
           <div class="section-info">
-            <h3 class="section-title">Mesas - {{ currentBusiness?.name || 'Café Central' }}</h3>
-            <p class="section-subtitle">{{ urgentTablesCount }} con notificaciones • {{ assignedTables.length }} asignadas</p>
+            <h3 class="section-title">{{ currentBusiness?.name ? `Mesas - ${currentBusiness.name}` : 'Mesas' }}</h3>
+            <p class="section-subtitle">{{ urgentTablesCount > 0 ? `${urgentTablesCount} con notificaciones` : 'Sin notificaciones' }}{{ assignedTables.length > 0 ? ` • ${assignedTables.length} asignadas` : '' }}</p>
           </div>
           <button class="btn-ver-todas" @click="showAllTablesModal = true">Ver Todas</button>
         </div>
@@ -208,11 +203,11 @@
               <button class="nav-btn" @click="nextPage" :disabled="currentPage === totalPages"><i class="fas fa-chevron-right"></i></button>
             </div>
           </div>
-          <div class="badge-urgent">{{ urgentTablesCount }} urgentes</div>
+          <div class="badge-urgent" v-show="urgentTablesCount > 0">{{ urgentTablesCount }} urgente{{ urgentTablesCount === 1 ? '' : 's' }}</div>
         </div>
 
         <!-- Grid de mesas 2x3 -->
-        <div class="mesas-grid">
+        <div class="mesas-grid" v-if="assignedTables.length > 0">
           <div
             v-for="table in pagedTables"
             :key="table.id"
@@ -225,18 +220,28 @@
               {{ table.pending_calls_count > 0 ? 'Llamando' : (table.is_silenced ? 'Silenciada' : 'Asignada') }}
             </div>
             <div class="table-actions">
-              <button class="action-btn" title="desasignar" @click="deactivateTable(table.id)"><i class="fa-thin fa-user-minus"></i></button>
-              <button v-if="!table.is_silenced" class="action-btn" title="silenciar" @click="silenceTable(table.id)"><i class="fa-thin fa-volume-slash"></i></button>
-              <button v-else class="action-btn" title="quitar silencio" @click="unsilenceTable(table.id)"><i class="fa-thin fa-volume"></i></button>
+              <button class="action-btn" title="desasignar" @click="deactivateTable(table.id)"><i class="fas fa-user-minus"></i></button>
+              <button v-if="!table.is_silenced" class="action-btn" title="silenciar" @click="silenceTable(table.id)"><i class="fas fa-volume-mute"></i></button>
+              <button v-else class="action-btn" title="quitar silencio" @click="unsilenceTable(table.id)"><i class="fas fa-volume-up"></i></button>
             </div>
             <div class="table-icon">
-              <i class="fa-thin" :class="table.pending_calls_count > 0 ? 'fa-triangle-exclamation' : (table.is_silenced ? 'fa-volume-slash' : 'fa-user-check')"></i>
+              <i class="fas" :class="table.pending_calls_count > 0 ? 'fa-exclamation-triangle' : (table.is_silenced ? 'fa-volume-mute' : 'fa-user-check')"></i>
             </div>
           </div>
         </div>
         
+        <!-- Estado vacío cuando no hay mesas asignadas -->
+        <div v-else class="empty-state-mesas">
+          <div class="empty-icon">🏪</div>
+          <h4>No tienes mesas asignadas</h4>
+          <p>Presiona "Ver Todas" para asignar mesas o selecciona "Activar Todo" para activar todas las disponibles</p>
+          <button class="btn-primary mt-3" @click="showAllTablesModal = true">
+            <i class="fas fa-table"></i> Ver Todas las Mesas
+          </button>
+        </div>
+        
         <!-- Indicadores de página -->
-        <div class="page-dots mb-3">
+        <div class="page-dots mb-3" v-if="assignedTables.length > 0">
           <span class="dots-text">({{ pageStart }}-{{ pageEnd }} de {{ assignedTables.length }})</span>
         </div>
       </div>
@@ -248,13 +253,15 @@
         <div class="row w-100 justify-content-between">
           <button class="tab-item col-4" :class="{ active: activeNotificationTab === 'pendientes' }" @click="activeNotificationTab = 'pendientes'">
             Pendientes
-            <span class="tab-badge">{{ pendingCallsWithSpamInfo.length }}</span>
+            <span class="tab-badge" v-show="newPendingCount > 0">{{ newPendingCount }}</span>
           </button>
           <button class="tab-item col-4" :class="{ active: activeNotificationTab === 'historial' }" @click="activeNotificationTab = 'historial'">
             Historial
+            <span class="tab-badge" v-show="newHistoryCount > 0">{{ newHistoryCount }}</span>
           </button>
           <button class="tab-item bloqueadas col-4" :class="{ active: activeNotificationTab === 'bloqueadas' }" @click="activeNotificationTab = 'bloqueadas'">
             Bloqueadas
+            <span class="tab-badge" v-show="newBlockedCount > 0">{{ newBlockedCount }}</span>
           </button>
         </div>
       </div>
@@ -264,13 +271,13 @@
         <div class="row section-header mb-4">
           <div class="col-12 d-flex justify-content-between align-items-center px-0">
             <h3 class="section-title">Notificaciones Pendientes</h3>
-            <p class="section-subtitle">{{ pendingCallsWithSpamInfo.length }} sin atender</p>
+            <p class="section-subtitle">{{ pendingCallsWithSpamInfo.length > 0 ? `${pendingCallsWithSpamInfo.length} sin atender` : 'Todas atendidas' }}</p>
           </div>
         </div>
 
-        <div class="notifications-list row">
+        <div class="notifications-list row" v-if="pendingCallsWithSpamInfo.length > 0">
           <div v-for="call in pendingCallsWithSpamInfo" :key="call.id" class="notification-card" :class="{ urgent: call.is_potential_spam }">
-            <div class="row notification-content w-100 p-2">
+            <div class="row notification-content">
               <div class="col-12 d-flex justify-content-between align-items-center px-0">
                 <h6 class="notification-title">Mesa {{ call.table_number || call.table?.number }}</h6>
                 <p class="notification-time">{{ call.minutes_ago ? `Hace ${call.minutes_ago} min` : '' }}</p>
@@ -294,6 +301,13 @@
             </div>
           </div>
         </div>
+        
+        <!-- Estado vacío para notificaciones pendientes -->
+        <div v-else class="empty-state-notifications">
+          <div class="empty-icon">🎉</div>
+          <h4>¡Todo al día!</h4>
+          <p>No hay notificaciones pendientes. Las llamadas aparecerán aquí cuando los clientes las realicen.</p>
+        </div>
       </div>
 
       <!-- Sección de Historial -->
@@ -301,21 +315,35 @@
         <div class="row section-header mb-4">
           <div class="col-12 d-flex justify-content-between align-items-center px-0">
             <h3 class="section-title">Historial</h3>
-            <p class="section-subtitle">{{ callHistory.length }} completadas</p>
+            <p class="section-subtitle">{{ callHistory.length > 0 ? `${callHistory.length} completada${callHistory.length === 1 ? '' : 's'}` : 'Sin historial' }}</p>
           </div>
         </div>
-        <div class="notifications-list row">
-          <div v-for="call in callHistory" :key="call.id" class="notification-card completed col-12 px-0">
-            <div class="row notification-content w-100 p-2">
-              <div class="col-12 d-flex justify-content-between align-items-center">
+        <div class="notifications-list row" v-if="callHistory.length > 0">
+          <div v-for="call in callHistory" :key="call.id" class="notification-card completed col-12">
+            <div class="row notification-content">
+              <div class="col-12 d-flex justify-content-between align-items-center px-0">
                 <h6 class="notification-title">Mesa {{ call.table_number || call.table?.number }}</h6>
                 <p class="notification-time">{{ call.minutes_ago ? `Hace ${call.minutes_ago} min` : '' }}</p>
               </div>
-              <div class=" col-12">
+              <div class=" col-12 px-0">
                 <p class="notification-message">{{ call.message || 'Llamada completada' }}</p>
+              </div>
+              <div class="col-12">
+                <div class="row notification-actions">
+                  <button class="btn-recibido col" @click="completeFromHistory(call.id)" :disabled="processingCall === call.id">
+                    <i class="fas" :class="processingCall === call.id ? 'fa-spinner fa-spin' : 'fa-check'"></i> Completar
+                  </button>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+        
+        <!-- Estado vacío para historial -->
+        <div v-else class="empty-state-notifications">
+          <div class="empty-icon">📜</div>
+          <h4>Sin historial aún</h4>
+          <p>Las llamadas completadas aparecerán en esta sección.</p>
         </div>
       </div>
 
@@ -324,28 +352,38 @@
         <div class="row section-header mb-4">
           <div class="col-12 d-flex justify-content-between align-items-center px-0">
             <h3 class="section-title">IPs Bloqueadas</h3>
-            <p class="section-subtitle">{{ blockedIps.length }} bloqueada(s)</p>
+            <p class="section-subtitle">{{ blockedIps.length > 0 ? `${blockedIps.length} bloqueada${blockedIps.length === 1 ? '' : 's'}` : 'Ninguna bloqueada' }}</p>
           </div>
         </div>
 
-        <div class="notifications-list row">
-          <div class="ip-blocked-card col-12">
-            <div class="row notification-content w-100 p-2">
+        <div class="notifications-list row" v-if="blockedIps.length > 0">
+          <div v-for="blockedIp in blockedIps" :key="blockedIp.ip_address" class="ip-blocked-card col-12">
+            <div class="row notification-content w-100">
               <div class="col-12 d-flex justify-content-between align-items-center px-0">
-                <div class="ip-title">Mesa 5</div>
-                <div class="ip-time">Hace 1 hora</div>
+                <div class="ip-title">IP: {{ blockedIp.ip_address }}</div>
+                <div class="ip-time">{{ formatBlockDate(blockedIp.blocked_at) }}</div>
               </div>
               <div class="col-12 px-0">
-                <div class="ip-address">IP: 192.168.1.45</div>
-                <div class="ip-reason">Razón: Spam múltiple</div>
+                <div class="ip-reason">Razón: {{ blockedIp.reason || 'Spam' }}</div>
+                <div class="ip-address" v-if="blockedIp.expires_at">Expira: {{ new Date(blockedIp.expires_at).toLocaleString() }}</div>
+                <div class="ip-address" v-else>Bloqueo permanente</div>
               </div>
               <div class="col-12">
                 <div class="row notification-actions">
-                  <button class="btn-bloquear-ip col">Desbloquear IP</button>
+                  <button class="btn-bloquear-ip col d-flex justify-content-center align-items-center" @click="unblockIp(blockedIp.ip_address)">
+                    <i class="fas fa-unlock"></i> Desbloquear IP
+                  </button>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+        
+        <!-- Estado vacío para IPs bloqueadas -->
+        <div v-else class="empty-state-notifications">
+          <div class="empty-icon">😇</div>
+          <h4>Sin IPs bloqueadas</h4>
+          <p>Cuando bloquees alguna IP por spam, aparecerá en esta sección.</p>
         </div>
       </div>
 
@@ -601,7 +639,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import waiterCallsService from '@/services/waiterCallsService'
-import api from '@/services/api'
+import apiService from '@/services/api'
 import { initializeUnifiedWaiterNotifications } from '@/services/firebaseUnifiedAdapter'
 import { showSuccessToast, showErrorToast, showConfirmDialog } from '@/utils/notifications'
 import TableSelector from '@/components/Waiter/TableSelector.vue'
@@ -633,6 +671,8 @@ const state = reactive({
   showTableSelector: false,
   showTablesManager: false,
   showProfilesManager: false,
+  availableProfiles: [],
+  profilesLoading: false,
   showBlockedIpsManager: false,
   showAllTablesModal: false,
   blockedIps: [],
@@ -691,13 +731,21 @@ const ipDebugError = ref(null)
 // Estados de dropdowns
 const showBusinessDropdown = ref(false)
 const showProfilesDropdown = ref(false)
-const selectedProfileId = ref('exteriores')
+
+// Watcher para cargar perfiles cuando se abre el dropdown
+watch(showProfilesDropdown, (newValue) => {
+  if (newValue) {
+    // Cargar perfiles cuando se abre el dropdown
+    loadTableProfiles()
+  }
+})
+const selectedProfileId = ref(null)
 const showAddBusinessModal = ref(false)
 // Flag para abrir el modal de "Agregar Negocio" justo después de cerrar el sheet
 const shouldOpenAddBusinessAfterClose = ref(false)
 
 // Código de invitación
-const invitationCode = ref(['', '', '', ''])
+const invitationCode = ref('')
 
 // Referencias reactivas para el template
 const blockedIps = computed(() => state.blockedIps || [])
@@ -721,9 +769,33 @@ const handleCloseProfilesDropdown = (maybeEventOrFlag = false, maybeOpenManager)
 }
 
 // Selección de perfil
-const selectProfile = (profileId) => {
+const selectProfile = async (profileId) => {
   selectedProfileId.value = profileId
   handleCloseProfilesDropdown(false)
+  
+  // Si se seleccionó un perfil específico, activarlo en el backend
+  if (profileId !== null) {
+    try {
+      const response = await apiService.activateWaiterTableProfile(profileId)
+      if (response.data?.success) {
+        showSuccessToast(`Perfil "${getActiveProfileName()}" activado`)
+        // Recargar las mesas asignadas para reflejar el nuevo perfil
+        await loadAssignedTables()
+        startRealtimeListeners()
+      } else {
+        showErrorToast(response.data?.message || response.message || 'Error activando perfil')
+        // Revertir selección si falla
+        selectedProfileId.value = null
+      }
+    } catch (error) {
+      console.error('Error activating profile:', error)
+      showErrorToast('Error activando perfil')
+      selectedProfileId.value = null
+    }
+  } else {
+    // Si se seleccionó "Todas las mesas", desactivar cualquier perfil activo
+    await loadAssignedTables()
+  }
 }
 
 // Disparar apertura de modal tras cerrar el sheet de negocios
@@ -739,7 +811,7 @@ const onBusinessSheetAfterLeave = () => {
 }
 
 // UI header helpers
-const displayName = computed(() => authStore.user?.name || 'Ana Martinez')
+const displayName = computed(() => authStore.user?.name || 'Usuario')
 const initials = computed(() => (displayName.value || 'A').charAt(0).toUpperCase())
 const nowString = ref('')
 const updateTime = () => {
@@ -754,6 +826,25 @@ setInterval(updateTime, 60 * 1000)
 // Tabs de filtrado de mesas
 const activeTab = ref('todas')
 const activeNotificationTab = ref('pendientes')
+// Track últimos vistos por pestaña para mostrar solo "nuevos"
+const lastSeen = reactive({
+  pendientes: 0,
+  historial: 0,
+  bloqueadas: 0
+})
+// Counters de nuevos por pestaña
+const newPendingCount = computed(() => {
+  const nowCount = visiblePendingCalls.value.length
+  return Math.max(0, nowCount - (lastSeen.pendientes || 0))
+})
+const newHistoryCount = computed(() => {
+  const nowCount = callHistory.value.length
+  return Math.max(0, nowCount - (lastSeen.historial || 0))
+})
+const newBlockedCount = computed(() => {
+  const nowCount = blockedIps.value.length
+  return Math.max(0, nowCount - (lastSeen.bloqueadas || 0))
+})
 const tablesWithCalls = computed(() => assignedTables.value.filter(t => (t.pending_calls_count || 0) > 0))
 const filteredTables = computed(() => {
   switch (activeTab.value) {
@@ -771,7 +862,7 @@ const pendingCalls = computed(() => {
   try {
     if (window && window.ultraFastNotifications && window.ultraFastNotifications.activeCalls) {
       const activeIds = new Set(Array.from(window.ultraFastNotifications.activeCalls.keys()).map(k => String(k)))
-      return state.pendingCalls.filter(call => !activeIds.has(String(call.id)))
+  return state.pendingCalls.filter(call => !activeIds.has(String(call.id)))
     }
   } catch (e) {
     // fallback
@@ -786,7 +877,13 @@ const callHistory = computed(() => {
       ? Array.from(window.ultraFastNotifications.activeCalls.keys()).map(k => String(k))
       : []
     )
-    return state.callHistory.filter(c => !pendingIds.has(String(c.id)))
+    // Dedupe por id y excluir los que aún están pendientes
+    const unique = new Map()
+    for (const c of state.callHistory) {
+      const id = String(c.id)
+      if (!pendingIds.has(id) && !unique.has(id)) unique.set(id, c)
+    }
+    return Array.from(unique.values())
   } catch (e) {
     return state.callHistory
   }
@@ -798,12 +895,27 @@ const visiblePendingCalls = computed(() => {
   try {
     if (window && window.ultraFastNotifications && window.ultraFastNotifications.activeCalls) {
   const activeIds = new Set(Array.from(window.ultraFastNotifications.activeCalls.keys()).map(k => String(k)))
-  return state.pendingCalls.filter(call => !activeIds.has(String(call.id)))
+  // Dedupe y filtrar por status pending/acknowledged displayed rules
+  const filtered = state.pendingCalls.filter(call => !activeIds.has(String(call.id)) && (!call.status || call.status === 'pending'))
+  const unique = new Map()
+  for (const c of filtered) {
+    const id = String(c.id)
+    if (!unique.has(id)) unique.set(id, c)
+  }
+  return Array.from(unique.values())
     }
   } catch (err) {
     // ignore and fallback
   }
-  return state.pendingCalls
+  // fallback dedupe
+  const unique = new Map()
+  for (const c of state.pendingCalls) {
+    const id = String(c.id)
+    if (!c.status || c.status === 'pending') {
+      if (!unique.has(id)) unique.set(id, c)
+    }
+  }
+  return Array.from(unique.values())
 })
 
 const assignedTables = computed(() => {
@@ -868,57 +980,105 @@ async function onUnsilenceTable(id) { await unsilenceTable(id) }
 // Acciones rápidas
 const onQuickActivateAll = async () => {
   if (state.quickBusy) return
+  
   try {
     state.quickBusy = true
-    // activar todas las disponibles
+    await loadAvailableTables() // Refrescar antes de activar
+    
     const ids = (state.availableTables || []).map(t => t.id)
-    if (ids.length === 0) return
+    if (ids.length === 0) {
+      showErrorToast('No hay mesas disponibles para activar')
+      return
+    }
+    
     const resp = await waiterCallsService.activateMultipleTables(ids)
     if (resp.success) {
-      showSuccessToast(resp.message || `${ids.length} mesas activadas`)
-      await loadAssignedTables(); await loadAvailableTables(); startRealtimeListeners()
+      showSuccessToast(resp.message || `${ids.length} mesa${ids.length === 1 ? '' : 's'} activada${ids.length === 1 ? '' : 's'}`)
+      await Promise.all([loadAssignedTables(), loadAvailableTables()])
+      startRealtimeListeners()
     } else {
-      showErrorToast(resp.message || 'No se pudo activar todo')
+      showErrorToast(resp.message || 'No se pudo activar las mesas')
     }
-  } finally { state.quickBusy = false }
+  } catch (error) {
+    console.error('Error en activación masiva:', error)
+    showErrorToast('Error activando mesas')
+  } finally { 
+    state.quickBusy = false 
+  }
 }
 
 const onQuickSilenceAll = async () => {
   if (state.quickBusy) return
+  
   try {
     state.quickBusy = true
     const ids = (state.assignedTables || []).map(t => t.id)
-    if (ids.length === 0) return
+    
+    if (ids.length === 0) {
+      showErrorToast('No tienes mesas asignadas para silenciar')
+      return
+    }
+    
+    const confirmed = await showConfirmDialog(
+      '¿Silenciar todas las mesas?',
+      `Se silenciarán ${ids.length} mesa${ids.length === 1 ? '' : 's'} por 30 minutos.`,
+      'Silenciar Todo',
+      'Cancelar',
+      'warning'
+    )
+    
+    if (!confirmed) return
+    
     const resp = await waiterCallsService.silenceMultipleTables(ids, 30, 'Silencio masivo desde dashboard')
     if (resp.success) {
-      showSuccessToast('Mesas silenciadas por 30 min')
-      await loadAssignedTables(); await loadSilencedTables()
+      showSuccessToast(`${ids.length} mesa${ids.length === 1 ? '' : 's'} silenciada${ids.length === 1 ? '' : 's'} por 30 min`)
+      await Promise.all([loadAssignedTables(), loadSilencedTables()])
     } else {
-      showErrorToast(resp.message || 'No se pudo silenciar')
+      showErrorToast(resp.message || 'No se pudo silenciar las mesas')
     }
-  } finally { state.quickBusy = false }
+  } catch (error) {
+    console.error('Error en silenciado masivo:', error)
+    showErrorToast('Error silenciando mesas')
+  } finally { 
+    state.quickBusy = false 
+  }
 }
 
 // Activar solitarias = activar mesas disponibles que no están asignadas a ningún mozo
 const onQuickActivateSolo = async () => {
   if (state.quickBusy) return
+  
   try {
     state.quickBusy = true
-    const ids = (state.availableTables || []).filter(t => !t.assigned_waiter_id).map(t => t.id)
-    if (ids.length === 0) return
+    await loadAvailableTables() // Refrescar antes de filtrar
+    
+    const soloTables = (state.availableTables || []).filter(t => !t.assigned_waiter_id)
+    const ids = soloTables.map(t => t.id)
+    
+    if (ids.length === 0) {
+      showErrorToast('No hay mesas sin asignar disponibles')
+      return
+    }
+    
     const resp = await waiterCallsService.activateMultipleTables(ids)
     if (resp.success) {
-      showSuccessToast(resp.message || `${ids.length} mesas (solitarias) activadas`)
-      await loadAssignedTables(); await loadAvailableTables(); startRealtimeListeners()
+      showSuccessToast(`${ids.length} mesa${ids.length === 1 ? '' : 's'} sin asignar activada${ids.length === 1 ? '' : 's'}`)
+      await Promise.all([loadAssignedTables(), loadAvailableTables()])
+      startRealtimeListeners()
     } else {
-      showErrorToast(resp.message || 'No se pudo activar solitarias')
+      showErrorToast(resp.message || 'No se pudo activar las mesas')
     }
-  } finally { state.quickBusy = false }
+  } catch (error) {
+    console.error('Error activando mesas solitarias:', error)
+    showErrorToast('Error activando mesas')
+  } finally { 
+    state.quickBusy = false 
+  }
 }
 
 // Computed para detectar IPs sospechosas (más de 2 llamadas en 10 minutos)
 const ipCallCounts = computed(() => {
-  if (!state.pendingCalls || !Array.isArray(state.pendingCalls)) {
+  if (!visiblePendingCalls.value || !Array.isArray(visiblePendingCalls.value)) {
     return {}
   }
   
@@ -926,7 +1086,7 @@ const ipCallCounts = computed(() => {
   const tenMinutesAgo = now - (10 * 60 * 1000)
   const ipCounts = {}
   
-  state.pendingCalls.forEach(call => {
+  visiblePendingCalls.value.forEach(call => {
     const ip = call.client_info?.ip_address
     if (!ip || !call.called_at || call.called_at < tenMinutesAgo) return
     
@@ -948,11 +1108,11 @@ const suspiciousIps = computed(() => {
 
 // Computed para marcar llamadas como potencial spam
 const pendingCallsWithSpamInfo = computed(() => {
-  if (!state.pendingCalls || !Array.isArray(state.pendingCalls)) {
+  if (!visiblePendingCalls.value || !Array.isArray(visiblePendingCalls.value)) {
     return []
   }
-  
-  return state.pendingCalls.map(call => {
+  // Basado en visiblePendingCalls para respetar filtros/dedupe
+  return visiblePendingCalls.value.map(call => {
     const ip = call.client_info?.ip_address
     const ipData = ipCallCounts.value[ip]
     
@@ -974,11 +1134,20 @@ function addOrUpdatePendingCall(call) {
   const calledAt = call.called_at || call.timestamp || now
   const minutesAgo = Math.max(0, Math.floor((now - calledAt) / 60000))
 
-  const normalized = { ...call, minutes_ago: minutesAgo }
+  // Ignorar entradas que no correspondan a pending
+  if (call.status && call.status !== 'pending') {
+    // Si viene acknowledged/completed, sacarlo de pending por si acaso
+    state.pendingCalls = state.pendingCalls.filter(c => String(c.id) !== id)
+    return
+  }
+
+  const normalized = { ...call, minutes_ago: minutesAgo, status: 'pending' }
 
   if (idx === -1) {
     // Insert at top (newest first)
-    state.pendingCalls.unshift(normalized)
+    // Evitar duplicados exactos
+    const exists = state.pendingCalls.some(c => String(c.id) === id)
+    if (!exists) state.pendingCalls.unshift(normalized)
   } else {
     state.pendingCalls[idx] = { ...state.pendingCalls[idx], ...normalized }
   }
@@ -1029,11 +1198,16 @@ function handleCallAcknowledged(ev) {
     const idx = state.pendingCalls.findIndex(c => String(c.id) === String(callId))
     if (idx !== -1) {
       // Marcar como acknowledged en pending
-      const acknowledgedCall = { ...state.pendingCalls[idx], status: 'acknowledged' }
+  const now = Date.now()
+  const base = state.pendingCalls[idx]
+  const calledAt = base.called_at || base.timestamp || now
+  const minutesAgo = Math.max(0, Math.floor((now - calledAt) / 60000))
+  const acknowledgedCall = { ...base, status: 'acknowledged', minutes_ago: minutesAgo }
       // Remover de pending
       state.pendingCalls.splice(idx, 1)
       // Añadir al historial al inicio
-      state.callHistory.unshift(acknowledgedCall)
+  const exists = state.callHistory.find(c => String(c.id) === String(callId))
+  if (!exists) state.callHistory.unshift(acknowledgedCall)
     }
   } catch (e) {
     console.warn('Error handling callAcknowledged:', e)
@@ -1057,7 +1231,10 @@ function handleCallMovedToHistory(ev) {
     if (exists) {
       Object.assign(exists, callData || {})
     } else if (callData) {
-      state.callHistory.unshift(callData)
+      const now = Date.now()
+      const calledAt = callData.called_at || callData.timestamp || now
+      const minutesAgo = Math.max(0, Math.floor((now - calledAt) / 60000))
+      state.callHistory.unshift({ ...callData, minutes_ago: minutesAgo })
     }
   } catch (err) {
     console.warn('Error manejando callMovedToHistory en Dashboard:', err)
@@ -1137,10 +1314,14 @@ function handleWaiterUnlinked(ev) {
  * Intentará usar UltraFast si está disponible, si no usará el servicio API.
  */
 const completeFromHistory = async (callId) => {
-  if (!callId) return
+  if (!callId) {
+    showErrorToast('ID de llamada inválido')
+    return
+  }
+  
   state.processingCall = callId
   try {
-    if (ultraFastNotifications && ultraFastNotifications.completeCall) {
+    if (ultraFastNotifications && typeof ultraFastNotifications.completeCall === 'function') {
       await ultraFastNotifications.completeCall(callId)
     } else {
       await waiterCallsService.completeCall(callId)
@@ -1201,7 +1382,8 @@ const loadDashboardData = async () => {
       loadPendingCalls(),
       loadAvailableTables(),
       loadSilencedTables(),
-      loadBlockedIps()
+      loadBlockedIps(),
+      loadTableProfiles()
     ])
   } catch (error) {
     console.error('Error loading dashboard data:', error)
@@ -1245,6 +1427,11 @@ onMounted(async () => {
   } catch (e) {
     /* no-op */
   }
+
+  // Inicializar lastSeen para que no aparezcan badges al inicio
+  lastSeen.pendientes = visiblePendingCalls.value.length
+  lastSeen.historial = callHistory.value.length
+  lastSeen.bloqueadas = blockedIps.value.length
 })
 
 onUnmounted(() => {
@@ -1271,6 +1458,17 @@ onUnmounted(() => {
     }
   } catch (e) {
     console.warn('Error stopping ultraFastNotifications on unmount:', e)
+  }
+})
+
+// Resetear contadores de "nuevos" al cambiar de pestaña
+watch(activeNotificationTab, (tab) => {
+  if (tab === 'pendientes') {
+    lastSeen.pendientes = visiblePendingCalls.value.length
+  } else if (tab === 'historial') {
+    lastSeen.historial = callHistory.value.length
+  } else if (tab === 'bloqueadas') {
+    lastSeen.bloqueadas = blockedIps.value.length
   }
 })
 
@@ -1634,11 +1832,54 @@ const onTablesUpdated = async (tables) => {
 }
 
 /**
+ * Cargar perfiles de mesa del usuario
+ */
+const loadTableProfiles = async () => {
+  state.profilesLoading = true
+  try {
+    const response = await apiService.getWaiterTableProfiles({ include: 'tables' })
+    console.log('🔍 Respuesta API con mesas incluidas:', response)
+    
+    // Intentar diferentes estructuras de respuesta
+    let profiles = null
+    if (response.data?.success && response.data?.profiles) {
+      profiles = response.data.profiles
+    } else if (response.data?.profiles) {
+      profiles = response.data.profiles  
+    } else if (response.profiles) {
+      profiles = response.profiles
+    } else if (Array.isArray(response.data)) {
+      profiles = response.data
+    } else if (Array.isArray(response)) {
+      profiles = response
+    }
+    
+    if (profiles && Array.isArray(profiles)) {
+      state.availableProfiles = profiles
+    } else {
+      state.availableProfiles = []
+    }
+  } catch (error) {
+    console.error('Error loading table profiles:', error)
+    state.availableProfiles = []
+  } finally {
+    state.profilesLoading = false
+  }
+}
+
+/**
  * Cuando se actualizan los perfiles desde el gestor
  */
 const onProfilesUpdated = async () => {
-  // console.log('📋 Perfiles actualizados')
-  // Recargar datos del dashboard
+  // Forzar recarga inmediata de perfiles
+  await loadTableProfiles()
+  // Si el dropdown está abierto, forzar actualización
+  if (showProfilesDropdown.value) {
+    showProfilesDropdown.value = false
+    await nextTick()
+    showProfilesDropdown.value = true
+  }
+  // Recargar datos del dashboard para aplicar cambios
   await loadDashboardData()
 }
 
@@ -1648,20 +1889,31 @@ const onProfilesUpdated = async () => {
  * Inicializar Ultra Fast Firebase Realtime Database
  */
 const startRealtimeListeners = async () => {
-  if (!authStore.user || state.needsBusiness) {
+  if (!authStore.user?.id || state.needsBusiness || !state.currentBusiness?.id) {
+    console.log('⚠️ No se pueden iniciar listeners: usuario, negocio o contexto faltante')
     return
   }
 
-  // console.log('⚡ Iniciando UNIFIED Firebase Realtime Database para mozo:', authStore.user.id)
+  console.log('⚡ Iniciando Firebase Realtime para mozo:', authStore.user.id, 'negocio:', state.currentBusiness.id)
   
   try {
+    // Parar listeners anteriores si existen
+    if (ultraFastNotifications) {
+      ultraFastNotifications.stopListening()
+      ultraFastNotifications = null
+    }
+    
     // Inicializar sistema UNIFIED
     ultraFastNotifications = initializeUnifiedWaiterNotifications(authStore.user.id.toString())
     
-    // console.log('✅ UNIFIED Firebase Realtime Database activado')
+    if (ultraFastNotifications) {
+      console.log('✅ Firebase Realtime Database activado correctamente')
+    } else {
+      throw new Error('No se pudo inicializar Firebase')
+    }
   } catch (error) {
-    console.error('❌ Error configurando Ultra Fast Firebase:', error)
-    showErrorToast('Error configurando notificaciones ultra rápidas')
+    console.error('❌ Error configurando Firebase Realtime:', error)
+    showErrorToast('Error configurando notificaciones en tiempo real')
   }
 }
 
@@ -1669,16 +1921,18 @@ const startRealtimeListeners = async () => {
  * Parar listeners de tiempo real
  */
 const stopRealtimeListeners = async () => {
-  // console.log('🛑 Deteniendo UNIFIED Firebase Realtime Database')
+  console.log('🛑 Deteniendo Firebase Realtime Database')
   
   try {
     if (ultraFastNotifications) {
-      ultraFastNotifications.stopListening()
+      if (typeof ultraFastNotifications.stopListening === 'function') {
+        ultraFastNotifications.stopListening()
+      }
       ultraFastNotifications = null
+      console.log('✅ Firebase Realtime Database desconectado correctamente')
     }
-    // console.log('✅ UNIFIED Firebase Realtime Database desconectado')
   } catch (error) {
-    console.error('❌ Error desconectando Ultra Fast Firebase:', error)
+    console.error('❌ Error desconectando Firebase:', error)
   }
 }
 
@@ -1704,14 +1958,33 @@ onUnmounted(() => {
  * Reconocer una llamada usando Ultra Fast Firebase
  */
 const acknowledgeCall = async (callId) => {
-  if (!ultraFastNotifications) {
-    showErrorToast('Sistema de notificaciones ultra rápidas no disponible')
+  if (!callId) {
+    showErrorToast('ID de llamada inválido')
+    return
+  }
+  
+  if (!ultraFastNotifications || typeof ultraFastNotifications.acknowledgeCall !== 'function') {
+    console.warn('Sistema Firebase no disponible, usando API de respaldo')
+    try {
+      state.processingCall = callId
+      await waiterCallsService.acknowledgeCall(callId)
+      showSuccessToast('Llamada reconocida')
+      
+      // Remover de la lista local
+      state.pendingCalls = state.pendingCalls.filter(c => String(c.id) !== String(callId))
+    } catch (error) {
+      console.error('Error con API de respaldo:', error)
+      showErrorToast('Error al reconocer la llamada')
+    } finally {
+      state.processingCall = null
+    }
     return
   }
 
   try {
     state.processingCall = callId
     await ultraFastNotifications.acknowledgeCall(callId)
+    showSuccessToast('Llamada reconocida')
   } catch (error) {
     console.error('Error reconociendo llamada:', error)
     showErrorToast('Error al reconocer la llamada')
@@ -1724,14 +1997,33 @@ const acknowledgeCall = async (callId) => {
  * Completar una llamada usando Ultra Fast Firebase
  */
 const completeCall = async (callId) => {
-  if (!ultraFastNotifications) {
-    showErrorToast('Sistema de notificaciones ultra rápidas no disponible')
+  if (!callId) {
+    showErrorToast('ID de llamada inválido')
+    return
+  }
+  
+  if (!ultraFastNotifications || typeof ultraFastNotifications.completeCall !== 'function') {
+    console.warn('Sistema Firebase no disponible, usando API de respaldo')
+    try {
+      state.processingCall = callId
+      await waiterCallsService.completeCall(callId)
+      showSuccessToast('Llamada completada')
+      
+      // Remover del historial local
+      state.callHistory = state.callHistory.filter(c => String(c.id) !== String(callId))
+    } catch (error) {
+      console.error('Error con API de respaldo:', error)
+      showErrorToast('Error al completar la llamada')
+    } finally {
+      state.processingCall = null
+    }
     return
   }
 
   try {
     state.processingCall = callId
     await ultraFastNotifications.completeCall(callId)
+    showSuccessToast('Llamada completada')
   } catch (error) {
     console.error('Error completando llamada:', error)
     showErrorToast('Error al completar la llamada')
@@ -1970,5 +2262,27 @@ const selectBusiness = async (business) => {
     console.error('Error selecting business from dashboard:', e)
     showErrorToast('Error seleccionando negocio')
   }
+}
+
+// Helper para obtener el nombre del perfil activo
+const getActiveProfileName = () => {
+  if (selectedProfileId.value === null) {
+    return 'Todas las Mesas'
+  }
+  
+  const activeProfile = state.availableProfiles.find(p => p.id === selectedProfileId.value)
+  return activeProfile ? activeProfile.name : 'Perfil Desconocido'
+}
+
+// Helper para obtener información de mesas de un perfil
+const getProfileTablesInfo = (profile) => {
+  if (profile.tables && Array.isArray(profile.tables)) {
+    return `${profile.tables.length} mesas: ${profile.tables.map(t => t.number).join(', ')}`
+  } else if (profile.table_numbers && Array.isArray(profile.table_numbers)) {
+    return `${profile.table_numbers.length} mesas: ${profile.table_numbers.join(', ')}`
+  } else if (profile.tables_count) {
+    return `${profile.tables_count} mesas`
+  }
+  return '0 mesas'
 }
 </script>

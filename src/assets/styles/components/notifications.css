@@ -50,6 +50,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  max-width: 100%;
 }
 .notification-card .notification-content .notification-title {
   color: rgb(16, 0, 43);
@@ -154,4 +155,139 @@
 }
 .ip-blocked-card .ip-actions {
   margin-top: 12px;
+}
+
+.empty-state-mesas,
+.empty-state-notifications {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 2px solid rgba(159, 84, 253, 0.1);
+  border-radius: 20px;
+  margin: 16px 0;
+  min-height: 200px;
+}
+.empty-state-mesas .empty-icon,
+.empty-state-notifications .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.8;
+}
+.empty-state-mesas h4,
+.empty-state-notifications h4 {
+  color: rgb(16, 0, 43);
+  font-family: Inter, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+.empty-state-mesas p,
+.empty-state-notifications p {
+  color: rgb(107, 114, 128);
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+  max-width: 300px;
+}
+.empty-state-mesas .btn-primary,
+.empty-state-notifications .btn-primary {
+  background: linear-gradient(135deg, #9f54fd 0%, #7c3aed 100%);
+  border: none;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 500;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+.empty-state-mesas .btn-primary:hover,
+.empty-state-notifications .btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(159, 84, 253, 0.3);
+}
+.empty-state-mesas .btn-primary i,
+.empty-state-notifications .btn-primary i {
+  font-size: 12px;
+}
+
+.empty-state-mesas {
+  background: linear-gradient(135deg, #fef3e3 0%, #fed7aa 100%);
+  border-color: rgba(251, 191, 36, 0.2);
+}
+.empty-state-mesas .empty-icon {
+  color: #f59e0b;
+}
+
+.bs-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  color: #6b7280;
+  font-family: Inter, sans-serif;
+}
+.bs-loading i {
+  font-size: 18px;
+  color: #9f54fd;
+}
+
+.bs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  text-align: center;
+}
+.bs-empty .empty-icon {
+  font-size: 32px;
+  margin-bottom: 16px;
+  color: #9ca3af;
+}
+.bs-empty .empty-text h4 {
+  color: #374151;
+  font-family: Inter, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+.bs-empty .empty-text p {
+  color: #6b7280;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  margin: 0 0 20px 0;
+  line-height: 1.4;
+}
+.bs-empty .btn-create-profile {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border: none;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  font-family: Inter, sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.bs-empty .btn-create-profile:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+.bs-empty .btn-create-profile i {
+  font-size: 12px;
 }/*# sourceMappingURL=notifications.css.map */

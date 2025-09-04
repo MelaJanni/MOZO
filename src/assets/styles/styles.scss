@@ -1,31 +1,33 @@
-// Aggregator for project SASS
-// Order matters: variables -> fonts -> Bootstrap -> components -> screens
 @import './variables';
-@import './fonts';
-
-// Global resets/helpers
-@import './main';
-
-// Only load waiter/dashboard screen styles (they import their needed components)
 @import './screens/waiter-dashboard';
+@import './screens/auth';
 
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-primary) !important;
+  background-color: #ffffff;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6, p{
+    margin-bottom: 0px;
+}
 
 .row__width{
     width: 100% !important;
 }
-
-
-
 .divider{
     background-color:  var(--violet-100);
     opacity: 0.5;
     height: 1.5px;
     width: 100%;
     margin: 15px 0 !important;
-}
-
-p{
-    margin-bottom: 0 !important;
 }
 
 .btn-none{
@@ -35,4 +37,9 @@ p{
     color: inherit;
     font: inherit;
     cursor: pointer;
+}
+
+
+.modal-dialog-centered{
+    justify-content: center !important;
 }

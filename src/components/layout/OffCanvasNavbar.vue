@@ -89,7 +89,7 @@ const navigate = (routeName) => {
             </RouterLink>
           </li>
           <li>
-            <RouterLink :to="{ name: 'role-selection' }" class="nav-link" @click="uiStore.closeOffCanvas()">
+            <RouterLink :to="{ name: 'role-selection', query: { change: 'true' } }" class="nav-link" @click="uiStore.closeOffCanvas()">
               <i class="bi bi-person-badge-fill"></i> Cambiar Rol
             </RouterLink>
           </li>

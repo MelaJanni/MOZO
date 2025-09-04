@@ -1,0 +1,567 @@
+// Auth screens shared styles
+@import "../variables";
+
+// CSS Variables
+:root {
+  --primary: #9f54fd;
+  --primary-dark: #7b2cbf;
+  --bg: #ffffff;
+  --text: #10002b;
+  --muted: #6b7280;
+  --white: #fff;
+  --label: #10002b;
+  --hairline: #ece7fb;
+  --radius: 12px;
+  --shadow-sm: 0 2px 6px rgba(16, 0, 43, .05);
+  --shadow: 0 12px 34px rgba(16, 0, 43, .08);
+  --shadow-lg: 0 20px 50px rgba(16, 0, 43, .12);
+}
+
+// Reset
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #app {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, Segoe UI, Roboto, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+// Auth layout containers
+.auth-container {
+  height: 100%;
+}
+
+.wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+}
+
+// Auth cards (login, register, forgot-password)
+.login, .register, .forgot-password {
+  width: 100%;
+  max-width: 420px;
+  background: var(--white);
+  padding: 24px;
+  &.forgot-password {
+    min-height: 90vh;
+  }
+}
+
+// Brand/Header section
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+  
+  .forgot-password & {
+    padding-bottom: 30px;
+  }
+}
+
+.logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  object-fit: cover;
+  border: 2px solid #f1f0f0;
+}
+
+.wordmark img {
+  height: 120px;
+  width: 120px;
+}
+
+.subtitle {
+  color: var(--muted);
+  margin-top: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 15px;
+  
+  .forgot-password & {
+    font-weight: 700;
+    font-size: 18px;
+  }
+}
+
+// Forms
+.form {
+  margin-top: 8px;
+}
+
+.group {
+  margin-bottom: 14px;
+  
+  > label {
+    display: block;
+    color: var(--label);
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+}
+
+// Input fields
+.input {
+  display: flex;
+  align-items: center;
+  background: var(--white);
+  border: 1px solid #f1f0f0;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color .2s ease, box-shadow .2s ease;
+  
+  &:focus-within {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(159, 84, 253, 0.15) !important;
+    
+    .left {
+      color: var(--primary);
+    }
+  }
+  
+  &:active {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(159, 84, 253, 0.15) !important;
+  }
+  
+  &:hover:not(:focus-within):not(:active) {
+    border-color: #9ca3af;
+  }
+  
+  input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 15px;
+    color: var(--text);
+    transition: all .2s ease;
+    
+    &:focus, &:active {
+      outline: none;
+    }
+  }
+}
+
+.has-icon {
+  position: relative;
+  padding-left: 38px;
+}
+
+.with-button {
+  padding-right: 48px;
+  position: relative;
+}
+
+// Icons
+.i {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  flex-shrink: 0;
+  color: currentColor;
+  
+  &.sm {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+svg.i {
+  overflow: visible;
+}
+
+.left {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9aa;
+}
+
+// Icon button (for password toggle)
+.icon-btn {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 6px;
+  color: #6b6882;
+  display: inline-grid;
+  place-items: center;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  
+  &:hover {
+    color: var(--primary);
+  }
+}
+
+// Remember me checkbox (Login specific)
+.row {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+  
+  &.justify-content-center {
+    justify-content: center;
+  }
+  
+  &.align-items-center {
+    align-items: center;
+  }
+  
+  &.my-3 {
+    margin: 1rem 0;
+  }
+}
+
+.between {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+  position: relative;
+  
+  input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 4px;
+    border: 2px solid var(--primary);
+    background: transparent;
+    transition: all 0.2s ease;
+    position: relative;
+    display: inline-block;
+    
+    &:checked {
+      background: var(--primary);
+      border-color: var(--primary);
+      
+      &::after {
+        content: '✓';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #fff;
+        font-size: 12px;
+        font-weight: bold;
+        line-height: 1;
+      }
+    }
+    
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(159, 84, 253, 0.15);
+    }
+  }
+  
+  span {
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text);
+  }
+}
+
+// Error messages
+.error {
+  color: #d23947;
+  font-weight: 600;
+  margin: 12px 0;
+  font-size: 13px;
+  padding: 10px 12px;
+  background: #fef2f2;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 8px;
+}
+
+.validation-error {
+  color: #d23947;
+  font-weight: 500;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+// Success messages
+.success-message {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  
+  p {
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+// Buttons
+.btn {
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  min-height: 44px;
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  transition: all .2s ease;
+  
+  .forgot-password & {
+    margin-bottom: 12px;
+  }
+  
+  &.primary {
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary), #7b2cbf);
+    box-shadow: 0 10px 22px rgba(159, 84, 253, .18);
+  }
+  
+  &.secondary {
+    color: var(--primary);
+    background: transparent;
+    border: 1px solid var(--primary);
+    box-shadow: var(--shadow-sm);
+    
+    &:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+  }
+  
+  &.google {
+    color: var(--text);
+    background: #fff;
+    border: 1px solid #f1f0f0;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover:not(:disabled) {
+      border-color: #9ca3af;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .1);
+    }
+  }
+  
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+// Google Sign-In components
+.google-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.google-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.google-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(159, 84, 253, 0.2);
+  border-radius: 50%;
+  border-top-color: var(--primary);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Google divider
+.divider-google {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 12px;
+    margin: 16px 0 12px;
+    width: 100%;
+    
+    &::before,
+    &::after {
+      position: absolute;
+      content: '';
+      display: block;
+      flex: 1;
+      height: 1.5px;
+      width: 40%;
+      min-width: 75px;
+      background-color: #b3b3b38b;
+      margin: 0 15px;
+    }
+    
+    &::before {
+      right: 0;
+    }
+    
+    &::after {
+      left: 0;
+    }
+  }
+}
+
+// Links and footer
+.link {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 12px;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+  
+  &.small {
+    font-size: 12px;
+  }
+}
+
+.foot {
+  margin-top: 12px;
+  text-align: center;
+  color: #4b3e66;
+  font-size: 13px;
+  
+  .forgot-password & {
+    margin-top: 16px;
+  }
+  
+  .link {
+    font-size: 13px;
+  }
+}
+
+.back-link {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Cards (for success states)
+.card {
+  background: var(--white);
+  border: 1px solid #f1f0f0;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+  
+  p {
+    margin-bottom: 15px;
+    line-height: 1.5;
+    text-align: center;
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 400;
+  }
+  
+  a {
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+}
+
+.success-actions {
+  margin-top: 16px;
+  text-align: center;
+}
+
+// Bootstrap utilities used in auth forms
+.col-12 {
+  flex: 0 0 100%;
+  max-width: 100%;
+}
+
+.d-flex {
+  display: flex !important;
+}
+
+.justify-content-between {
+  justify-content: space-between !important;
+}
+
+.justify-content-center {
+  justify-content: center !important;
+}
+
+.align-items-center {
+  align-items: center !important;
+}
+
+.my-3 {
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}

@@ -1,443 +1,316 @@
 <template>
-  <div class="profile-container">
-    <div class="profile-header">
-      <button class="back-button" @click="goBack">
-        <i class="bi bi-arrow-left"></i> Volver
+  <!-- Íconos SVG personalizados -->
+  <svg style="position:absolute;width:0;height:0;visibility:hidden">
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6.5 5.5 12 5.5 21.5 12 21.5 12 17.5 18.5 12 18.5 2.5 12 2.5 12Z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2.5 12S6.5 5.5 12 5.5c1.6 0 3 .4 4.3 1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M21.5 12S17.5 18.5 12 18.5c-1.5 0-2.9-.3-4.1-.9" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M16 3v4M8 3v4M3 10h18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-ruler" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M7 5v2m3 0v2m3 0v2m3 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-weight" viewBox="0 0 24 24"><path d="M6 20h12l-2-11H8L6 20Z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-gender" viewBox="0 0 24 24"><circle cx="10" cy="10" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M13 13l4 4m0-4v4m-10 1v-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-7.2-7-12A7 7 0 0 1 19 9c0 4.8-7 12-7 12Z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="9" r="2.3" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M6 3h4l1 5-2 1a12 12 0 0 0 6 6l1-2 5 1v4a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 7h4l2-2h4l2 2h4v12H4V7Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 7v5l4 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16v4Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 4l4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M6 7h12M9 7V5h6v2m-8 0 1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24"><path d="M4 21V6l8-3v18H8v-5H6v5H4Zm10 0V4l6 2v15h-2v-5h-2v5h-2Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="14" cy="10" r="4.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9.5 12H4v3h2v2h2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="10" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="5" y="4" width="10" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".6"/></symbol>
+    <symbol id="i-briefcase" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-award" viewBox="0 0 24 24"><circle cx="12" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m9 12 2 8 3-8 3 8 2-8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m2 7 10 6 10-6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  </svg>
+
+  <div class="app">
+    <!-- Tabs -->
+    <div class="segmented">
+      <button :class="['seg-btn', activeTab === 'personal' && 'active']" @click="activeTab = 'personal'">Personal</button>
+      <button :class="['seg-btn', activeTab === 'laboral' && 'active']" @click="activeTab = 'laboral'">Laboral</button>
+      <button :class="['seg-btn', activeTab === 'cuenta' && 'active']" @click="activeTab = 'cuenta'">Cuenta</button>
+    </div>
+
+    <!-- ========== PERSONAL ========== -->
+    <section v-if="activeTab === 'personal'">
+      <div class="avatar-wrap" @click="triggerAvatarUpload" role="button" aria-label="Cambiar foto">
+        <input ref="fileInput" type="file" accept="image/*" class="hidden-file" @change="onFileChange" />
+        <div v-if="!user.avatar" class="avatar-square placeholder">
+          <svg class="i md"><use href="#i-camera"/></svg>
+        </div>
+        <img v-else :src="user.avatar" alt="Foto de perfil" class="avatar-square" />
+      </div>
+      <h2 class="display-name">{{ user.name || 'Tu nombre' }}</h2>
+
+      <div class="group">
+        <label>Fecha de nacimiento</label>
+        <div class="input has-icon clickable" @click="openBirth">
+          <svg class="i sm left"><use href="#i-calendar"/></svg>
+          <input ref="birthRef" type="date" v-model="user.birth_date" placeholder="dd/mm/aaaa"/>
+        </div>
+      </div>
+      <div class="group">
+          <label>Estatura</label>
+          <div class="input has-icon with-suffix">
+            <svg class="i sm left"><use href="#i-ruler"/></svg>
+            <input v-model="user.height" type="number" inputmode="decimal" placeholder="1.75" />
+            <span class="suffix">m</span>
+          </div>
+        </div>
+        <div class="group">
+          <label>Peso</label>
+          <div class="input has-icon with-suffix">
+            <svg class="i sm left"><use href="#i-weight"/></svg>
+            <input v-model="user.weight" type="number" inputmode="decimal" placeholder="70" />
+            <span class="suffix">kg</span>
+          </div>
+        </div>
+
+      <div class="group">
+        <label>Sexo</label>
+        <div class="input has-icon select">
+          <svg class="i sm left"><use href="#i-gender"/></svg>
+          <select v-model="user.gender">
+            <option value="">Seleccionar...</option>
+            <option value="femenino">Femenino</option>
+            <option value="masculino">Masculino</option>
+            <option value="otro">Otro / Prefiero no decir</option>
+          </select>
+          <span class="chev">▾</span>
+        </div>
+      </div>
+
+      <div class="group">
+        <label>Ubicación actual</label>
+        <div class="input has-icon">
+          <svg class="i sm left"><use href="#i-pin"/></svg>
+          <input v-model="user.current_location" type="text" placeholder="Ej: Belgrano, CABA" />
+        </div>
+      </div>
+
+      <div class="group">
+        <label>Teléfono</label>
+        <div class="input has-icon">
+          <svg class="i sm left"><use href="#i-phone"/></svg>
+          <input v-model="user.phone" type="tel" placeholder="+54 11 5555-5555" />
+        </div>
+      </div>
+
+      <div class="group">
+        <label>Descripción personal</label>
+        <div class="input has-icon textarea">
+          <svg class="i sm left"><use href="#i-text"/></svg>
+          <textarea v-model="user.bio" rows="3" placeholder="Contá breve tu experiencia y estilo de atención."></textarea>
+        </div>
+      </div>
+
+      <!-- Botón de editar para Personal -->
+      <button class="btn btn-primary full" type="button" @click="saveAllChanges" :disabled="updating">
+        <span v-if="updating">Guardando...</span>
+        <span v-else>Editar Información Personal</span>
       </button>
-    </div>
+    </section>
 
-    <div v-if="loading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>Cargando perfil...</p>
-    </div>
+    <!-- ========== LABORAL ========== -->
+    <section v-else-if="activeTab === 'laboral'">
+      <h2 class="h2">Información Laboral</h2>
 
-    <div v-if="error" class="alert alert-danger">
-      {{ error }}
-    </div>
-
-    <div v-if="success" class="alert alert-success">
-      {{ success }}
-    </div>
-
-    <div v-if="!loading" class="profile-content">
-      <!-- Profile Completeness Indicator -->
-      <div v-if="!profileCompleteness.is_complete" class="d-none profile-card completeness-card">
-        <div class="card-header">
-          <h3>Completitud del Perfil</h3>
-          <span class="completeness-percentage">{{ profileCompleteness.completion_percentage }}%</span>
-        </div>
-        <div class="completeness-content">
-          <div class="progress-bar">
-            <div 
-              class="progress-fill" 
-              :style="{ width: profileCompleteness.completion_percentage + '%' }"
-            ></div>
+      <div class="grid-2">
+        <div class="group">
+          <label>Modalidad</label>
+          <div class="input has-icon select">
+            <svg class="i sm left"><use href="#i-briefcase"/></svg>
+            <select v-model="user.employment_type">
+              <option value="">Seleccionar...</option>
+              <option value="full-time">Tiempo completo</option>
+              <option value="part-time">Medio tiempo</option>
+              <option value="hourly">Por horas</option>
+              <option value="weekends-only">Solo fines de semana</option>
+            </select>
+            <span class="chev">▾</span>
           </div>
-          <p class="completeness-text">
-            {{ profileCompleteness.completed_fields }} de {{ profileCompleteness.total_required_fields }} campos completados
-          </p>
-          <div v-if="profileCompleteness?.missing_fields?.length" class="missing-fields">
-            <p><strong>Campos faltantes:</strong></p>
-            <ul>
-              <li v-for="field in profileCompleteness.missing_fields" :key="field.field">
-                {{ field.label }}
-              </li>
-            </ul>
+        </div>
+
+        <div class="group">
+          <label>Años de experiencia</label>
+          <div class="input has-icon with-suffix">
+            <svg class="i sm left"><use href="#i-award"/></svg>
+            <input v-model="user.experience_years" type="number" inputmode="numeric" min="0" placeholder="5"/>
+            <span class="suffix">años</span>
           </div>
         </div>
       </div>
 
-      <!-- Información Personal -->
-      <div class="profile-card">
-        <div class="card-header">
-          <h2>Información Personal</h2>
-        </div>
-        <div class="profile-main">
-          <div class="profile-image-section">
-            <ProfileAvatar 
-              :src="user.avatar" 
-              :alt="`Foto de ${user.display_name}`"
-              :editable="true"
-              @file-selected="handleAvatarUpdate"
-            />
-          </div>
-          
-          <div class="profile-data">
-            <div class="data-row">
-              <EditableField
-                :value="user.display_name"
-                @update:value="updateField('display_name', $event)"
-                type="text"
-                label="Nombre para mostrar"
-                placeholder="Tu nombre como mozo"
-                :editable="true"
-                :has-error="!!validationErrors.display_name"
-                :error-message="validationErrors.display_name?.[0]"
-              />
-            </div>
-            
-            <div class="data-row">
-              <EditableField
-                :value="user.birth_date"
-                @update:value="updateField('birth_date', $event)"
-                type="date"
-                label="Fecha de nacimiento"
-                :editable="true"
-                :has-error="!!validationErrors.birth_date"
-                :error-message="validationErrors.birth_date?.[0]"
-              />
-              <div v-if="calculatedAge" class="age-display">
-                Edad: {{ calculatedAge }} años
-              </div>
-            </div>
-            
-            <div class="data-row">
-              <EditableField
-                :value="user.height"
-                @update:value="updateField('height', $event)"
-                type="number"
-                label="Estatura"
-                :min="1"
-                :max="2.5"
-                :step="0.01"
-                unit="mt"
-                :editable="true"
-                :has-error="!!validationErrors.height"
-                :error-message="validationErrors.height?.[0]"
-              />
-            </div>
-            
-            <div class="data-row">
-              <EditableField
-                :value="user.weight"
-                @update:value="updateField('weight', $event)"
-                type="number"
-                label="Peso"
-                :min="30"
-                :max="200"
-                unit="kg"
-                :editable="true"
-                :has-error="!!validationErrors.weight"
-                :error-message="validationErrors.weight?.[0]"
-              />
-            </div>
-            
-            <div class="data-row">
-              <EditableField
-                :value="user.gender"
-                @update:value="updateField('gender', $event)"
-                type="select"
-                label="Sexo"
-                :options="genderOptions"
-                :editable="true"
-                :has-error="!!validationErrors.gender"
-                :error-message="validationErrors.gender?.[0]"
-              />
-            </div>
-            
-            <div class="data-row">
-              <EditableField
-                :value="user.experience_years"
-                @update:value="updateField('experience_years', $event)"
-                type="number"
-                label="Años de experiencia"
-                :min="0"
-                :max="50"
-                unit="años"
-                :editable="true"
-              />
-            </div>
-          </div>
+      <div class="group">
+        <label>Horario de trabajo actual</label>
+        <div class="input has-icon">
+          <svg class="i sm left"><use href="#i-clock"/></svg>
+          <input v-model="user.current_schedule" type="text" placeholder="mañana / tarde / noche" />
         </div>
       </div>
 
-      <!-- Información de Contacto -->
-      <div class="profile-card">
-        <div class="card-header">
-          <h3>Información de Contacto</h3>
-        </div>
-        <div class="profile-data">
-          <div class="data-row">
-            <EditableField
-              :value="user.current_location"
-              @update:value="updateField('current_location', $event)"
-              type="text"
-              label="Ubicación actual"
-              :editable="true"
-            />
-          </div>
-          
-          <div class="data-row">
-            <EditableField
-              :value="user.phone"
-              @update:value="updateField('phone', $event)"
-              type="tel"
-              label="Teléfono"
-              :editable="true"
-              :has-error="!!validationErrors.phone"
-              :error-message="validationErrors.phone?.[0]"
-            />
-          </div>
-          
-          <div class="data-row">
-            <EditableField
-              :value="user.bio"
-              @update:value="updateField('bio', $event)"
-              type="textarea"
-              label="Descripción personal"
-              :editable="true"
-            />
-          </div>
+      <div class="group">
+        <label>Disponibilidad</label>
+        <div class="availability" role="switch" :aria-checked="user.is_available" @click="user.is_available = !user.is_available">
+          <span class="status-icon" :class="user.is_available ? 'ok' : 'off'">
+            <svg class="i sm"><use href="#i-check"/></svg>
+          </span>
+          <span class="status-text" :class="user.is_available ? 'on' : 'off'">{{ user.is_available ? 'Disponible' : 'No disponible' }}</span>
+          <label class="switch" @click.stop>
+            <input type="checkbox" v-model="user.is_available" />
+            <span class="slider"></span>
+          </label>
         </div>
       </div>
 
-      <!-- Información Laboral -->
-      <div class="profile-card">
-        <div class="card-header">
-          <h3>Información Laboral</h3>
-        </div>
-        <div class="profile-data">
-          <div class="data-row">
-            <EditableField
-              :value="user.employment_type"
-              @update:value="updateField('employment_type', $event)"
-              type="select"
-              label="Modalidad"
-              :options="employmentTypeOptions"
-              :editable="true"
-              :has-error="!!validationErrors.employment_type"
-              :error-message="validationErrors.employment_type?.[0]"
-            />
-          </div>
-          
-          <div class="data-row">
-            <EditableField
-              :value="user.current_schedule"
-              @update:value="updateField('current_schedule', $event)"
-              type="text"
-              label="Horario de trabajo actual"
-              :editable="true"
-              :has-error="!!validationErrors.current_schedule"
-              :error-message="validationErrors.current_schedule?.[0]"
-            />
-          </div>
-          
-          <div class="data-row">
-            <div class="availability-toggle">
-              <label class="form-label">Disponibilidad</label>
-              <div class="toggle-container">
-                <input 
-                  type="checkbox" 
-                  id="availability-toggle" 
-                  v-model="user.is_available"
-                  @change="updateField('is_available', user.is_available)"
-                  class="toggle-input"
-                />
-                <label for="availability-toggle" class="toggle-label">
-                  {{ user.is_available ? 'Disponible' : 'No disponible' }}
-                </label>
-              </div>
+      <hr class="sep"/>
+
+      <h3 class="h3">Habilidades</h3>
+      <div class="input chip-input">
+        <input v-model="nuevaHabilidad" type="text" placeholder="Agregar habilidad" @keydown.enter.prevent="addSkill(nuevaHabilidad); nuevaHabilidad = ''" />
+        <button class="btn btn-small btn-skill" type="button" @click="addSkill(nuevaHabilidad); nuevaHabilidad = ''">Agregar</button>
+      </div>
+      <div class="chips">
+        <button class="chip" v-for="(skill, i) in user.skills" :key="skill">
+          <span>{{ skill }}</span>
+          <span class="x" @click.stop="removeSkill(skill)" aria-label="Quitar">×</span>
+        </button>
+      </div>
+
+      <div class="head-row">
+        <h3 class="h3">Historial Laboral</h3>
+        <button class="btn btn-primary subtle" type="button" @click="addWorkExperience">+ Agregar Experiencia</button>
+      </div>
+
+      <div class="cards">
+        <article v-for="item in workHistory" :key="item.id" class="card">
+          <header class="card-hd">
+            <div class="tt">
+              <span class="badge">{{ item.position }}</span>
+              <span class="dot">•</span>
+              <span class="place">{{ item.business_name }}</span>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Habilidades -->
-      <div class="profile-card">
-        <div class="card-header">
-          <h3>Habilidades</h3>
-        </div>
-        <div class="skills-section">
-          <div class="skills-list">
-            <span 
-              v-for="skill in user.skills" 
-              :key="skill" 
-              class="skill-tag"
-            >
-              {{ skill }}
-              <button @click="removeSkill(skill)" class="skill-remove">
-                <i class="bi bi-x"></i>
+            <div class="tools">
+              <button class="icon" title="Editar" @click="editWorkExperience(item)">
+                <svg class="i"><use href="#i-edit"/></svg>
               </button>
-            </span>
+              <button class="icon danger" title="Borrar" @click="deleteWorkExperience(item.id)">
+                <svg class="i"><use href="#i-trash"/></svg>
+              </button>
+            </div>
+          </header>
+          <div class="meta">
+            <svg class="i sm"><use href="#i-clock"/></svg>{{ formatDate(item.start_date) }} – {{ item.end_date ? formatDate(item.end_date) : 'Actualidad' }}
           </div>
-          <div class="add-skill">
-            <input 
-              type="text" 
-              placeholder="Agregar habilidad" 
-              @keyup.enter="addSkill($event.target.value); $event.target.value = ''"
-              class="skill-input"
-            />
-          </div>
-        </div>
+          <p class="desc">{{ item.description }}</p>
+        </article>
       </div>
 
-      <!-- Historial Laboral -->
-      <div class="profile-card">
-        <div class="card-header">
-          <h3>Historial Laboral</h3>
-          <BaseButton @click="addWorkExperience" variant="primary" size="sm">
-            <i class="bi bi-plus"></i> Agregar Experiencia
-          </BaseButton>
-        </div>
-        <div class="work-history">
-          <div 
-            v-for="item in workHistory" 
-            :key="item.id" 
-            class="work-item"
-          >
-            <div class="work-item-header">
-              <h4>{{ item.position }} - {{ item.business_name }}</h4>
-              <div class="work-actions">
-                <button @click="editWorkExperience(item)" class="btn btn-sm btn-outline-primary">
-                  <i class="bi bi-pencil"></i>
-                </button>
-                <button @click="deleteWorkExperience(item.id)" class="btn btn-sm btn-outline-danger">
-                  <i class="bi bi-trash"></i>
+      <h3 class="h3 mt">Negocios Asociados Hoy</h3>
+      <div class="cards">
+        <article class="card business" v-for="business in associatedBusinesses" :key="business.id">
+          <header class="card-hd">
+            <div class="tt">
+              <svg class="i"><use href="#i-building"/></svg>
+              <span class="place">{{ business.name }}</span>
+            </div>
+            <span class="pill" :class="business.is_active ? 'ok' : 'off'">{{ business.is_active ? 'Activo' : 'Inactivo' }}</span>
+          </header>
+
+          <div class="row">
+            <div class="col-12 col-md-6">
+              <div class="business-info">
+                <svg class="i sm"><use href="#i-pin"/></svg>
+                <span class="muted">{{ business.name }}</span>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="business-code">
+                <svg class="i sm"><use href="#i-key"/></svg>
+                <span class="kbd">{{ business.code }}</span>
+                <button class="link" type="button" @click="copyCode(business.code)">
+                  <svg class="i sm"><use href="#i-copy"/></svg> Copiar
                 </button>
               </div>
             </div>
-            <div class="work-details">
-              <div class="work-dates">
-                {{ item.start_date }}{{ item.end_date ? ' - ' + item.end_date : ' - Actualidad' }}
-              </div>
-              <div v-if="item.description" class="work-description">
-                {{ item.description }}
-              </div>
-            </div>
           </div>
-          
-          <div v-if="!workHistory.length" class="empty-state">
-            No has agregado experiencia laboral aún.
-          </div>
+
+          <footer class="foot">
+            <button class="btn btn-ghost danger" @click="leaveBusiness(business.id, business.name)">✕ Abandonar</button>
+          </footer>
+        </article>
+      </div>
+
+      <!-- Botón de editar para Laboral -->
+      <button class="btn btn-primary full" type="button" @click="saveAllChanges" :disabled="updating">
+        <span v-if="updating">Guardando...</span>
+        <span v-else>Editar Información Laboral</span>
+      </button>
+    </section>
+
+    <!-- ========== CUENTA ========== -->
+    <section v-else>
+      <h2 class="h2">Datos de la Cuenta</h2>
+
+      <div class="group">
+        <label>Email</label>
+        <div class="input has-icon">
+          <svg class="i sm left"><use href="#i-mail"/></svg>
+          <input v-model="user.email" type="email" autocomplete="email" placeholder="tu@email.com" />
         </div>
       </div>
 
-      <!-- Negocios Asociados -->
-      <div class="profile-card">
-        <div class="card-header">
-          <h3>Negocios Asociados Hoy</h3>
-        </div>
-        <div class="businesses-list">
-          <div 
-            v-for="business in associatedBusinesses" 
-            :key="business.id" 
-            class="business-item detailed"
-          >
-            <div class="business-main-info">
-              <div class="business-name">{{ business.name }}</div>
-              <div class="business-code" v-if="business.code">Código: {{ business.code }}</div>
-              <div class="business-status" :class="business.status">
-                {{ business.is_active ? 'Activo hoy' : 'Inactivo' }}
-              </div>
-            </div>
-            
-            <div class="business-stats" v-if="business.is_active">
-              <div class="stat-item">
-                <span class="stat-label">Mesas asignadas:</span>
-                <span class="stat-value">{{ business.assigned_tables || 0 }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Llamadas hoy:</span>
-                <span class="stat-value">{{ business.calls_today || 0 }}</span>
-              </div>
-              <div class="stat-item" v-if="business.count !== undefined">
-                <span class="stat-label">Total:</span>
-                <span class="stat-value">{{ business.count }}</span>
-              </div>
-              <div class="stat-item" v-if="business.date">
-                <span class="stat-label">Fecha:</span>
-                <span class="stat-value">{{ new Date(business.date).toLocaleDateString() }}</span>
-              </div>
-            </div>
-            
-            <div class="business-actions">
-              <button 
-                @click="leaveBusiness(business.id, business.name)"
-                class="btn btn-sm btn-outline-danger"
-                :disabled="updating"
-              >
-                <i class="bi bi-box-arrow-left"></i>
-                Abandonar
-              </button>
-            </div>
-          </div>
-          
-          <div v-if="!associatedBusinesses.length" class="empty-state">
-            No estás asociado a ningún negocio actualmente.
-          </div>
+      <div class="group">
+        <label>Nombre para mostrar</label>
+        <div class="input has-icon">
+          <svg class="i sm left"><use href="#i-user"/></svg>
+          <input v-model="user.name" type="text" placeholder="Cómo te ven en la app" />
         </div>
       </div>
 
-      <!-- Cambiar Contraseña -->
-      <div class="profile-card">
-        <div class="card-header">
-          <h3>Cambiar Contraseña</h3>
+      <button class="btn btn-primary full subtle my-3" type="button" @click="saveAllChanges">Actualizar Email / Nombre</button>
+
+      <h3 class="h3" style="margin-top:12px">Cambiar Contraseña</h3>
+
+      <div class="group">
+        <label>Contraseña actual</label>
+        <div class="input with-icon">
+          <input :type="show.current ? 'text' : 'password'" v-model="passwords.current" placeholder="••••••••" autocomplete="current-password"/>
+          <button class="icon-btn" type="button" @click="show.current = !show.current" :aria-label="show.current?'Ocultar':'Ver'">
+            <svg class="i sm"><use :href="show.current ? '#i-eye-off' : '#i-eye'"/></svg>
+          </button>
         </div>
-        <form @submit.prevent="changePassword" class="password-form">
-          <div class="form-group">
-            <label>Contraseña actual</label>
-            <input 
-              type="password" 
-              v-model="passwords.current" 
-              class="form-control"
-              :disabled="updating"
-            />
-          </div>
-          
-          <div class="form-group">
-            <label>Nueva contraseña</label>
-            <input 
-              type="password" 
-              v-model="passwords.new" 
-              class="form-control"
-              :disabled="updating"
-            />
-            <div v-if="passwords.new && !isPasswordValid" class="form-text error">
-              La contraseña debe tener al menos 8 caracteres
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label>Confirmar nueva contraseña</label>
-            <input 
-              type="password" 
-              v-model="passwords.confirm" 
-              class="form-control"
-              :disabled="updating"
-            />
-            <div v-if="passwords.confirm && !doPasswordsMatch" class="form-text error">
-              Las contraseñas no coinciden
-            </div>
-          </div>
-          
-          <BaseButton 
-            type="submit" 
-            variant="primary"
-            :disabled="updating || !passwords.current || !passwords.new || !passwords.confirm || !isPasswordValid || !doPasswordsMatch"
-          >
-            <span v-if="updating">Actualizando...</span>
-            <span v-else>Cambiar Contraseña</span>
-          </BaseButton>
-        </form>
       </div>
 
-      <!-- Eliminar Cuenta -->
-      <div class="profile-card danger-zone">
-        <div class="card-header">
-          <h3>Zona de Peligro</h3>
-        </div>
-        <div class="danger-content">
-          <p>Una vez que elimines tu cuenta, no hay vuelta atrás. Por favor, está seguro.</p>
-          <BaseButton 
-            @click="showDeleteModal = true" 
-            variant="danger"
-            :disabled="updating"
-          >
-            Eliminar Cuenta
-          </BaseButton>
+      <div class="group">
+        <label>Nueva contraseña</label>
+        <div class="input with-icon">
+          <input :type="show.next ? 'text' : 'password'" v-model="passwords.new" placeholder="Mínimo 8 caracteres" autocomplete="new-password"/>
+          <button class="icon-btn" type="button" @click="show.next = !show.next">
+            <svg class="i sm"><use :href="show.next ? '#i-eye-off' : '#i-eye'"/></svg>
+          </button>
         </div>
       </div>
-    </div>
+
+      <div class="group">
+        <label>Confirmar nueva contraseña</label>
+        <div class="input with-icon">
+          <input :type="show.confirm ? 'text' : 'password'" v-model="passwords.confirm" placeholder="Repetí la contraseña" autocomplete="new-password"/>
+          <button class="icon-btn" type="button" @click="show.confirm = !show.confirm">
+            <svg class="i sm"><use :href="show.confirm ? '#i-eye-off' : '#i-eye'"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-primary my-3" type="button" @click="changePassword">Cambiar Contraseña</button>
+
+      <div class="danger">
+        <h3 class="h3">Zona de Peligro</h3>
+        <p>Una vez que elimines tu cuenta, no hay vuelta atrás. Por favor, está seguro.</p>
+        <button class="btn btn-danger" type="button" @click="showDeleteModal = true">Eliminar Cuenta</button>
+      </div>
+    </section>
 
     <!-- Modal para Historial Laboral -->
     <BaseModal 
@@ -445,8 +318,8 @@
       :title="editingWorkItem ? 'Editar Experiencia' : 'Agregar Experiencia'"
       size="md"
     >
-      <form @submit.prevent="saveWorkExperience">
-        <div class="form-group">
+      <form @submit.prevent="saveWorkExperience" class="col-12 px-0 d-flex flex-column justify-content-center align-items-center">
+        <div class="group">
           <label>Nombre del local/empresa</label>
           <input 
             type="text" 
@@ -456,7 +329,7 @@
           />
         </div>
         
-        <div class="form-group">
+        <div class="group">
           <label>Cargo</label>
           <input 
             type="text" 
@@ -466,7 +339,7 @@
           />
         </div>
         
-        <div class="form-group">
+        <div class="group">
           <label>Descripción del puesto</label>
           <textarea 
             v-model="newWorkItem.description" 
@@ -475,30 +348,40 @@
           ></textarea>
         </div>
         
-        <div class="form-row">
-          <div class="form-group">
+          <div class="group">
             <label>Fecha de ingreso</label>
             <input 
-              type="date" 
-              v-model="newWorkItem.start_date" 
+              ref="startDateRef"
+              :type="startDateInputType" 
+              :value="startDateInputType === 'date' ? newWorkItem.start_date : startDateDisplay"
               class="form-control"
               required
+              :placeholder="startDateInputType === 'text' ? 'dd/mm/aaaa' : ''"
+              @click="handleDateInputClick('start')"
+              @blur="handleDateInputBlur('start')"
+              @input="handleDateInputChange('start', $event)"
+              readonly
             />
           </div>
           
-          <div class="form-group">
+          <div class="group">
             <label>Fecha de salida (opcional)</label>
             <input 
-              type="date" 
-              v-model="newWorkItem.end_date" 
+              ref="endDateRef"
+              :type="endDateInputType" 
+              :value="endDateInputType === 'date' ? newWorkItem.end_date : endDateDisplay"
               class="form-control"
+              :placeholder="endDateInputType === 'text' ? 'dd/mm/aaaa' : ''"
+              @click="handleDateInputClick('end')"
+              @blur="handleDateInputBlur('end')"
+              @input="handleDateInputChange('end', $event)"
+              readonly
             />
           </div>
-        </div>
       </form>
       
       <template #footer>
-        <BaseButton @click="showWorkHistoryModal = false" variant="secondary">
+        <BaseButton @click="showWorkHistoryModal = false" variant="secondary" class="me-3">
           Cancelar
         </BaseButton>
         <BaseButton @click="saveWorkExperience" variant="primary" :disabled="updating">
@@ -522,7 +405,7 @@
           Al eliminar tu cuenta perderás todo el acceso a tus datos y negocios asociados.
         </div>
         
-        <div class="form-group">
+        <div class="group">
           <label>Escribe "ELIMINAR" para confirmar</label>
           <input 
             type="text" 
@@ -548,14 +431,28 @@
       </template>
     </BaseModal>
   </div>
+
+  <!-- Loading state -->
+  <div v-if="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Cargando perfil...</p>
+  </div>
+
+  <!-- Alerts -->
+  <div v-if="error" class="alert alert-danger">
+    {{ error }}
+  </div>
+
+  <div v-if="success" class="alert alert-success">
+    {{ success }}
+  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute, onBeforeRouteUpdate } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAdminStore } from '@/stores/admin'
-import EditableField from '@/components/EditableField.vue'
 import ProfileAvatar from '@/components/ProfileAvatar.vue'
 import BaseButton from '@/components/UI/BaseButton.vue'
 import BaseModal from '@/components/UI/BaseModal.vue'
@@ -565,8 +462,11 @@ const router = useRouter()
 const authStore = useAuthStore()
 const adminStore = useAdminStore()
 
+const activeTab = ref('personal')
+
 const user = ref({
   display_name: '',
+  email: '',
   bio: '',
   phone: '',
   birth_date: '',
@@ -595,6 +495,8 @@ const passwords = ref({
   confirm: ''
 })
 
+const show = ref({ current: false, next: false, confirm: false })
+
 const loading = ref(true)
 const updating = ref(false)
 const error = ref('')
@@ -617,13 +519,109 @@ const newWorkItem = ref({
   end_date: ''
 })
 
-const profileCompleteness = ref({
-  is_complete: false,
-  missing_fields: [],
-  completed_fields: 0,
-  total_required_fields: 0,
-  completion_percentage: 0
-})
+const nuevaHabilidad = ref('')
+
+// Avatar file handling
+const fileInput = ref(null)
+const birthRef = ref(null)
+const startDateRef = ref(null)
+const endDateRef = ref(null)
+
+// Estados para inputs de fecha híbridos
+const startDateInputType = ref('text')
+const endDateInputType = ref('text')
+const startDateDisplay = ref('')
+const endDateDisplay = ref('')
+
+const triggerAvatarUpload = () => fileInput.value?.click()
+const onFileChange = (e) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+  handleAvatarUpdate(file)
+}
+
+const openBirth = () => {
+  if (birthRef.value) {
+    birthRef.value.focus()
+    if (birthRef.value.showPicker) {
+      birthRef.value.showPicker()
+    } else {
+      birthRef.value.click()
+    }
+  }
+}
+
+// Formatear fechas
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: '2-digit', 
+    year: 'numeric'
+  })
+}
+
+// Manejo de inputs de fecha híbridos
+const handleDateInputClick = (field) => {
+  if (field === 'start') {
+    startDateInputType.value = 'date'
+    nextTick(() => {
+      if (startDateRef.value && startDateRef.value.showPicker) {
+        startDateRef.value.showPicker()
+      }
+    })
+  } else if (field === 'end') {
+    endDateInputType.value = 'date'
+    nextTick(() => {
+      if (endDateRef.value && endDateRef.value.showPicker) {
+        endDateRef.value.showPicker()
+      }
+    })
+  }
+}
+
+const handleDateInputBlur = (field) => {
+  setTimeout(() => {
+    if (field === 'start') {
+      startDateInputType.value = 'text'
+      updateDateDisplay('start')
+    } else if (field === 'end') {
+      endDateInputType.value = 'text'
+      updateDateDisplay('end')
+    }
+  }, 200)
+}
+
+const handleDateInputChange = (field, event) => {
+  const value = event.target.value
+  if (field === 'start') {
+    newWorkItem.value.start_date = value
+  } else if (field === 'end') {
+    newWorkItem.value.end_date = value
+  }
+  updateDateDisplay(field)
+}
+
+const updateDateDisplay = (field) => {
+  if (field === 'start') {
+    startDateDisplay.value = newWorkItem.value.start_date ? formatDate(newWorkItem.value.start_date) : ''
+  } else if (field === 'end') {
+    endDateDisplay.value = newWorkItem.value.end_date ? formatDate(newWorkItem.value.end_date) : ''
+  }
+}
+
+// Copiar código de negocio al portapapeles
+const copyCode = async (code) => {
+  try {
+    await navigator.clipboard.writeText(code || '')
+    success.value = 'Código copiado'
+    setTimeout(() => { if (success.value === 'Código copiado') success.value = '' }, 1500)
+  } catch (e) {
+    error.value = 'No se pudo copiar el código'
+    setTimeout(() => { if (error.value === 'No se pudo copiar el código') error.value = '' }, 2000)
+  }
+}
 
 const isPasswordValid = computed(() => {
   if (!passwords.value.new) return true
@@ -647,19 +645,6 @@ const calculatedAge = computed(() => {
   return age
 })
 
-const genderOptions = [
-  { value: 'masculino', label: 'Masculino' },
-  { value: 'femenino', label: 'Femenino' },
-  { value: 'otro', label: 'Otro' }
-]
-
-const employmentTypeOptions = [
-  { value: 'full-time', label: 'Tiempo completo' },
-  { value: 'part-time', label: 'Medio tiempo' },
-  { value: 'hourly', label: 'Por horas' },
-  { value: 'weekends-only', label: 'Solo fines de semana' }
-]
-
 const loadUserData = async () => {
   loading.value = true
   error.value = ''
@@ -668,10 +653,11 @@ const loadUserData = async () => {
     const businessId = adminStore?.activeBusinessId ?? localStorage.getItem('businessId') ?? null
     const response = await apiService.getActiveUserProfile(businessId ? Number(businessId) : null)
     const profileData = response.data.data.profile_data
-
+    const userData = response.data.data.user
     if (profileData) {
       user.value = {
-        display_name: profileData.display_name || '',
+        name: userData.name || '',
+        email: userData.email || '',
         bio: profileData.bio || '',
         phone: profileData.phone || '',
         birth_date: profileData.birth_date || '',
@@ -694,6 +680,7 @@ const loadUserData = async () => {
       // Fallback data if no waiter profile found
       user.value = {
         display_name: 'Mozo',
+        email: '',
         bio: '',
         phone: '',
         birth_date: '',
@@ -730,13 +717,27 @@ const loadUserData = async () => {
 
 const loadWorkHistory = async () => {
   try {
-    //console.log('💼 Cargando historial laboral...')
     const response = await apiService.listWorkHistory()
-    //console.log('💼 Respuesta de work-history:', response.data)
-    
-    // La respuesta contiene items ordenados por fecha más reciente
-    workHistory.value = response.data.data.items || []
-    //console.log('💼 Historial procesado:', workHistory.value)
+
+    // Normalizador de items (el backend puede enviar distintas claves de ID/shape)
+    const normalizeWorkItem = (item) => ({
+      id: item?.id ?? item?.work_experience_id ?? item?.workExperienceId ?? item?.work_history_id ?? item?.uuid,
+      business_name: item?.business_name ?? item?.businessName ?? item?.company_name ?? '',
+      position: item?.position ?? item?.role ?? '',
+      description: item?.description ?? '',
+      start_date: item?.start_date ?? item?.startDate ?? '',
+      end_date: item?.end_date ?? item?.endDate ?? null
+    })
+
+    // La respuesta puede venir en distintos envoltorios
+    const rawItems =
+      response?.data?.data?.items ??
+      response?.data?.items ??
+      (Array.isArray(response?.data) ? response.data : []) ??
+      []
+
+    // Mapear a un shape consistente con 'id' definido
+    workHistory.value = rawItems.map(normalizeWorkItem)
   } catch (err) {
     console.error('❌ Error al cargar historial laboral:', err)
     console.error('❌ Respuesta del error:', err.response?.data)
@@ -784,6 +785,7 @@ const handleAvatarUpdate = async (file) => {
     const formData = new FormData()
     
     if (user.value.display_name) formData.append('display_name', user.value.display_name)
+    if (user.value.email) formData.append('email', user.value.email)
     if (user.value.bio) formData.append('bio', user.value.bio)
     if (user.value.phone) formData.append('phone', user.value.phone)
     if (user.value.birth_date) formData.append('birth_date', user.value.birth_date)
@@ -806,7 +808,7 @@ const handleAvatarUpdate = async (file) => {
     
     const reader = new FileReader()
     reader.onload = (e) => {
-      user.value.profile_picture = e.target.result
+      user.value.avatar = e.target.result
     }
     reader.readAsDataURL(file)
     
@@ -823,21 +825,37 @@ const handleAvatarUpdate = async (file) => {
     
     if (!error.value) {
       await loadUserData()
-      await checkProfileCompleteness()
     }
   }
 }
 
-const updateField = async (field, value) => {
+const saveAllChanges = async () => {
   try {
     updating.value = true
     validationErrors.value = {}
     error.value = ''
     
-    user.value[field] = value
-    
     const formData = new FormData()
-    formData.append(field, value || '')
+    
+    // Agregar todos los campos al FormData
+    if (user.value.display_name) formData.append('display_name', user.value.display_name)
+    if (user.value.email) formData.append('email', user.value.email)
+    if (user.value.bio) formData.append('bio', user.value.bio)
+    if (user.value.phone) formData.append('phone', user.value.phone)
+    if (user.value.birth_date) formData.append('birth_date', user.value.birth_date)
+    if (user.value.height) formData.append('height', user.value.height)
+    if (user.value.weight) formData.append('weight', user.value.weight)
+    if (user.value.gender) formData.append('gender', user.value.gender)
+    if (user.value.experience_years) formData.append('experience_years', user.value.experience_years)
+    if (user.value.employment_type) formData.append('employment_type', user.value.employment_type)
+    if (user.value.current_schedule) formData.append('current_schedule', user.value.current_schedule)
+    if (user.value.current_location) formData.append('current_location', user.value.current_location)
+    if (user.value.latitude) formData.append('latitude', user.value.latitude)
+    if (user.value.longitude) formData.append('longitude', user.value.longitude)
+    
+    formData.append('availability_hours', JSON.stringify(user.value.availability_hours || []))
+    formData.append('skills', JSON.stringify(user.value.skills || []))
+    formData.append('is_available', user.value.is_available ? '1' : '0')
     
     const response = await apiService.updateWaiterUserProfile(formData)
     
@@ -846,30 +864,20 @@ const updateField = async (field, value) => {
       user.value.display_name = response.data.data.display_name
     }
     
-    success.value = response.data.message || 'Campo actualizado correctamente'
+    success.value = 'Información actualizada correctamente'
   } catch (err) {
     if (err.response?.status === 422 && err.response?.data?.errors) {
       validationErrors.value = err.response.data.errors
       error.value = err.response.data.message || 'Por favor, corrige los errores en el formulario'
     } else {
-      error.value = err.response?.data?.message || `Error al actualizar ${field}`
+      error.value = err.response?.data?.message || 'Error al actualizar la información'
     }
   } finally {
     updating.value = false
     
     if (!error.value) {
       await loadUserData()
-      await checkProfileCompleteness()
     }
-  }
-}
-
-const checkProfileCompleteness = async () => {
-  try {
-    const response = await apiService.getProfileCompleteness()
-    profileCompleteness.value = response.data
-  } catch (err) {
-    console.error('Error checking profile completeness:', err)
   }
 }
 
@@ -914,12 +922,22 @@ const addWorkExperience = () => {
     start_date: '',
     end_date: ''
   }
+  // Reset date input states
+  startDateInputType.value = 'text'
+  endDateInputType.value = 'text'
+  startDateDisplay.value = ''
+  endDateDisplay.value = ''
   showWorkHistoryModal.value = true
 }
 
 const editWorkExperience = (item) => {
   editingWorkItem.value = item
   newWorkItem.value = { ...item }
+  // Reset date input states and set display values
+  startDateInputType.value = 'text'
+  endDateInputType.value = 'text'
+  startDateDisplay.value = item.start_date ? formatDate(item.start_date) : ''
+  endDateDisplay.value = item.end_date ? formatDate(item.end_date) : ''
   showWorkHistoryModal.value = true
 }
 
@@ -936,15 +954,17 @@ const saveWorkExperience = async () => {
     }
     
     if (editingWorkItem.value) {
-      const response = await apiService.updateWorkHistory(editingWorkItem.value.id, workData)
-      
-      const index = workHistory.value.findIndex(item => item.id === editingWorkItem.value.id)
-      if (index !== -1) {
-        workHistory.value[index] = response.data
+      const id = editingWorkItem.value.id
+      if (!id) {
+        throw new Error('ID de experiencia laboral no definido')
       }
+      await apiService.updateWorkHistory(id, workData)
+      // Refrescar lista para asegurar shape consistente (y evitar IDs undefined)
+      await loadWorkHistory()
     } else {
-      const response = await apiService.addWorkHistory(workData)
-      workHistory.value.push(response.data)
+      await apiService.addWorkHistory(workData)
+      // Refrescar lista tras crear
+      await loadWorkHistory()
     }
     
     showWorkHistoryModal.value = false
@@ -964,10 +984,14 @@ const deleteWorkExperience = async (id) => {
   
   try {
     updating.value = true
+    if (!id) {
+      throw new Error('ID de experiencia laboral no definido')
+    }
     
     await apiService.deleteWorkHistory(id)
     
-    workHistory.value = workHistory.value.filter(item => item.id !== id)
+    // Refrescar lista tras eliminar para mantener shape uniforme
+    await loadWorkHistory()
     success.value = 'Experiencia eliminada correctamente'
   } catch (err) {
     console.error('Error al eliminar experiencia:', err)
@@ -980,13 +1004,11 @@ const deleteWorkExperience = async (id) => {
 const addSkill = (skill) => {
   if (skill && !user.value.skills.includes(skill)) {
     user.value.skills.push(skill)
-    updateField('skills', user.value.skills)
   }
 }
 
 const removeSkill = (skill) => {
   user.value.skills = user.value.skills.filter(s => s !== skill)
-  updateField('skills', user.value.skills)
 }
 
 const leaveBusiness = async (businessId, businessName) => {
@@ -1033,19 +1055,13 @@ const deleteAccount = async () => {
   }
 }
 
-const goBack = () => {
-  router.push({ name: 'waiter-dashboard' })
-}
-
 onMounted(() => {
   loadUserData()
-  checkProfileCompleteness()
 })
 
 const route = useRoute()
 onBeforeRouteUpdate((to, from) => {
   loadUserData()
-  checkProfileCompleteness()
 })
 
 // Clear alerts after 5 seconds
@@ -1067,34 +1083,186 @@ watch(error, (newVal) => {
 </script>
 
 <style scoped>
-.profile-container {
-  min-height: 100vh;
-  background-color: #f9fafb;
-  padding: 1rem;
-  padding-top: 80px;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+:root{
+  --primary:#9f54fd; --primary-dark:#7b2cbf;
+  --bg:#ffffff; --text:#10002b; --muted:#6b7280; --white:#fff;
+  --label:#10002b; --hairline:#ece7fb; --radius:12px;
+  --shadow-sm:0 2px 6px rgba(16,0,43,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg); color:var(--text); font-family:'Inter',system-ui,Segoe UI,Roboto,Arial,sans-serif}
+.app{max-width:520px;margin:0 auto; padding:20px 20px 100px; background: var(--bg); min-height: 100vh;}
+
+/* Tabs */
+.segmented{display:flex; gap:8px; padding:6px; background:var(--white); border:1px solid var(--hairline); border-radius:14px; box-shadow:var(--shadow-sm); margin-bottom:18px}
+.seg-btn{appearance:none;border:0;background:transparent;cursor:pointer;flex:1;height:40px;border-radius:10px;font:600 14px/40px Inter,sans-serif;color:var(--muted);transition:color .18s,background .18s,box-shadow .18s}
+.seg-btn:hover{color:var(--primary)} .seg-btn.active{background:#f6f3ff;color:var(--text);box-shadow:var(--shadow-sm)}
+
+/* Avatar */
+.avatar-wrap{display:grid;place-items:center;margin:6px 0 12px; cursor: pointer;}
+.avatar-square{width:140px;height:140px;border-radius:16px;object-fit:cover;background:#fff;border:1px solid var(--hairline);box-shadow:0 6px 16px rgba(16,0,43,.08)}
+.placeholder{display:grid;place-items:center;color:#7d6fb2}
+.hidden-file{display:none}
+.display-name{font-weight:800;font-size:22px;text-align:center;margin:8px 0 12px;word-wrap:break-word;overflow-wrap:break-word;hyphens:auto}
+
+/* Grid */
+.grid-2{display:grid;grid-template-columns:1fr;gap:12px}
+@media (min-width:460px){ .grid-2{grid-template-columns:1fr 1fr} }
+
+/* Inputs */
+.h2{font-size:20px;font-weight:800;margin:6px 0 14px}
+.h3{font-size:16px;font-weight:800; margin: 0;}
+.group{margin-bottom:12px; min-width: 100%;}
+.group>label{display:block;color:var(--label);font-weight:600;font-size:13px;margin-bottom:6px}
+.input{display:flex;align-items:center;background:var(--white);border:1px solid #f1f0f0;border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow-sm);transition:border-color .2s ease, box-shadow .2s ease}
+.input:focus-within{border-color:var(--primary) !important;box-shadow:0 0 0 3px rgba(159, 84, 253, 0.15) !important}
+.input:active{border-color:var(--primary) !important;box-shadow:0 0 0 3px rgba(159, 84, 253, 0.15) !important}
+.input:hover:not(:focus-within):not(:active){border-color:#9ca3af}
+.input input,.input textarea,.input select{width:100%;border:0;outline:0;background:transparent;font-size:15px;color:var(--text);transition:all .2s ease}
+.input select{appearance:none;-webkit-appearance:none;cursor:pointer}
+.input input:focus,.input textarea:focus,.input select:focus{outline:none}
+.input input:active,.input textarea:active,.input select:active{outline:none}
+.input textarea{resize:none;line-height:1.45}
+.input.clickable{cursor:pointer}
+input[type="date"]{-webkit-appearance:none;appearance:none;cursor:pointer}
+input[type="date"]::-webkit-calendar-picker-indicator{opacity:0;position:absolute;left:0;top:0;width:100%;height:100%;cursor:pointer}
+.input.clickable input[type="date"]{cursor:pointer}
+.input.clickable{cursor:pointer;position:relative}
+
+/* Iconos en inputs */
+.has-icon{position:relative;padding-left:38px}
+.i{width:18px;height:18px;display:inline-block;flex-shrink:0;color:currentColor}
+.i.sm{width:16px;height:16px}
+.i.md{width:24px;height:24px}
+svg.i{overflow:visible}
+.left{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9aa}
+.input:focus-within .left{color:var(--primary)}
+.with-icon{padding-right:48px;position:relative}
+.icon-btn{border:0;background:transparent;cursor:pointer;border-radius:8px;padding:6px;color:#6b6882;display:inline-grid;place-items:center;position:absolute;right:8px;top:50%;transform:translateY(-50%)}
+.icon-btn:hover{color:var(--primary)}
+
+/* Select styling */
+.input.select {
+  position: relative;
+  padding-right: 40px !important;
+}
+.input.select select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  padding-right: 25px !important;
+  font-size: 15px !important;
+  color: var(--text) !important;
+}
+.select .chev {
+  position: absolute !important;
+  right: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: var(--muted) !important;
+  pointer-events: none !important;
+  font-size: 14px !important;
+  z-index: 1 !important;
 }
 
-.profile-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 1.5rem;
+/* Unidades */
+.with-suffix{padding-right:10px}
+.suffix{margin:0 10px;font-weight:700;color:#3b2f5e;opacity:.7; font-size: 13px;}
+.input:focus-within .suffix{opacity:1;color:var(--primary)}
+
+/* Disponibilidad */
+.availability{display:flex;align-items:center;gap:10px;padding:6px 2px;border-radius:10px}
+.status-icon{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;flex-shrink:0}
+.status-icon.ok{color:var(--primary) !important;background:rgba(159, 84, 253, 0.1) !important}
+.status-icon.off{color:#7a7a8c;background:#f0f2f6}
+.status-text{font-weight:600;flex:1}
+.status-text.on{color:var(--primary) !important}.status-text.off{color:#7a7a8c}
+.switch{margin-left:auto;display:inline-flex;align-items:center;flex-shrink:0}
+.switch input{display:none}
+.slider{width:44px;height:26px;background:#ece9fb;border-radius:999px;position:relative;border:1px solid #e2dcfb;transition:background .2s, border-color .2s}
+.slider::after{content:"";position:absolute;left:4px;top:50%;width:18px;height:18px;border-radius:50%;transform:translateY(-50%);background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12);transition:transform .2s}
+.switch input:checked + .slider{background:linear-gradient(135deg,var(--primary), #7b2cbf) !important;border-color:transparent !important}
+.switch input:checked + .slider::after{transform:translate(20px,-50%) !important}
+
+/* Chips / Cards / Negocios */
+.chip-input{gap:8px}
+.btn-small{padding:8px 10px;border-radius:10px;border:1px solid #e6e2f6;background:#fff;font-weight:600;cursor:pointer; min-width: max-content !important;}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px;overflow:hidden}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:#7b2cbf;border:1px solid #7b2cbf;color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:max-content; font-size: 13px;}
+.chip .x{font-weight:800;opacity:.55; cursor: pointer;}
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #efe9fb;border-radius:16px;padding:18px !important;box-shadow:0 2px 8px rgba(16,0,43,.05)}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.tt{display:flex;align-items:center;gap:8px;flex-wrap:wrap;overflow:hidden;min-width:0}
+.badge{background:#f3edff;color:#472a86;border-radius:8px;padding:4px 8px;font-size:12px;font-weight:700}
+.dot{opacity:.45}.place{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.meta{display:flex;align-items:center;gap:6px;color:#6b6882;font-size:13px;margin:4px 0 8px;flex-wrap:wrap;overflow:hidden}
+.desc{color:#2f2946;line-height:1.5;font-size:12px;word-wrap:break-word;overflow-wrap:break-word;hyphens:auto;max-width:100%;overflow:hidden}
+.tools{display:flex; justify-content:center; align-items: center; gap:6px}
+.icon{border:1px solid #eee;background:#fff;border-radius:10px;padding:6px 7px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center}
+.icon.danger{color:#c03645;border-color:#f1c6cf;background:#fff; margin-top: 0;}
+.business .row{margin:16px 0 20px !important}
+.business-info, .business-code{display:flex;align-items:center;gap:10px !important;font-size:14px !important;line-height:1.4 !important;margin-bottom:12px;flex-wrap:wrap;overflow:hidden}
+.business-code{justify-content:flex-start}
+.card.business{margin-bottom:20px !important; &:first-child{margin-top:20px}}
+@media (min-width:768px){ 
+  .business-info{margin-bottom:0}
+  .business-code{justify-content:flex-end;margin-bottom:0}
+}
+.kbd{font:700 .9rem/1 ui-monospace,Menlo,Monaco,Consolas,"Courier New",monospace;background:#f7f4ff;border:1px solid #eadfff;border-radius:8px;padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+.link{background:none;border:0;color:#9f54fd;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.pill{padding:6px 10px;border-radius:999px;font-weight:700;font-size:.85rem;border:1px solid}
+.pill.ok{color:#0f8e58;border-color:#bfead6;background:#e9fbf3}
+.pill.off{color:#7a7a8c;border-color:#e6e6f0;background:#f6f7fb}
+.foot{display:flex !important;justify-content:flex-end !important;padding-top:14px !important;border-top:1px solid rgba(234, 223, 252, 0.8) !important;width:100% !important}
+
+/* Botones */
+.btn{border:0;cursor:pointer;font-weight:500; font-size: 14px;  min-height: 44px; width: max-content; border-radius: var(--radius);}
+.btn-primary{color:#fff;border-radius:14px; font-weight:500; padding:12px 14px;background:linear-gradient(135deg,var(--primary),#7b2cbf);box-shadow:0 10px 22px rgba(159,84,253,.18);}
+.btn-primary.subtle{padding:10px 12px}
+.btn-primary.full{width:100%}
+.btn-danger{background:#fff;color:#d23947;border:1px solid #f6cdd2;padding:10px 14px;border-radius:12px;font-weight:800}
+.btn-ghost{background:#fff;border:1px solid #e8e8ee;border-radius:12px;padding:8px 12px;font-weight:700;cursor:pointer}
+.btn-ghost.danger{background:#fff !important;color:#d23947 !important;border:1px solid #f6cdd2 !important;font-size:13px !important;border-radius:8px !important;padding:8px 14px !important;font-weight:600 !important;transition:all 0.2s ease !important;display:inline-flex !important;align-items:center !important;gap:6px !important;min-height:32px !important}
+.btn-ghost.danger:hover{background:#fef2f2 !important;border-color:#f87171 !important;color:#dc2626 !important}
+.btn-small{padding:8px 10px;border-radius:10px;border:1px solid #e6e2f6;background:#fff;font-weight:600;cursor:pointer}
+
+/* Otros */
+.head-row{display:flex;align-items:center;justify-content:space-between;margin:6px 0 14px;flex-wrap:wrap;gap:8px}
+.sep{border:none;border-top:1px solid #eadffc;margin:14px 0}
+.danger{margin-top:10px;padding:14px;border:1px solid #ffe4e7;background:#fff;border-radius:16px;box-shadow:var(--shadow-sm)}
+.danger p{color:#4b3e66;margin:8px 0 12px;line-height:1.45;word-wrap:break-word;overflow-wrap:break-word}
+
+/* Reglas generales para prevenir desbordamientos */
+.card *{
+  word-wrap:break-word;
+  overflow-wrap:break-word;
+  hyphens:auto;
+}
+.input, .input *{
+  min-width:0;
+}
+span, p, div{
+  min-width:0;
+  box-sizing:border-box;
 }
 
-.back-button {
-  display: flex;
-  align-items: center;
-  background: none;
-  border: none;
-  color: #6A3FEA;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 0.5rem;
+.mt {
+  margin-top: 20px;
 }
 
-.back-button i {
-  margin-right: 0.5rem;
+.muted {
+  color: var(--muted);
 }
 
+/* Loading y alertas */
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -1106,11 +1274,11 @@ watch(error, (newVal) => {
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(106, 63, 234, 0.3);
+  border: 3px solid rgba(159, 84, 253, 0.2);
   border-radius: 50%;
-  border-top-color: #6A3FEA;
+  border-top-color: rgb(159, 84, 253);
   animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
 }
 
 @keyframes spin {
@@ -1118,557 +1286,89 @@ watch(error, (newVal) => {
 }
 
 .alert {
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .alert-danger {
-  background-color: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+  background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.2);
 }
 
 .alert-success {
-  background-color: #dcfce7;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
-}
-
-.profile-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.profile-card {
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  padding: 1.5rem;
-}
-
-.profile-card.danger-zone {
-  border: 1px solid #fee2e2;
-}
-
-.profile-card.completeness-card {
-  border: 1px solid #fef3c7;
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-}
-
-.completeness-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.completeness-percentage {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #92400e;
-  background: #fbbf24;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  color: white;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 8px;
-  background-color: #f3f4f6;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
-  transition: width 0.3s ease;
-}
-
-.completeness-text {
-  font-size: 0.875rem;
-  color: #92400e;
-  margin: 0;
-}
-
-.missing-fields {
-  background: rgba(251, 191, 36, 0.1);
-  padding: 1rem;
-  border-radius: 6px;
-  border: 1px solid #fcd34d;
-}
-
-.missing-fields ul {
-  margin: 0.5rem 0 0 0;
-  padding-left: 1.5rem;
-  color: #92400e;
-}
-
-.missing-fields li {
-  margin-bottom: 0.25rem;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid #f0f0f0;
-  padding-bottom: 1rem;
-}
-
-.card-header h2, .card-header h3 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.profile-main {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.profile-image-section {
-  display: flex;
-  justify-content: center;
-}
-
-.profile-data {
-  display: flex;
-  flex-direction: column;
-}
-
-.data-row {
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.data-row:last-child {
-  border-bottom: none;
-}
-
-.age-display {
-  font-size: 0.875rem;
-  color: #666;
-  margin-top: 0.5rem;
-}
-
-.skills-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.skills-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.skill-tag {
-  display: inline-flex;
-  align-items: center;
-  background-color: #6A3FEA;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  gap: 0.5rem;
-}
-
-.skill-remove {
-  background: none;
-  border: none;
-  color: white;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.skill-input {
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 1rem;
-  width: 100%;
-  max-width: 300px;
-}
-
-.skill-input:focus {
-  outline: none;
-  border-color: #6A3FEA;
-  box-shadow: 0 0 0 2px rgba(106, 63, 234, 0.2);
-}
-
-.work-history {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.work-item {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.work-item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.5rem;
-}
-
-.work-item-header h4 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.work-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.work-dates {
-  font-size: 0.875rem;
-  color: #666;
-  margin-bottom: 0.5rem;
-}
-
-.work-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.work-info {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  font-size: 0.875rem;
-}
-
-.employment-status {
-  background-color: #dbeafe;
-  color: #1e40af;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.employment-type {
-  background-color: #f3e8ff;
-  color: #7c3aed;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.hourly-rate {
-  background-color: #dcfce7;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
   color: #16a34a;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-weight: 600;
-}
-
-.last-activity {
-  font-size: 0.8rem;
-  color: #9ca3af;
-}
-
-.work-description {
-  font-size: 0.875rem;
-  color: #4b5563;
-  line-height: 1.5;
-  margin-top: 0.5rem;
-}
-
-.businesses-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.business-item {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-}
-
-.business-item:last-child {
-  margin-bottom: 0;
-}
-
-.business-item.detailed {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.business-main-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.business-name {
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: #1e293b;
-}
-
-.business-code {
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-family: 'Courier New', monospace;
-  background-color: #f3f4f6;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  display: inline-block;
-  width: fit-content;
-}
-
-.business-status {
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  width: fit-content;
-}
-
-.business-status.active {
-  background-color: #dcfce7;
-  color: #15803d;
-}
-
-.business-status.inactive {
-  background-color: #fee2e2;
-  color: #dc2626;
-}
-
-.business-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.75rem;
-  padding: 1rem;
-  background-color: #f9fafb;
-  border-radius: 6px;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: #6b7280;
-  text-transform: uppercase;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-}
-
-.stat-value {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.business-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 2rem;
-  color: #9ca3af;
-  font-style: italic;
-}
-
-.password-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 400px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-row {
-  display: flex;
-  gap: 1rem;
-}
-
-.form-row .form-group {
-  flex: 1;
-}
-
-.form-group label {
-  font-weight: 500;
-  color: #374151;
+  border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
 .form-control {
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #f1f0f0;
+  border-radius: var(--radius);
+  font-size: 15px;
+  color: var(--text);
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+  transition: border-color .2s ease, box-shadow .2s ease;
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #6A3FEA;
-  box-shadow: 0 0 0 2px rgba(106, 63, 234, 0.2);
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(159, 84, 253, 0.15) !important;
 }
 
-.form-text {
-  font-size: 0.875rem;
-  color: #6b7280;
+.form-control:hover:not(:focus) {
+  border-color: #9ca3af;
 }
 
-.form-text.error {
-  color: #dc2626;
+.form-control:active {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(159, 84, 253, 0.15) !important;
 }
 
-.danger-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+/* Date inputs en modales */
+.form-control[type="date"] {
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
-.danger-content p {
-  color: #6b7280;
-  margin: 0;
+.form-control[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
 }
 
 .delete-account-content {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 16px;
 }
 
-.btn {
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  transition: background-color 0.2s, border-color 0.2s;
-  border: 1px solid transparent;
+.btn-skill{
+  background-color: #7b2cbf;
+  font-size: 13px;
+  color: #fff;
+}
+.btn-skill:focus, .btn-skill:hover{
+  background-color: #63239b;
+  color: #fff;
 }
 
-.btn-sm {
-  padding: 0.25rem 0.75rem;
-  font-size: 0.875rem;
+.chip-input{
+  padding: 10px 15px 10px 10px;
+  margin: 10px 0 20px 0;
 }
 
-.btn-outline-primary {
-  background-color: transparent;
-  border-color: #6A3FEA;
-  color: #6A3FEA;
-}
 
-.btn-outline-primary:hover {
-  background-color: #6A3FEA;
-  color: white;
-}
-
-.btn-outline-danger {
-  background-color: transparent;
-  border-color: #dc2626;
-  color: #dc2626;
-}
-
-.btn-outline-danger:hover {
-  background-color: #dc2626;
-  color: white;
-}
-
-.availability-toggle {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.availability-toggle .form-label {
-  font-weight: 500;
-  color: #374151;
-  margin: 0;
-}
-
-.toggle-container {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.toggle-input {
-  width: 1rem;
-  height: 1rem;
-  accent-color: #6A3FEA;
-  cursor: pointer;
-}
-
-.toggle-label {
-  font-weight: 500;
-  color: #1e293b;
-  cursor: pointer;
-  margin: 0;
-}
-
-@media (min-width: 768px) {
-  .profile-container {
-    padding: 2rem;
-    padding-top: 80px;
-  }
-  
-  .profile-main {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 2rem;
-  }
-  
-  .profile-image-section {
-    flex-shrink: 0;
-  }
-  
-  .profile-data {
-    flex: 1;
-  }
-  
-  .form-row {
-    flex-direction: row;
-  }
-}
-
-@media (min-width: 992px) {
-  .profile-content {
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-}
 </style>

@@ -221,7 +221,7 @@ class WaiterCallsService {
    */
   async silenceMultipleTables(tableIds, durationMinutes = 30, notes = '') {
     try {
-      const response = await apiService.post('/waiter/tables/silence/multiple', {
+      const response = await apiService.silenceMultipleTables({
         table_ids: tableIds,
         duration_minutes: durationMinutes,
         notes
@@ -239,7 +239,7 @@ class WaiterCallsService {
    */
   async unsilenceMultipleTables(tableIds) {
     try {
-      const response = await apiService.post('/waiter/tables/unsilence/multiple', {
+      const response = await apiService.unsilenceMultipleTables({
         table_ids: tableIds
       })
       return response.data
@@ -494,7 +494,7 @@ class WaiterCallsService {
    */
   async getAdminSilencedTables() {
     try {
-      const response = await apiService.get('/admin/tables/silenced')
+      const response = await apiService.getAdminSilencedTables()
       return response.data
     } catch (error) {
       console.error('Error getting admin silenced tables:', error)
@@ -508,7 +508,7 @@ class WaiterCallsService {
    */
   async adminUnsilenceTable(tableId) {
     try {
-      const response = await apiService.delete(`/admin/tables/${tableId}/silence`)
+      const response = await apiService.adminUnsilenceTable(tableId)
       return response.data
     } catch (error) {
       console.error('Error admin unsilencing table:', error)

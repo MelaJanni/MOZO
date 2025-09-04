@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap");
 :root {
   --primary: #9f54fd;
   --secondary: #7b2cbf;
@@ -10,7 +11,28 @@
   --violet-400: #9d4edd;
   --violet-500: #7b2cbf;
   --violet-600: #5a189a;
+  --violet-700: #3c096c;
+  --violet-800: #240046;
+  --violet-900: #10002b;
   --brand-primary: #9f54fd;
   --bg-app: #f8f4ff;
   --radius: 10.5px;
+  --radius-lg: 15px;
+  --radius-sm: 8.5px;
+  --card-radius: 15px;
+  --font-primary: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif;
+  --font-secondary: Poppins, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif;
+  --text-primary: rgb(16, 0, 43);
+  --subtext-primary: rgb(107, 114, 128);
+  --text-input: rgb(16, 0, 43);
+  /* Aliases del sistema Mozo */
+  --color-primary: #9f54fd;
+  --color-primary-dark: #7b2cbf;
+  --color-accent: #c77dff;
+  --color-accent-light: #e0aaff;
+  --color-light: #f8f4ff;
+  /* Sombras */
+  --shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.12);
 }/*# sourceMappingURL=variables.css.map */

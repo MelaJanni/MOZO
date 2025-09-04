@@ -123,7 +123,7 @@ const cancelEditing = () => {
           :placeholder="placeholder"
           :min="min"
           :max="max"
-          :class="['edit-input', { 'input-error': hasError }]"
+          :class="['edit-input ', { 'input-error': hasError }]"
           @keydown="handleKeyDown"
           @change="saveChanges"
           @blur="cancelEditing"
@@ -180,90 +180,12 @@ const cancelEditing = () => {
   </div>
 </template>
 <style scoped>
-.editable-field {
-  margin-bottom: 0.75rem;
-}
-.field-label {
-  font-size: 0.875rem;
-  color: #666;
-  margin-bottom: 0.25rem;
-}
-.field-content {
-  display: flex;
-  align-items: center;
-}
-.display-value {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 0.5rem 0;
-  font-size: 1rem;
-  color: #333;
-}
-.edit-button {
-  background: none;
-  border: none;
-  color: #6A3FEA;
-  cursor: pointer;
-  padding: 0.25rem;
-  opacity: 0.5;
-  transition: opacity 0.2s;
-}
-.display-value:hover .edit-button {
-  opacity: 1;
-}
-.edit-container {
-  display: flex;
-  width: 100%;
-}
-.edit-input, .edit-select {
-  flex: 1;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 1rem;
-  outline: none;
-}
-.edit-input:focus, .edit-select:focus {
-  border-color: #6A3FEA;
-  box-shadow: 0 0 0 2px rgba(106, 63, 234, 0.2);
-}
-.edit-actions {
-  display: flex;
-  margin-left: 0.5rem;
-}
-.action-button {
-  background: none;
-  border: none;
-  padding: 0.25rem;
-  cursor: pointer;
-  font-size: 1.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.save-button {
-  color: #28a745;
-}
-.cancel-button {
-  color: #dc3545;
-}
+
+.save-button { color: #10b981; }
+.cancel-button { color: #ef4444; }
 
 /* Error styles */
-.has-error .field-label {
-  color: #dc3545;
-}
-
-.input-error {
-  border-color: #dc3545 !important;
-  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2) !important;
-}
-
-.error-message {
-  font-size: 0.875rem;
-  color: #dc3545;
-  margin-top: 0.25rem;
-  padding-left: 0.5rem;
-}
+.has-error .field-label { color: #dc3545; }
+.input-error { box-shadow: inset 0 0 0 1px rgba(220,53,69,0.6) !important; }
+.error-message { font-size: 0.875rem; color: #dc3545; margin-top: 6px; padding-left: 8px; }
 </style> 

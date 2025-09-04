@@ -24,7 +24,7 @@
           :class="{ 'unread': !notification.read_at }"
           @click="markAsRead(notification)"
         >
-          <div class="notification-content">
+          <div class="notification-contentv w-100">
             <div class="notification-title">
               {{ notification.data?.title || notification.title || 'Notificación' }}
             </div>

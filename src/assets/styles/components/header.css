@@ -1,0 +1,56 @@
+/* Header Component */
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+.header-user .user-avatar {
+  background-color: rgb(159, 84, 253);
+  border-radius: 50%;
+  height: 35px;
+  width: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-family: var(--font-secondary);
+  font-weight: 600;
+  font-size: 14px;
+}
+.header-user .user-info {
+  flex: 1;
+}
+.header-user .user-info .user-name {
+  color: rgb(16, 0, 43);
+  display: block;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-variation-settings: normal;
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 0;
+}
+.header-user .user-info .user-time {
+  color: rgb(107, 114, 128);
+  font-family: Inter, sans-serif;
+  font-size: 10.5px;
+  font-variation-settings: normal;
+  font-weight: 400;
+  line-height: 1.2;
+  margin: 0;
+}
+.header-user .notification-badge {
+  background-color: var(--danger);
+  border-radius: 50%;
+  color: white;
+  font-family: var(--font-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  height: 20px;
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+}/*# sourceMappingURL=header.css.map */

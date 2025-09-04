@@ -1,5 +1,5 @@
 /* Perfiles de Mesas - estilos del modal y listas (violeta) */
-.pm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index: 3000; padding: 16px; }
+.pm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index: 9400; padding: 16px; }
 .pm-modal {
   .modal-content { background: oklch(0.985 0.015 277); border: 1px solid rgba(159,84,253,.25); border-radius: 16px; max-width: 720px; width: 100%; }
   .modal-header { padding: 16px 20px; border-bottom: 1px solid rgba(159,84,253,.18); display:flex; justify-content: space-between; align-items:center; }

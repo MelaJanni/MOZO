@@ -38,10 +38,10 @@
                   </div>
                   <div class="row-right">
                     <button @click="editProfile(profile)" class="action-btn edit" title="Editar perfil">
-                      <i class="fa-light fa-pen"></i>
+                      <i class="fas fa-edit"></i>
                     </button>
                     <button @click="deleteProfile(profile.id, profile.name)" class="action-btn delete" title="Eliminar perfil">
-                      <i class="fas fa-light fa-trash"></i>
+                      <i class="fas fa-trash"></i>
                     </button>
                   </div>
                 </div>
@@ -295,7 +295,7 @@ const tableGroups = computed(() => {
 const loadProfiles = async () => {
   state.loading = true
   try {
-    const response = await apiService.getWaiterTableProfiles()
+    const response = await apiService.getWaiterTableProfiles({ include: 'tables' })
     if (response.data.success) {
       state.profiles = response.data.profiles || []
       console.log('✅ Perfiles cargados:', state.profiles.length)

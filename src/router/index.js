@@ -5,6 +5,7 @@ import Login from '@/views/auth/Login.vue'
 import Register from '@/views/auth/Register.vue'
 import ForgotPassword from '@/views/auth/ForgotPassword.vue'
 import ResetPassword from '@/views/auth/ResetPassword.vue'
+import Callback from '@/views/auth/Callback.vue'
 import RoleSelection from '@/views/auth/RoleSelection.vue'
 
 import WaiterDashboard from '@/views/Waiter/Dashboard.vue'
@@ -59,6 +60,12 @@ const router = createRouter({
       name: 'register',
       component: Register,
       meta: { requiresGuest: true }
+    },
+    {
+      path: '/auth/callback',
+      name: 'auth-callback',
+      component: Callback,
+      meta: { requiresGuest: false }
     },
     {
       path: '/forgot-password',

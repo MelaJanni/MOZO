@@ -1,5 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
 // Paleta principal (Coolors + color de logo)
-// https://coolors.co/palette/10002b-240046-3c096c-5a189a-7b2cbf-9d4edd-c77dff-e0aaff
 $violet-900: #10002b;
 $violet-800: #240046;
 $violet-700: #3c096c;
@@ -24,8 +25,8 @@ $light: #f8f9fa;
 $dark: #0f172a;
 
 // Tipografía base
-$font-family-primary: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
-$font-family-secondary: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+$font-family-primary: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+$font-family-secondary: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
 $font-family-sans-serif: $font-family-primary; // Bootstrap compatibility
 $headings-font-weight: 600;
 
@@ -53,9 +54,15 @@ $box-shadow-lg: 0 1rem 3rem rgba(0,0,0,.12);
   --violet-400: #{$violet-400};
   --violet-500: #{$violet-500};
   --violet-600: #{$violet-600};
+  --violet-700: #{$violet-700};
+  --violet-800: #{$violet-800};
+  --violet-900: #{$violet-900};
   --brand-primary: #{$brand-primary};
   --bg-app: #{$violet-200a};
   --radius: #{$border-radius};
+  --radius-lg: #{$border-radius-lg};
+  --radius-sm: #{$border-radius-sm};
+  --card-radius: #{$card-radius};
   
   // Font families
   --font-primary: #{$font-family-primary};
@@ -65,4 +72,16 @@ $box-shadow-lg: 0 1rem 3rem rgba(0,0,0,.12);
   --text-primary: rgb(16, 0, 43);
   --subtext-primary: rgb(107, 114, 128);
   --text-input: rgb(16, 0, 43);
+
+  /* Aliases del sistema Mozo */
+  --color-primary: #{$brand-primary};
+  --color-primary-dark: #{$violet-500};
+  --color-accent: #{$violet-300};
+  --color-accent-light: #{$violet-200};
+  --color-light: #{$violet-200a};
+
+  /* Sombras */
+  --shadow: #{$box-shadow};
+  --shadow-sm: #{$box-shadow-sm};
+  --shadow-lg: #{$box-shadow-lg};
 }

@@ -1,5 +1,13 @@
 import Swal from 'sweetalert2'
 
+// Configurar z-index global para SweetAlert2 para que aparezca sobre todos los modales
+Swal.mixin({
+  heightAuto: false,
+  customClass: {
+    container: 'swal2-container-high-z'
+  }
+})
+
 const Toast = Swal.mixin({
   toast: true,
   position: 'top-end',
@@ -42,7 +50,11 @@ export const showConfirmDialog = async (
     cancelButtonColor: '#6c757d',
     confirmButtonText,
     cancelButtonText,
-    reverseButtons: true
+    reverseButtons: true,
+    heightAuto: false,
+    customClass: {
+      container: 'swal2-container-high-z'
+    }
   })
 
   return result.isConfirmed

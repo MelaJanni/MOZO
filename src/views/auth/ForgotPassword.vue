@@ -1,54 +1,53 @@
 <template>
   <div class="auth-container">
-    <div class="auth-card">
-      <div class="text-center mb-4">
-        <h1 class="h3">Recuperar contraseña</h1>
-        <p class="text-muted">Ingresa tu correo electrónico para recibir un enlace de recuperación</p>
-      </div>
-      
-      <div v-if="success" class="alert alert-success">
-        {{ success }}
-      </div>
-      
-      <div v-if="error" class="alert alert-danger">
-        {{ error }}
-      </div>
-      
-      <form @submit.prevent="handleForgotPassword" v-if="!success">
-        <div class="mb-4">
-          <label for="email" class="form-label">Correo electrónico</label>
-          <input 
-            type="email" 
-            class="form-control" 
-            id="email" 
-            v-model="email" 
-            required
-            :disabled="loading"
-            placeholder="correo@ejemplo.com"
-          >
-        </div>
-        
-        <button 
-          type="submit" 
-          class="btn btn-primary w-100 mb-4" 
-          :disabled="loading || !isFormValid"
-        >
-          <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-          Enviar enlace de recuperación
-        </button>
-        
-        <div class="text-center">
-          <router-link to="/login" class="link-primary">
-            <i class="bi bi-arrow-left me-1"></i> Volver a inicio de sesión
-          </router-link>
-        </div>
-      </form>
-      
-      <div class="text-center mt-3" v-if="success">
-        <router-link to="/login" class="btn btn-outline-primary">
-          Volver a inicio de sesión
+    <!-- Icons -->
+    <svg style="position:absolute;width:0;height:0;visibility:hidden">
+      <symbol id="i-mail" viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M3 7l9 6 9-6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="i-arrow-left" viewBox="0 0 24 24">
+        <path d="M19 12H5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 19l-7-7 7-7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+    </svg>
+
+    <div class="wrap">
+    <div class="forgot-password">
+      <header class="brand">
+        <div class="wordmark"><img src="@/assets/mozo-logo.jpeg" alt="MÖZÖ"></div>
+        <p class="subtitle">Recupera el acceso a tu cuenta</p>
+      </header>
+
+      <div v-if="success" class="card">
+        <p>{{ success }}</p>
+        <router-link to="/login" class="link back-link">
+          <svg class="i sm"><use href="#i-arrow-left"/></svg>
+          Volver al inicio de sesión
         </router-link>
       </div>
+
+      <form @submit.prevent="handleForgotPassword" class="form" v-if="!success">
+        <div class="group">
+          <label>Correo electrónico</label>
+          <div class="input has-icon">
+            <svg class="i sm left"><use href="#i-mail"/></svg>
+            <input 
+              v-model="email" 
+              type="email" 
+              placeholder="tucorreo@ejemplo.com" 
+              autocomplete="email"
+              :disabled="loading"
+            />
+          </div>
+        </div>
+
+        <p v-if="error" class="error">{{ error }}</p>
+        <button class="btn primary" :disabled="loading || !isFormValid" type="submit">
+          {{ loading ? 'Enviando…' : 'Enviar enlace de recuperación' }}
+        </button>
+      </form>
+    </div>
     </div>
   </div>
 </template>
@@ -101,28 +100,7 @@ export default {
 }
 </script>
 
-<style scoped>
-.auth-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--bs-light);
-  padding: 1rem;
-}
-
-.auth-card {
-  background-color: white;
-  border-radius: var(--border-radius);
-  padding: 2rem;
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-  width: 100%;
-  max-width: 450px;
-}
-
-@media (max-width: 576px) {
-  .auth-card {
-    padding: 1.5rem;
-  }
-}
+<style lang="scss">
+@import '@/assets/styles/screens/auth.scss';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
 </style> 
