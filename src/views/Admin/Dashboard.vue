@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard">
+  <div class="admin-dashboard">
     <!-- Debug info -->
     <div style="position: fixed; top: 10px; right: 10px; background: #f0f0f0; padding: 10px; z-index: 9999; font-size: 11px; border: 1px solid #ccc; max-width: 300px;">
       <strong>Debug Info:</strong><br>
@@ -17,133 +17,275 @@
     />
     
     <!-- Dashboard normal si ya tiene negocio -->
-    <div v-else class="container py-3">
-      <div class="role-section">
-        <div class="role-dropdown me-2">
-          <button class="btn btn-outline-secondary dropdown-toggle" id="roleMenu" data-bs-toggle="dropdown">
-            Rol Admin
-          </button>
-          <ul class="dropdown-menu" aria-labelledby="roleMenu">
-            <li><a class="dropdown-item" href="#" @click="selectedRole = 'admin'">Admin</a></li>
-            <li><a class="dropdown-item" href="#" @click="handleRoleChange">Mozo</a></li>
-          </ul>
-        </div>
-        
-        <!-- Business Selector - Only show if multiple businesses available -->
-        <div v-if="availableBusinesses.length > 1" class="business-dropdown me-2">
-          <button 
-            class="btn btn-outline-primary dropdown-toggle" 
-            @click="toggleBusinessDropdown"
-            :disabled="isLoadingBusinessSwitch"
-          >
-            <i class="bi bi-building me-1"></i>
-            {{ isLoadingBusinessSwitch ? 'Cambiando...' : currentBusinessName }}
-            <i v-if="isLoadingBusinessSwitch" class="bi bi-arrow-clockwise spin ms-1"></i>
-          </button>
-          <div class="dropdown-menu" :class="{ show: showBusinessDropdown }">
-            <div v-for="business in availableBusinesses" :key="business.id" class="dropdown-item-wrapper">
-              <a 
-                class="dropdown-item" 
-                href="#" 
-                @click="switchBusiness(business)"
-                :class="{ active: business.id === adminStore.activeBusinessId }"
-              >
-                <i class="bi bi-building me-2"></i>
-                {{ business.name }}
-                <small v-if="business.id === adminStore.activeBusinessId" class="text-success ms-2">
-                  <i class="bi bi-check-circle-fill"></i>
-                </small>
-              </a>
-            </div>
+    <div v-else class="dashboard-container">
+      <!-- Header con gradiente -->
+      <div class="dashboard-header">
+        <div class="header-top">
+          <div class="header-left">
+            <button class="menu-button" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" x2="20" y1="12" y2="12"></line>
+                <line x1="4" x2="20" y1="6" y2="6"></line>
+                <line x1="4" x2="20" y1="18" y2="18"></line>
+              </svg>
+            </button>
+            <h1 class="app-title">MOZÓ</h1>
+          </div>
+          <div class="notifications-container">
+            <button class="notification-button" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.268 21a2 2 0 0 0 3.464 0"></path>
+                <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path>
+              </svg>
+              <span v-if="staffNotificationCount > 0" class="notification-badge">{{ staffNotificationCount > 99 ? '99+' : staffNotificationCount }}</span>
+            </button>
           </div>
         </div>
         
-        <div class="user-id-container d-flex align-items-center">
-          <span class="user-id me-2">ID:{{ businessCode }}</span>
-          <button class="btn btn-sm btn-outline-secondary" @click="copyBusinessCode" title="Copiar al portapapeles">
-            <i class="bi bi-clipboard"></i>
-          </button>
-        </div>
-      </div>
-      <div class="row mb-3">
-        <div class="col-12">
-          <div class="card">
-            <div class="card-body">
-              <h5 class="card-title">
-                <i class="bi bi-bell-fill text-primary me-2"></i>
-                Prueba de Notificaciones
-              </h5>
-              <p class="card-text text-muted">
-                Envía una notificación de prueba a todos los mozos activos para verificar el sistema.
-              </p>
-              <div class="d-flex gap-2">
+        <div class="header-content">
+          <!-- Role selector -->
+          <div class="role-selector">
+            <div class="role-dropdown">
+              <button class="role-button" type="button" @click="toggleRoleDropdown">
+                <div class="role-text">
+                  <span>Rol Admin</span>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m6 9 6 6 6-6"></path>
+                </svg>
+              </button>
+              <div class="role-dropdown-menu" :class="{ show: showRoleDropdown }">
+                <button class="dropdown-item" @click="selectedRole = 'admin'; showRoleDropdown = false">Admin</button>
+                <button class="dropdown-item" @click="handleRoleChange">Mozo</button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Business Selector - Only show if multiple businesses available -->
+          <div v-if="availableBusinesses.length > 1" class="business-selector">
+            <div class="business-dropdown">
+              <button 
+                class="business-toggle" 
+                @click="toggleBusinessDropdown"
+                :disabled="isLoadingBusinessSwitch"
+                type="button"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/>
+                </svg>
+                {{ isLoadingBusinessSwitch ? 'Cambiando...' : currentBusinessName }}
+                <svg v-if="isLoadingBusinessSwitch" class="loading-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                  <path d="M21 3v5h-5"/>
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                  <path d="M8 16H3v5"/>
+                </svg>
+              </button>
+              <div class="business-menu" :class="{ show: showBusinessDropdown }">
                 <button 
-                  class="btn btn-primary" 
-                  @click="sendTestNotification"
-                  :disabled="isSendingNotification"
+                  v-for="business in availableBusinesses" 
+                  :key="business.id"
+                  class="business-item"
+                  :class="{ active: business.id === adminStore.activeBusinessId }"
+                  @click="switchBusiness(business)"
                 >
-                  <i class="bi bi-send me-2"></i>
-                  {{ isSendingNotification ? 'Enviando...' : 'Enviar Notificación de Prueba' }}
-                </button>
-                <button 
-                  class="btn btn-outline-secondary" 
-                  @click="sendTestNotificationToSpecificWaiter"
-                  :disabled="isSendingNotification"
-                >
-                  <i class="bi bi-person-plus me-2"></i>
-                  Enviar a Mozo Específico
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/>
+                  </svg>
+                  {{ business.name }}
+                  <svg v-if="business.id === adminStore.activeBusinessId" class="check-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 6 9 17l-5-5"/>
+                  </svg>
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      </div>
-      <div class="row g-3 card-grid">
-        <div class="col-6">
-          <router-link to="/admin/qr" class="card dashboard-card text-center text-decoration-none">
-            <div class="card-body">
-              <i class="bi bi-qr-code"></i>
-            </div>
-            <div class="card-footer">QR</div>
-          </router-link>
-        </div>
-        <div class="col-6">
-          <router-link to="/admin/stats" class="card dashboard-card text-center text-decoration-none">
-            <div class="card-body">
-              <i class="bi bi-graph-up"></i>
-            </div>
-            <div class="card-footer">ESTADÍSTICAS</div>
-          </router-link>
-        </div>
-        <div class="col-6">
-          <router-link to="/admin/staff" class="card dashboard-card text-center text-decoration-none position-relative">
-            <div class="card-body">
-              <i class="bi bi-person-fill"></i>
-              <span v-if="staffNotificationCount > 0" class="staff-notification-badge">{{ staffNotificationCount > 99 ? '99+' : staffNotificationCount }}</span>
-            </div>
-            <div class="card-footer">PERSONAL</div>
-          </router-link>
-        </div>
-        <div class="col-6">
-          <router-link to="/admin/settings" class="card dashboard-card text-center text-decoration-none">
-            <div class="card-body">
-              <i class="bi bi-gear-fill"></i>
-            </div>
-            <div class="card-footer">CONFIGURACIÓN</div>
-          </router-link>
+          
+          <!-- Business ID -->
+          <div class="business-id-section">
+            <span class="id-label">ID:</span>
+            <span class="id-value">{{ businessCode }}</span>
+            <button class="copy-button" @click="copyBusinessCode" title="Copiar al portapapeles" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
       
-      <!-- Toast de notificaciones -->
-      <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-        <div class="toast show" v-if="showToast" role="alert" aria-live="assertive" aria-atomic="true">
-          <div class="toast-header">
-            <strong class="me-auto">Notificación</strong>
-            <button type="button" class="btn-close" @click="showToast = false"></button>
+      <!-- Contenido del dashboard -->
+      <div class="dashboard-content">
+        <!-- Estadísticas del negocio -->
+        <div class="business-stats">
+          <div class="stats-header">
+            <div class="business-info">
+              <h2>{{ currentBusinessName || 'Café Central' }}</h2>
+              <p>Negocio activo: 1</p>
+            </div>
           </div>
-          <div class="toast-body">
-            {{ toastMessage }}
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-number">1</div>
+              <div class="stat-label">Mesas</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">0</div>
+              <div class="stat-label">Menús</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">1</div>
+              <div class="stat-label">QRs</div>
+            </div>
           </div>
+        </div>
+        
+        <!-- Código de invitación -->
+        <div class="invitation-section">
+          <div class="invitation-header">
+            <h3>Código de invitación:</h3>
+            <div class="code-display">
+              <span class="code-value">{{ businessCode }}</span>
+              <button class="link-button" type="button">Enlace</button>
+            </div>
+          </div>
+          <div class="invitation-actions">
+            <button class="action-button regenerate" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                <path d="M21 3v5h-5"></path>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                <path d="M8 16H3v5"></path>
+              </svg>
+              Regenerar
+            </button>
+            <button class="action-button copy" @click="copyBusinessCode" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+              </svg>
+              Copiar ID
+            </button>
+          </div>
+        </div>
+        
+        <!-- Sección de prueba de notificaciones -->
+        <div class="test-notification-section">
+          <div class="section-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.268 21a2 2 0 0 0 3.464 0"></path>
+              <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path>
+            </svg>
+            <h5>Prueba de Notificaciones</h5>
+          </div>
+          <p class="section-description">
+            Envía una notificación de prueba a todos los mozos activos para verificar el sistema.
+          </p>
+          <div class="action-buttons">
+            <button 
+              class="test-button" 
+              @click="sendTestNotification"
+              :disabled="isSendingNotification"
+              type="button"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m22 2-7 20-4-9-9-4Z"/>
+                <path d="M22 2 11 13"/>
+              </svg>
+              {{ isSendingNotification ? 'Enviando...' : 'Enviar Notificación de Prueba' }}
+            </button>
+            <button 
+              class="test-button secondary" 
+              @click="sendTestNotificationToSpecificWaiter"
+              :disabled="isSendingNotification"
+              type="button"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <line x1="19" x2="19" y1="8" y2="14"/>
+                <line x1="22" x2="16" y1="11" y2="11"/>
+              </svg>
+              Enviar a Mozo Específico
+            </button>
+          </div>
+        </div>
+        
+        <!-- Grid de funciones principales -->
+        <div class="features-grid">
+          <router-link to="/admin/qr" class="feature-card">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="5" height="5" x="3" y="3" rx="1"></rect>
+              <rect width="5" height="5" x="16" y="3" rx="1"></rect>
+              <rect width="5" height="5" x="3" y="16" rx="1"></rect>
+              <path d="M21 16h-3a2 2 0 0 0-2 2v3"></path>
+              <path d="M21 21v.01"></path>
+              <path d="M12 7v3a2 2 0 0 1-2 2H7"></path>
+              <path d="M3 12h.01"></path>
+              <path d="M12 3h.01"></path>
+              <path d="M12 16v.01"></path>
+              <path d="M16 12h1"></path>
+              <path d="M21 12v.01"></path>
+              <path d="M12 21v-1"></path>
+            </svg>
+            <span class="feature-label">QR</span>
+          </router-link>
+          
+          <router-link to="/admin/stats" class="feature-card">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v16a2 2 0 0 0 2 2h16"></path>
+              <path d="M18 17V9"></path>
+              <path d="M13 17V5"></path>
+              <path d="M8 17v-3"></path>
+            </svg>
+            <span class="feature-label">ESTADÍSTICAS</span>
+          </router-link>
+          
+          <router-link to="/admin/staff" class="feature-card">
+            <div v-if="staffNotificationCount > 0" class="notification-badge pulse-notification">
+              {{ staffNotificationCount > 99 ? '99+' : staffNotificationCount }}
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span class="feature-label">PERSONAL</span>
+          </router-link>
+          
+          <router-link to="/admin/settings" class="feature-card">
+            <div class="notification-badge">2</div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <span class="feature-label">CONFIGURACIÓN</span>
+          </router-link>
+        </div>
+        
+        <!-- Footer con versión -->
+        <div class="app-footer">
+          <div class="version-info">
+            <div class="version-content">
+              <span class="app-name">MozoApp</span>
+              <span class="version-number">v0.0.137</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Toast de notificaciones -->
+    <div class="toast-notification" v-if="showToast">
+      <div class="toast-content">
+        <div class="toast-header">
+          <strong class="toast-title">Notificación</strong>
+          <button type="button" class="toast-close" @click="showToast = false">&times;</button>
+        </div>
+        <div class="toast-body">
+          {{ toastMessage }}
         </div>
       </div>
     </div>
@@ -175,6 +317,7 @@ export default {
     const isDataLoaded = ref(false)
     const showBusinessDropdown = ref(false)
     const isLoadingBusinessSwitch = ref(false)
+    const showRoleDropdown = ref(false)
     
     // Computed properties for business management
     const availableBusinesses = computed(() => adminStore.availableBusinesses || [])
@@ -331,6 +474,10 @@ export default {
       showBusinessDropdown.value = !showBusinessDropdown.value
     }
     
+    const toggleRoleDropdown = () => {
+      showRoleDropdown.value = !showRoleDropdown.value
+    }
+    
     const switchBusiness = async (business) => {
       if (business.id === adminStore.activeBusinessId) {
         showBusinessDropdown.value = false
@@ -413,11 +560,17 @@ export default {
         console.error('❌ Error iniciando notificaciones en tiempo real:', error)
       }
       
-      // Cerrar dropdown al hacer clic fuera
+      // Cerrar dropdowns al hacer clic fuera
       document.addEventListener('click', (event) => {
         const businessDropdown = document.querySelector('.business-dropdown')
+        const roleDropdown = document.querySelector('.role-dropdown')
+        
         if (businessDropdown && !businessDropdown.contains(event.target)) {
           showBusinessDropdown.value = false
+        }
+        
+        if (roleDropdown && !roleDropdown.contains(event.target)) {
+          showRoleDropdown.value = false
         }
       })
     })
@@ -440,8 +593,10 @@ export default {
       staffNotificationCount,
       showBusinessDropdown,
       isLoadingBusinessSwitch,
+      showRoleDropdown,
       copyBusinessCode,
       toggleBusinessDropdown,
+      toggleRoleDropdown,
       sendTestNotification,
       sendTestNotificationToSpecificWaiter,
       handleRoleChange,
@@ -451,136 +606,6 @@ export default {
   }
 }
 </script>
-<style scoped>
-.role-section {
-  display: flex;
-  align-items: center;
-  margin-bottom: 1rem;
-  gap: 0.5rem;
-}
-
-.business-dropdown {
-  position: relative;
-}
-
-.business-dropdown .dropdown-toggle {
-  display: flex;
-  align-items: center;
-  max-width: 200px;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-  border: 1px solid #007bff;
-  background: white;
-  transition: all 0.2s ease;
-}
-
-.business-dropdown .dropdown-toggle:hover:not(:disabled) {
-  background-color: #007bff;
-  color: white;
-}
-
-.business-dropdown .dropdown-toggle:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.business-dropdown .dropdown-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 1000;
-  display: none;
-  min-width: 200px;
-  padding: 0.5rem 0;
-  margin: 0.125rem 0 0;
-  color: #212529;
-  text-align: left;
-  background-color: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 0.375rem;
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-}
-
-.business-dropdown .dropdown-menu.show {
-  display: block;
-}
-
-.business-dropdown .dropdown-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 0.5rem 1rem;
-  clear: both;
-  font-weight: 400;
-  color: #212529;
-  text-align: inherit;
-  text-decoration: none;
-  white-space: nowrap;
-  background-color: transparent;
-  border: 0;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.business-dropdown .dropdown-item:hover,
-.business-dropdown .dropdown-item:focus {
-  background-color: #f8f9fa;
-  color: #1e2125;
-  text-decoration: none;
-}
-
-.business-dropdown .dropdown-item.active {
-  background-color: #007bff;
-  color: white;
-}
-
-.business-dropdown .dropdown-item.active:hover {
-  background-color: #0056b3;
-}
-
-.spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.user-id-container {
-  margin-left: auto;
-}
-
-.user-id {
-  font-family: monospace;
-  font-size: 0.9rem;
-  padding: 0.25rem 0.5rem;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  border: 1px solid #dee2e6;
-}
-
-.staff-notification-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: #ff4444;
-  color: white;
-  border-radius: 12px;
-  padding: 4px 8px;
-  font-size: 12px;
-  font-weight: 600;
-  min-width: 20px;
-  text-align: center;
-  line-height: 1;
-  box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
-  animation: pulseNotification 2s infinite;
-}
-
-@keyframes pulseNotification {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-}
+<style lang="scss" scoped>
+@import '@/assets/styles/components/admin-dashboard.scss';
 </style>
