@@ -1,3 +1,22 @@
+/* Tailwind CSS v3 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Variables from dashboard-mozo */
+:root {
+  --color-primary: #3b82f6;
+  --color-accent: #8b5cf6;
+  --color-light: #f8fafc;
+  --text-primary: #1f2937;
+  --subtext-primary: #6b7280;
+  --font-primary: 'Poppins', sans-serif;
+  --font-secondary: 'Inter', sans-serif;
+}
+
+/* Importar fuentes de Google */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
 /* Estilos globales */
 :root {
   /* Paleta nueva Sistema Mozo */

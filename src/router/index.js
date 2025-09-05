@@ -13,7 +13,7 @@ import UserProfile from '@/views/Waiter/Profile.vue'
 import WaiterOnboarding from '@/views/Waiter/Onboarding.vue'
 import StaffInvitations from '@/views/StaffInvitations.vue'
 
-import AdminHome from '@/views/Admin/Home.vue'
+import AdminDashboard from '@/views/Admin/Dashboard.vue'
 import AdminQR from '@/views/Admin/QR.vue'
 import AdminStats from '@/views/Admin/Stats.vue'
 import AdminStaff from '@/views/Admin/Staff.vue'
@@ -127,7 +127,7 @@ const router = createRouter({
     {
       path: '/admin',
       name: 'admin',
-      component: AdminHome,
+      component: AdminDashboard,
       meta: { requiresAuth: true, role: 'admin' }
     },
     {

@@ -1,6 +1,6 @@
 <script setup>
 import { watch, onMounted, onBeforeUnmount, ref, computed } from 'vue'
-import * as bootstrap from 'bootstrap'
+// Bootstrap removed - using Tailwind CSS instead
 
 const props = defineProps({
   modelValue: {
@@ -36,41 +36,18 @@ const modalElement = ref(null)
 let bsModal = null
 
 onMounted(() => {
-  if (modalElement.value) {
-    bsModal = new bootstrap.Modal(modalElement.value, {
-      backdrop: props.staticBackdrop ? 'static' : true,
-      keyboard: !props.staticBackdrop
-    })
-    
-    modalElement.value.addEventListener('hidden.bs.modal', () => {
-      emit('update:modelValue', false)
-    })
-    
-    if (props.modelValue) {
-      bsModal.show()
-    }
-  }
+  // Bootstrap Modal functionality temporarily disabled
+  // TODO: Replace with Tailwind CSS modal implementation
 })
 
 onBeforeUnmount(() => {
-  if (bsModal) {
-    bsModal.dispose()
-  }
+  // Bootstrap Modal cleanup temporarily disabled
+  // TODO: Replace with Tailwind CSS modal cleanup
 })
 
 watch(() => props.modelValue, (newValue) => {
-  if (!bsModal && modalElement.value) {
-    bsModal = new bootstrap.Modal(modalElement.value, {
-      backdrop: props.staticBackdrop ? 'static' : true,
-      keyboard: !props.staticBackdrop
-    })
-  }
-
-  if (newValue && bsModal) {
-    bsModal.show()
-  } else if (!newValue && bsModal) {
-    bsModal.hide()
-  }
+  // Bootstrap Modal watch functionality temporarily disabled
+  // TODO: Replace with Tailwind CSS modal implementation
 })
 
 const modalClasses = computed(() => {

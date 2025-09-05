@@ -1,7 +1,7 @@
 {
   "name": "mozo",
   "private": true,
-  "version": "0.0.144",
+  "version": "0.0.154",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -21,10 +21,7 @@
     "@capacitor/local-notifications": "^7.0.1",
     "@capacitor/preferences": "^7.0.2",
     "@capacitor/push-notifications": "^7.0.1",
-    "@popperjs/core": "^2.11.8",
     "axios": "^1.9.0",
-    "bootstrap": "^5.3.6",
-    "bootstrap-icons": "^1.13.1",
     "firebase": "^12.1.0",
     "laravel-echo": "^2.1.7",
     "pinia": "^2.1.7",
@@ -38,6 +35,9 @@
   "devDependencies": {
     "@capacitor/cli": "^7.4.0",
     "@vitejs/plugin-vue": "^5.0.3",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
     "terser": "^5.43.1",
     "vite": "^6.3.5"
   }

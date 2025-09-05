@@ -7,12 +7,8 @@ import router from './router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
 
+import './assets/main.css'
 import './assets/styles/styles.scss'
-import 'bootstrap/dist/css/bootstrap.min.css'
-
-import * as bootstrap from 'bootstrap'
-
-import 'bootstrap-icons/font/bootstrap-icons.css'
 
 // Importar servicios de notificaciones
 import { initializePushNotifications } from './services/pushNotifications'

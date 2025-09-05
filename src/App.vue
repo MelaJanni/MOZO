@@ -14,7 +14,7 @@ const authStore = useAuthStore()
 const notificationsStore = useNotificationsStore()
 
 const showNavigationUI = computed(() => {
-  const hiddenRoutes = ['login', 'register', 'forgot-password', 'reset-password', 'role-selection']
+  const hiddenRoutes = ['login', 'register', 'forgot-password', 'reset-password', 'role-selection', 'admin']
   return !hiddenRoutes.includes(route.name)
 })
 
@@ -101,7 +101,7 @@ onUnmounted(() => {
   <Navbar v-if="showNavigationUI && canShowNavigation" />
   <OffCanvasNavbar v-if="showNavigationUI && canShowNavigation" />
     
-    <main :class="{ 'with-navbar': showNavigationUI }">
+    <main :class="{ 'with-navbar': showNavigationUI && route.name !== 'admin' }">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
