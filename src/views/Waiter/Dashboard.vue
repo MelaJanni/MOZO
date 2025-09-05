@@ -1,10 +1,34 @@
 <template>
-  <!-- Wrapper agregado para asegurar un único nodo raíz (necesario para <Transition>) -->
-  <div class="waiter-dashboard-root waiter-dashboard-page container">
-    
-    <div class="dashboard-content row">
-      <!-- Header Usuario -->
-      <div class="header-user pt-0 col-12 px-0">
+  <!-- Wrapper con layout compartido de header -->
+  <MozoHeaderLayout>
+    <template #right>
+      <button class="p-2 rounded-md hover:bg-white/20" @click="ui.toggleNotifSidebar()" aria-label="Notificaciones">
+        <MozoIcon name="bell" :size="22" />
+      </button>
+    </template>
+    <div v-if="loading" class="flex items-center justify-center h-[60vh]">
+      <div class="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-[var(--color-primary)] rounded-full" role="status" aria-label="Cargando"></div>
+    </div>
+    <div v-else class="dashboard-content row">
+      <!-- Estado: Sin negocio asociado -->
+  <div v-if="needsBusiness" class="col-12">
+        <div class="needs-business-wrap">
+        <div class="mozo-card needs-business-card">
+          <div class="nb-hero">
+    <MozoIcon name="store" :size="28" />
+          </div>
+          <h3 class="nb-title">Asóciate a un negocio</h3>
+          <p class="nb-sub">Para usar el dashboard necesitas estar asociado a un negocio. Ingresa el código de invitación o revisa tus invitaciones pendientes.</p>
+          <div class="nb-actions">
+    <button class="btn btn-secondary" @click="showAddBusinessModal = true"><MozoIcon name="key" :size="18" class="mr-1"/> Ingresar código</button>
+    <button class="btn btn-primary" @click="$router.push('/staff/invitations')"><MozoIcon name="envelopeOpen" :size="18" class="mr-1"/> Ver Invitaciones</button>
+          </div>
+        </div>
+        </div>
+      </div>
+  <template v-else>
+  <!-- Header Usuario -->
+  <div class="header-user pt-0 col-12 px-0">
         <div class="user-avatar">{{ initials }}</div>
         <div class="user-info">
           <h5 class="user-name">{{ displayName }}</h5>
@@ -18,35 +42,27 @@
         <div class="row justify-content-between row__width">
           <!-- Dropdown Selector de Negocio -->
           <div class="dropdown-card col me-1" @click="showBusinessDropdown = !showBusinessDropdown">
-            <div class="dropdown-icon">
-              <i class="fas fa-building"></i>
-            </div>
+            <div class="dropdown-icon"><MozoIcon name="building" :size="20" /></div>
             <div class="dropdown-content">
               <h6 class="dropdown-title">{{ currentBusiness?.name || "Sin negocio" }}</h6>
               <p class="dropdown-subtitle">{{ currentBusiness?.type || "Seleccionar negocio" }}</p>
             </div>
-            <div class="dropdown-arrow">
-              <i class="fas fa-chevron-right"></i>
-            </div>
+            <div class="dropdown-arrow"><MozoIcon name="chevronRight" :size="18" /></div>
           </div>
           
           <!-- Dropdown Selector de Perfiles -->
           <div class="dropdown-card col ms-1" @click="showBusinessDropdown = false; showProfilesDropdown = !showProfilesDropdown">
-            <div class="dropdown-icon">
-              <i class="fas fa-map-marker-alt"></i>
-            </div>
+            <div class="dropdown-icon"><MozoIcon name="mapPin" :size="20" /></div>
             <div class="dropdown-content">
               <h6 class="dropdown-title">{{ getActiveProfileName() }}</h6>
               <p class="dropdown-subtitle">{{ assignedTables.length }} mesa{{ assignedTables.length === 1 ? '' : 's' }}</p>
             </div>
-            <div class="dropdown-arrow">
-              <i class="fas fa-chevron-right"></i>
-            </div>
+            <div class="dropdown-arrow"><MozoIcon name="chevronRight" :size="18" /></div>
           </div>
         </div>
       </div>
 
-      <!-- Business BottomSheet -->
+  <!-- Business BottomSheet -->
       <BottomSheet
         v-model="showBusinessDropdown"
         title="Seleccionar Negocio"
@@ -64,20 +80,21 @@
             @click="selectBusiness(b)"
           >
             <div class="left">
-              <div class="bs-ico"><i class="fas fa-building"></i></div>
+              <div class="bs-ico"><MozoIcon name="building" :size="18" /></div>
               <div>
                 <div class="bs-name">{{ b.name }}</div>
                 <div class="bs-sub">{{ b.type || 'Restaurante' }} • {{ b.address || 'Sin dirección' }}</div>
               </div>
             </div>
             <div class="bs-right">
-              <i class="fas" :class="currentBusiness?.id === b.id ? 'fa-check' : 'fa-chevron-right'"></i>
+              <MozoIcon v-if="currentBusiness?.id === b.id" name="check" :size="16" />
+              <MozoIcon v-else name="chevronRight" :size="16" />
             </div>
           </button>
         </div>
       </BottomSheet>
 
-      <!-- Profiles BottomSheet -->
+  <!-- Profiles BottomSheet -->
       <BottomSheet
         v-model="showProfilesDropdown"
         title="Perfil de Mesas"
@@ -88,7 +105,7 @@
 
         <!-- Loading de perfiles -->
         <div v-if="state.profilesLoading" class="bs-loading mt-3">
-          <i class="fas fa-spinner fa-spin"></i>
+          <MozoIcon name="loader" :size="16" class="animate-spin"/>
           <span>Cargando perfiles...</span>
         </div>
 
@@ -97,14 +114,15 @@
           <!-- Opción para mostrar todas las mesas -->
           <button class="bs-item" :class="{ active: selectedProfileId === null }" @click="selectProfile(null)">
             <div class="left">
-              <div class="bs-ico"><i class="fas fa-table"></i></div>
+              <div class="bs-ico"><MozoIcon name="table" :size="18"/></div>
               <div>
                 <div class="bs-name">Todas las Mesas</div>
                 <div class="bs-sub">Ver todas las mesas asignadas • {{ assignedTables.length }} mesas</div>
               </div>
             </div>
             <div class="bs-right">
-              <i class="fas" :class="selectedProfileId === null ? 'fa-check' : 'fa-chevron-right'"></i>
+              <MozoIcon v-if="selectedProfileId === null" name="check" :size="16" />
+              <MozoIcon v-else name="chevronRight" :size="16" />
             </div>
           </button>
           
@@ -117,21 +135,22 @@
             @click="selectProfile(profile.id)"
           >
             <div class="left">
-              <div class="bs-ico"><i class="fas fa-bookmark"></i></div>
+              <div class="bs-ico"><MozoIcon name="bookmark" :size="18"/></div>
               <div>
                 <div class="bs-name">{{ profile.name }}</div>
                 <div class="bs-sub">{{ profile.description || 'Perfil personalizado' }} • {{ getProfileTablesInfo(profile) }}</div>
               </div>
             </div>
             <div class="bs-right">
-              <i class="fas" :class="selectedProfileId === profile.id ? 'fa-check' : 'fa-chevron-right'"></i>
+              <MozoIcon v-if="selectedProfileId === profile.id" name="check" :size="16" />
+              <MozoIcon v-else name="chevronRight" :size="16" />
             </div>
           </button>
           
           <!-- Estado vacío si no hay perfiles -->
           <div v-if="state.availableProfiles.length === 0" class="bs-empty">
             <div class="empty-icon">
-              <i class="fas fa-bookmark"></i>
+              <MozoIcon name="bookmark" :size="18" />
             </div>
             <div class="empty-text">
               <h4>No tienes perfiles creados</h4>
@@ -141,114 +160,9 @@
         </div>
       </BottomSheet>
 
-      <!-- Add Business Modal -->
-      <div v-if="showAddBusinessModal" class="add-business-backdrop" @click="showAddBusinessModal = false">
-        <div class="add-business-content" @click.stop>
-          <p class="modal-subtitle my-3">Ingresa el código de invitación para unirte a un nuevo negocio</p>
-          
-          <div class="invitation-section">
-            <h6 class="invitation-label">Código de Invitación</h6>
-            <div class="code-inputs">
-              <input 
-                type="text" 
-                maxlength="10" 
-                class="code-input-full" 
-                v-model="invitationCode"
-                placeholder="Ingresa el código de invitación"
-              />
-            </div>
-            <p class="invitation-help">Solicita este código al administrador del negocio</p>
-          </div>
-          
-          <button class="btn-validate-code">Validar Código</button>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-      <!-- Botones de acciones rápidas -->
-      <div class="quick-actions">
-        <button class="btn-none d-flex flex-column justify-content-center align-items-center" @click="onQuickActivateAll" :disabled="quickBusy">
-          <span class="quick-action-btn activate-all"><i class="fas" :class="quickBusy ? 'fa-spinner fa-spin' : 'fa-check'"></i></span>
-          Activar Todo
-        </button>
-        <button class="btn-none d-flex flex-column justify-content-center align-items-center" @click="onQuickSilenceAll" :disabled="quickBusy">  
-          <span class="quick-action-btn silence-all">
-            <i class="fas" :class="quickBusy ? 'fa-spinner fa-spin' : 'fa-bell-slash'"></i>
-          </span>
-          Silenciar Todo
-        </button>
-        <button class="btn-none d-flex flex-column justify-content-center align-items-center" @click="onQuickActivateSolo" :disabled="quickBusy">
-          <span class="quick-action-btn activate-solo"><i class="fas" :class="quickBusy ? 'fa-spinner fa-spin' : 'fa-bolt'"></i></span>
-          Activar Solitarias
-        </button>
-      </div>
-      <div class="divider"></div>
-      <!-- Sección de mesas -->
-      <div class="mesas-section">
-        <!-- Header de sección -->
-        <div class="section-header">
-          <div class="section-info">
-            <h3 class="section-title">{{ currentBusiness?.name ? `Mesas - ${currentBusiness.name}` : 'Mesas' }}</h3>
-            <p class="section-subtitle">{{ urgentTablesCount > 0 ? `${urgentTablesCount} con notificaciones` : 'Sin notificaciones' }}{{ assignedTables.length > 0 ? ` • ${assignedTables.length} asignadas` : '' }}</p>
-          </div>
-          <button class="btn-ver-todas" @click="showAllTablesModal = true">Ver Todas</button>
-        </div>
-        
-        <!-- Controles de mesa -->
-        <div class="mesas-controls ">
-          <div class="control-left">
-            <div class="pagination-nav">
-              <button class="nav-btn" @click="prevPage" :disabled="currentPage === 1"><i class="fas fa-chevron-left"></i></button>
-              <span class="page-info">{{ currentPage }}/{{ totalPages }}</span>
-              <button class="nav-btn" @click="nextPage" :disabled="currentPage === totalPages"><i class="fas fa-chevron-right"></i></button>
-            </div>
-          </div>
-          <div class="badge-urgent" v-show="urgentTablesCount > 0">{{ urgentTablesCount }} urgente{{ urgentTablesCount === 1 ? '' : 's' }}</div>
-        </div>
-
-        <!-- Grid de mesas 2x3 -->
-        <div class="mesas-grid" v-if="assignedTables.length > 0">
-          <div
-            v-for="table in pagedTables"
-            :key="table.id"
-            class="table-card"
-            :class="tableStatusClass(table)"
-          >
-            <div v-if="table.pending_calls_count > 0" class="notification-dot"></div>
-            <div class="table-number">{{ table.number }}</div>
-            <div class="table-status">
-              {{ table.pending_calls_count > 0 ? 'Llamando' : (table.is_silenced ? 'Silenciada' : 'Asignada') }}
-            </div>
-            <div class="table-actions">
-              <button class="action-btn" title="desasignar" @click="deactivateTable(table.id)"><i class="fas fa-user-minus"></i></button>
-              <button v-if="!table.is_silenced" class="action-btn" title="silenciar" @click="silenceTable(table.id)"><i class="fas fa-volume-mute"></i></button>
-              <button v-else class="action-btn" title="quitar silencio" @click="unsilenceTable(table.id)"><i class="fas fa-volume-up"></i></button>
-            </div>
-            <div class="table-icon">
-              <i class="fas" :class="table.pending_calls_count > 0 ? 'fa-exclamation-triangle' : (table.is_silenced ? 'fa-volume-mute' : 'fa-user-check')"></i>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Estado vacío cuando no hay mesas asignadas -->
-        <div v-else class="empty-state-mesas">
-          <div class="empty-icon">🏪</div>
-          <h4>No tienes mesas asignadas</h4>
-          <p>Presiona "Ver Todas" para asignar mesas o selecciona "Activar Todo" para activar todas las disponibles</p>
-          <button class="btn-primary mt-3" @click="showAllTablesModal = true">
-            <i class="fas fa-table"></i> Ver Todas las Mesas
-          </button>
-        </div>
-        
-        <!-- Indicadores de página -->
-        <div class="page-dots mb-3" v-if="assignedTables.length > 0">
-          <span class="dots-text">({{ pageStart }}-{{ pageEnd }} de {{ assignedTables.length }})</span>
-        </div>
-      </div>
       
 
-
-      <!-- Tabs de notificaciones -->
+  <!-- Tabs de notificaciones -->
       <div class="tabs-container col-12 d-flex justify-content-center align-items-center">
         <div class="row w-100 justify-content-between">
           <button class="tab-item col-4" :class="{ active: activeNotificationTab === 'pendientes' }" @click="activeNotificationTab = 'pendientes'">
@@ -288,13 +202,15 @@
               <div class="col-12">
                 <div class="row notification-actions">
                   <button class="btn-silenciar col" @click="silenceTableFromCall(call.table_id || call.table?.id)">
-                    <i class="fas fa-volume-mute"></i> Silenciar
+                    <MozoIcon name="volumeMute" :size="18" class="mr-1" /> Silenciar
                   </button>
                   <button class="btn-recibido col" @click="acknowledgeCall(call.id)" :disabled="processingCall === call.id">
-                    <i class="fas" :class="processingCall === call.id ? 'fa-spinner fa-spin' : 'fa-check'"></i> Recibido
+                    <MozoIcon v-if="processingCall === call.id" name="loader" :size="18" class="animate-spin mr-1" />
+                    <MozoIcon v-else name="check" :size="18" class="mr-1" />
+                    Recibido
                   </button>
                   <button class="btn-bloquear-ip col" @click="blockIpForSpam(call)">
-                    <i class="fas fa-ban"></i> Bloquear IP
+                    <MozoIcon name="ban" :size="18" class="mr-1" /> Bloquear IP
                   </button>
                 </div>
               </div>
@@ -331,7 +247,9 @@
               <div class="col-12">
                 <div class="row notification-actions">
                   <button class="btn-recibido col" @click="completeFromHistory(call.id)" :disabled="processingCall === call.id">
-                    <i class="fas" :class="processingCall === call.id ? 'fa-spinner fa-spin' : 'fa-check'"></i> Completar
+                    <MozoIcon v-if="processingCall === call.id" name="loader" :size="18" class="animate-spin mr-1" />
+                    <MozoIcon v-else name="check" :size="18" class="mr-1" />
+                    Completar
                   </button>
                 </div>
               </div>
@@ -347,7 +265,7 @@
         </div>
       </div>
 
-      <!-- Sección de IPs Bloqueadas -->
+  <!-- Sección de IPs Bloqueadas -->
       <div v-if="activeNotificationTab === 'bloqueadas'" class="notifications-section col-12">
         <div class="row section-header mb-4">
           <div class="col-12 d-flex justify-content-between align-items-center px-0">
@@ -371,7 +289,7 @@
               <div class="col-12">
                 <div class="row notification-actions">
                   <button class="btn-bloquear-ip col d-flex justify-content-center align-items-center" @click="unblockIp(blockedIp.ip_address)">
-                    <i class="fas fa-unlock"></i> Desbloquear IP
+                    <MozoIcon name="unlock" :size="18" class="mr-1" /> Desbloquear IP
                   </button>
                 </div>
               </div>
@@ -387,7 +305,54 @@
         </div>
       </div>
 
+      </template>
     </div>
+
+    <!-- Add Business Modal (fuera del gating para usarlo siempre) -->
+    <Teleport to="body">
+      <div v-if="showAddBusinessModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click="showAddBusinessModal = false">
+        <div class="fixed inset-0 bg-black bg-opacity-50"></div>
+        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md" @click.stop>
+          <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" @click="showAddBusinessModal = false" aria-label="Cerrar">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div class="p-6">
+            <div class="flex items-center gap-2 mb-3">
+              <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
+              </svg>
+              <h3 class="text-lg font-semibold text-gray-900">Unirse a un Negocio</h3>
+            </div>
+            <p class="text-gray-600 mb-4">Ingresa el código de invitación para unirte a un nuevo negocio</p>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Código de Invitación</label>
+                <input
+                  v-model="invitationCode"
+                  type="text"
+                  placeholder="Ej: ABCD1234"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  ref="invitationInput"
+                  @keyup.enter="joinBusinessFromCode"
+                />
+              </div>
+              <div class="flex justify-end gap-3">
+                <button class="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" @click="showAddBusinessModal = false">Cerrar</button>
+                <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2" :disabled="joinLoading || !invitationCode" @click="joinBusinessFromCode">
+                  <svg v-if="joinLoading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span v-if="!joinLoading">Unirme</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
     
     <!-- Contenido eliminado de columnas - ahora todo en una sola columna -->
     
@@ -409,26 +374,35 @@
     />
 
     <!-- Modal gestor de mesas del negocio -->
-    <div v-if="showTablesManager && currentBusiness" class="modal-overlay" @click.self="showTablesManager = false">
-      <div class="modal-content large">
-        <div class="modal-header">
-          <h3>
-            <i class="fas fa-building"></i>
-            {{ currentBusiness.name }} - Gestión de Mesas
-          </h3>
-          <button @click="showTablesManager = false" class="close-btn">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="modal-body">
-          <BusinessTablesManager 
-            :business-id="currentBusiness.id"
-            :business-name="currentBusiness.name"
-            @tables-updated="onTablesUpdated"
-          />
+    <Teleport to="body">
+      <div v-if="showTablesManager && currentBusiness" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="showTablesManager = false">
+        <div class="fixed inset-0 bg-black bg-opacity-50"></div>
+        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+                </svg>
+                {{ currentBusiness.name }} - Gestión de Mesas
+              </h3>
+              <button @click="showTablesManager = false" class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="flex-1 p-6 overflow-y-auto">
+            <BusinessTablesManager 
+              :business-id="currentBusiness.id"
+              :business-name="currentBusiness.name"
+              @tables-updated="onTablesUpdated"
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Gestor de perfiles de mesa -->
     <TableProfilesManager 
@@ -441,22 +415,30 @@
     />
 
     <!-- Modal gestor de IPs bloqueadas -->
-    <div v-if="showBlockedIpsManager && currentBusiness" class="modal-overlay" @click.self="showBlockedIpsManager = false">
-      <div class="modal-content large">
-        <div class="modal-header">
-          <h3>
-            <i class="fas fa-shield-alt"></i>
-            Sistema Anti-Spam - IPs Bloqueadas
-          </h3>
-          <button @click="showBlockedIpsManager = false" class="close-btn">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="modal-body">
+    <Teleport to="body">
+      <div v-if="showBlockedIpsManager && currentBusiness" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="showBlockedIpsManager = false">
+        <div class="fixed inset-0 bg-black bg-opacity-50"></div>
+        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                Sistema Anti-Spam - IPs Bloqueadas
+              </h3>
+              <button @click="showBlockedIpsManager = false" class="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="flex-1 p-6 overflow-y-auto">
           <div class="anti-spam-section">
             <!-- Estadísticas de spam -->
             <div v-if="suspiciousIps.length > 0" class="spam-alerts">
-              <h4><i class="fas fa-exclamation-triangle"></i> IPs Sospechosas Activas</h4>
+              <h4><MozoIcon name="warning" :size="18" class="mr-1" /> IPs Sospechosas Activas</h4>
               <div v-for="ipData in suspiciousIps" :key="ipData.ip" class="suspicious-ip-card">
                 <div class="ip-info">
                   <strong>{{ ipData.ip }}</strong>
@@ -471,7 +453,7 @@
                   @click="blockIpForSpam(ipData.calls[0])" 
                   class="btn-block-ip"
                 >
-                  <i class="fas fa-ban"></i> Bloquear IP
+                  <MozoIcon name="ban" :size="16" class="mr-1" /> Bloquear IP
                 </button>
               </div>
             </div>
@@ -479,14 +461,14 @@
             <!-- Lista de IPs bloqueadas -->
             <div class="blocked-ips-list">
               <div class="section-header">
-                <h4><i class="fas fa-ban"></i> IPs Bloqueadas</h4>
+                <h4><MozoIcon name="ban" :size="18" class="mr-1" /> IPs Bloqueadas</h4>
                 <button @click="loadBlockedIps" class="btn btn-secondary btn-sm">
-                  <i class="fas fa-sync"></i> Actualizar
+                  <MozoIcon name="refresh" :size="16" class="mr-1" /> Actualizar
                 </button>
               </div>
 
               <div v-if="blockedIps.length === 0" class="empty-state">
-                <i class="fas fa-shield-check"></i>
+                <MozoIcon name="shieldCheck" :size="20" />
                 <p>No hay IPs bloqueadas actualmente</p>
               </div>
 
@@ -518,7 +500,7 @@
                       @click="unblockIp(blockedIp.ip_address)"
                       class="btn btn-warning btn-sm"
                     >
-                      <i class="fas fa-unlock"></i> Desbloquear
+                      <MozoIcon name="unlock" :size="16" class="mr-1" /> Desbloquear
                     </button>
                   </div>
                 </div>
@@ -528,95 +510,8 @@
         </div>
       </div>
     </div>
-    </div>
+    </Teleport>
     
-    <!-- Modal Debug de IP (mantenido fuera del contenedor interno pero dentro del root único) -->
-    <div v-if="showIpDebugPanel" class="modal-overlay" @click.self="showIpDebugPanel = false">
-      <div class="modal-content large">
-        <div class="modal-header">
-          <h3>
-            <i class="fas fa-bug"></i>
-            Debug de IP (Anti-Spam)
-          </h3>
-          <button @click="showIpDebugPanel = false" class="close-btn">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="modal-body ip-debug-body">
-          <div class="ip-debug-form">
-            <label>IP a diagnosticar</label>
-            <input 
-              v-model="ipDebugInput" 
-              type="text" 
-              placeholder="Ej: 190.123.45.67" 
-              class="ip-input"
-            />
-            <div class="actions">
-              <button 
-                class="btn btn-primary" 
-                @click="runIpDebug" 
-                :disabled="!ipDebugInput || ipDebugLoading"
-              >
-                <i class="fas fa-search" v-if="!ipDebugLoading"></i>
-                <i class="fas fa-spinner fa-spin" v-else></i>
-                Diagnosticar
-              </button>
-              <button 
-                class="btn btn-warning" 
-                v-if="ipDebugResult?.active_locks?.length" 
-                @click="forceUnblockFromDebug" 
-                :disabled="ipDebugLoading"
-              >
-                <i class="fas fa-unlock"></i>
-                Force Unblock ({{ ipDebugResult.active_locks.length }})
-              </button>
-            </div>
-            <div v-if="ipDebugError" class="error-box">
-              <i class="fas fa-exclamation-triangle"></i> {{ ipDebugError }}
-            </div>
-          </div>
-          <div v-if="ipDebugResult" class="ip-debug-result">
-            <h4>Resultado:</h4>
-            <div class="summary-line">
-              <strong>IP:</strong> {{ ipDebugResult.ip_address }}
-              <strong style="margin-left:16px;">Locks activos:</strong> {{ ipDebugResult.active_locks?.length || 0 }}
-              <strong style="margin-left:16px;">Total registros:</strong> {{ ipDebugResult.all_locks?.length || 0 }}
-            </div>
-            <div class="locks-section" v-if="ipDebugResult.active_locks?.length">
-              <h5>Locks Activos</h5>
-              <ul>
-                <li v-for="lock in ipDebugResult.active_locks" :key="lock.id">
-                  ID {{ lock.id }} - expira: {{ lock.expires_at || lock.unblock_at || 'N/D' }} - razón: {{ lock.reason }}
-                </li>
-              </ul>
-            </div>
-            <div class="locks-section" v-if="ipDebugResult.inactive_locks?.length">
-              <h5>Locks Inactivos</h5>
-              <ul>
-                <li v-for="lock in ipDebugResult.inactive_locks" :key="'i-'+lock.id">
-                  ID {{ lock.id }} - desbloqueado: {{ lock.unblocked_at || 'N/D' }} - razón: {{ lock.reason }}
-                </li>
-              </ul>
-            </div>
-            <details class="raw-json">
-              <summary>Ver JSON crudo</summary>
-              <pre>{{ ipDebugResult }}</pre>
-            </details>
-          </div>
-          <div v-else-if="!ipDebugLoading" class="hint-box">
-            Ingrese una IP y presione Diagnosticar para ver su estado en el sistema anti-spam.
-          </div>
-        </div>
-      </div>
-    <!-- Footer -->
-    <footer class="app-footer">
-      <div class="footer-content">
-        <span class="app-name">MozoApp</span>
-        <span class="app-version">v0.0.111</span>
-      </div>
-    </footer>
-    
-    </div>
     <!-- Modal: Ver todas las mesas -->
     <AllTablesModal
       v-if="showAllTablesModal"
@@ -631,11 +526,20 @@
       @silence="onSilenceTable"
       @unsilence="onUnsilenceTable"
     />
+
+    
   </div>
+  
+  <!-- Offcanvas global montado en App.vue -->
+  <!-- Sidebar de notificaciones (derecha) -->
+  <NotificationsSidebar v-model="ui.isNotifSidebarOpen">
+    <!-- Aquí podemos renderizar notificaciones del store si hace falta -->
+  </NotificationsSidebar>
+  </MozoHeaderLayout>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import waiterCallsService from '@/services/waiterCallsService'
@@ -646,15 +550,19 @@ import TableSelector from '@/components/Waiter/TableSelector.vue'
 import BusinessSelector from '@/components/Waiter/BusinessSelector.vue'
 import BusinessTablesManager from '@/components/Waiter/BusinessTablesManager.vue'
 import TableProfilesManager from '@/components/Waiter/TableProfilesManager.vue'
-import DebugApiTester from '@/components/Waiter/DebugApiTester.vue'
 import TableCard from '@/components/Waiter/TableCard.vue'
 import BottomSheet from '@/components/UI/BottomSheet.vue'
 import AllTablesModal from '@/components/Waiter/AllTablesModal.vue'
+import NotificationsSidebar from '@/components/layout/NotificationsSidebar.vue'
+import MozoHeaderLayout from '@/layouts/MozoHeaderLayout.vue'
+import MozoIcon from '@/components/icons/MozoIcon.vue'
+import { useUiStore } from '@/stores/ui'
 
 
 // Stores
 const router = useRouter()
 const authStore = useAuthStore()
+const ui = useUiStore()
 
 // Estado reactivo
 const state = reactive({
@@ -676,7 +584,6 @@ const state = reactive({
   showBlockedIpsManager: false,
   showAllTablesModal: false,
   blockedIps: [],
-  showIpDebugPanel: false,
   
   // UI Flags from dashboard API
   uiFlags: {
@@ -714,19 +621,10 @@ const showAllTablesModal = computed({
   get: () => state.showAllTablesModal,
   set: (v) => state.showAllTablesModal = v
 })
-const showIpDebugPanel = computed({
-  get: () => state.showIpDebugPanel,
-  set: (value) => state.showIpDebugPanel = value
-})
 const quickBusy = computed(() => state.quickBusy)
 const currentPage = computed(() => state.currentPage)
 const pageSize = computed(() => state.pageSize)
 
-// Estado debug IP
-const ipDebugInput = ref('')
-const ipDebugLoading = ref(false)
-const ipDebugResult = ref(null)
-const ipDebugError = ref(null)
 
 // Estados de dropdowns
 const showBusinessDropdown = ref(false)
@@ -746,6 +644,8 @@ const shouldOpenAddBusinessAfterClose = ref(false)
 
 // Código de invitación
 const invitationCode = ref('')
+const joinLoading = ref(false)
+const invitationInput = ref(null)
 
 // Referencias reactivas para el template
 const blockedIps = computed(() => state.blockedIps || [])
@@ -807,6 +707,42 @@ const onBusinessSheetAfterLeave = () => {
   if (shouldOpenAddBusinessAfterClose.value) {
     shouldOpenAddBusinessAfterClose.value = false
     showAddBusinessModal.value = true
+  }
+}
+
+// Focus en input al abrir modal
+watch(showAddBusinessModal, async (open) => {
+  if (open) {
+    await nextTick()
+    invitationInput.value?.focus()
+  }
+})
+
+// Unirse a negocio por código
+const joinBusinessFromCode = async () => {
+  if (!invitationCode.value) return
+  joinLoading.value = true
+  try {
+    const resp = await waiterCallsService.joinBusinessWithCode(invitationCode.value.trim())
+    if (resp.success) {
+      showSuccessToast(resp.message || 'Solicitud enviada')
+      showAddBusinessModal.value = false
+      invitationCode.value = ''
+      // Recargar negocios y dashboard
+      if (businessSelector.value?.loadBusinesses) {
+        await businessSelector.value.loadBusinesses()
+      }
+      await loadDashboardInfo()
+      await loadDashboardData()
+      startRealtimeListeners()
+    } else {
+      showErrorToast(resp.message || 'No se pudo procesar el código')
+    }
+  } catch (e) {
+    console.error('joinBusinessFromCode error:', e)
+    showErrorToast(e?.message || 'Error uniendo al negocio')
+  } finally {
+    joinLoading.value = false
   }
 }
 
@@ -1348,7 +1284,7 @@ let ultraFastNotifications = null
  */
 const loadDashboardInfo = async () => {
   try {
-    const response = await api.getWaiterDashboard()
+  const response = await apiService.getWaiterDashboard()
     const data = response.data
     
     // Update UI flags
@@ -1731,6 +1667,7 @@ const onBusinessesLoaded = (data) => {
   state.businesses = data.businesses || []
   state.currentBusiness = data.activeBusiness || null
   state.needsBusiness = data.needsBusiness || false
+  state.loading = false
 
   // console.log('🏢 Negocios cargados:', {
   //   total: state.businesses.length,
@@ -1942,7 +1879,8 @@ const stopRealtimeListeners = async () => {
 
 onMounted(async () => {
   // console.log('🏠 Waiter Dashboard mounted')
-  
+  // Mostrar loading hasta que BusinessSelector emita onBusinessesLoaded
+  state.loading = true
   // Las empresas se cargan automáticamente por el BusinessSelector
   // loadDashboardData se llamará desde onBusinessesLoaded si hay negocio activo
 })
@@ -2148,62 +2086,6 @@ const unblockIp = async (ipAddress) => {
   }
 }
 
-// ===== DEBUG IP (Anti-Spam) =====
-const openIpDebugPanel = () => {
-  state.showIpDebugPanel = true
-  ipDebugInput.value = ''
-  ipDebugResult.value = null
-  ipDebugError.value = null
-}
-
-const runIpDebug = async () => {
-  if (!ipDebugInput.value) return
-  ipDebugLoading.value = true
-  ipDebugError.value = null
-  ipDebugResult.value = null
-  try {
-    const response = await waiterCallsService.debugBlockedIp(ipDebugInput.value, state.currentBusiness?.id)
-    if (response.success) {
-      ipDebugResult.value = response.data || response // según backend
-    } else {
-      ipDebugError.value = response.message || 'Diagnóstico fallido'
-    }
-  } catch (e) {
-    console.error('Error debug IP:', e)
-    ipDebugError.value = e.message || 'Error de red'
-  } finally {
-    ipDebugLoading.value = false
-  }
-}
-
-const forceUnblockFromDebug = async () => {
-  if (!ipDebugResult.value?.ip_address) return
-  const confirmed = await showConfirmDialog(
-    '¿Force Unblock?',
-    `Se forzará el desbloqueo completo de la IP ${ipDebugResult.value.ip_address}.`,
-    'Desbloquear',
-    'Cancelar',
-    'warning'
-  )
-  if (!confirmed) return
-  ipDebugLoading.value = true
-  try {
-    const resp = await waiterCallsService.forceUnblockIp(ipDebugResult.value.ip_address, state.currentBusiness?.id)
-    if (resp.success) {
-      showSuccessToast('IP desbloqueada forzadamente')
-      // refrescar resultado debug
-      await runIpDebug()
-      await loadBlockedIps()
-    } else {
-      showErrorToast(resp.message || 'No se pudo desbloquear')
-    }
-  } catch (e) {
-    console.error('Error force unblock:', e)
-    showErrorToast(e.message || 'Error desconocido')
-  } finally {
-    ipDebugLoading.value = false
-  }
-}
 
 /**
  * Formatear fecha para mostrar en la lista de bloqueados

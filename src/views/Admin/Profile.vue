@@ -38,7 +38,10 @@ const deleting = ref(false)
 
 const isPasswordValid = computed(() => {
   if (!passwords.value.new) return true
-  return passwords.value.new.length >= 8
+  const hasMinLength = passwords.value.new.length >= 8
+  const hasUppercase = /[A-Z]/.test(passwords.value.new)
+  const hasNumber = /\d/.test(passwords.value.new)
+  return hasMinLength && hasUppercase && hasNumber
 })
 
 const doPasswordsMatch = computed(() => {
@@ -354,7 +357,7 @@ onMounted(() => {
                   :disabled="updating"
                 />
                 <div class="form-text" v-if="passwords.new && !isPasswordValid">
-                  La contraseña debe tener al menos 8 caracteres
+                  La contraseña debe tener al menos 8 caracteres, una mayúscula y un número
                 </div>
               </div>
               

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
 import { useAuthStore } from '@/stores/auth'
@@ -14,22 +14,11 @@ const isLoading = ref(false)
 const error = ref('')
 const success = ref('')
 const business = ref(null)
-const tables = ref([])
 const businesses = ref([])
-const showAddTableModal = ref(false)
-const showEditTableModal = ref(false)
-const showDeleteTableModal = ref(false)
-const selectedTable = ref(null)
 const showDeleteBusinessModal = ref(false)
 const deleteConfirmText = ref('')
 const deleteBusinessError = ref('')
 const deletingBusinessId = ref(null)
-
-const newTable = reactive({
-  number: '',
-  name: '',
-  capacity: 4
-})
 
 onMounted(async () => {
   isLoading.value = true
@@ -42,10 +31,6 @@ onMounted(async () => {
     ])
     
     business.value = businessData.business || {}
-    // Si las mesas ya vinieron embebidas en businessData, usarlas; si no, fallback a store
-    tables.value = Array.isArray(adminStore.tables) && adminStore.tables.length > 0
-      ? adminStore.tables
-      : []
     businesses.value = allBiz || []
   } catch (err) {
     error.value = err.message || 'Error al cargar datos'
@@ -54,171 +39,78 @@ onMounted(async () => {
   }
 })
 
-const saveBusinessSettings = async () => {
-  if (!business.value) return
-  
-  isLoading.value = true
-  error.value = ''
-  success.value = ''
-  
-  try {
-    await adminStore.updateBusinessData(business.value)
-    success.value = 'Configuración guardada con éxito'
-  } catch (err) {
-    error.value = err.message || 'Error al guardar configuración'
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const addTable = async () => {
-  if (!newTable.number || !newTable.capacity) {
-    error.value = 'Por favor, completa todos los campos requeridos'
+const updateBusiness = async () => {
+  if (!business.value.name.trim()) {
+    error.value = 'El nombre del negocio es requerido'
     return
   }
-  
+
   isLoading.value = true
   error.value = ''
-  
+
   try {
-    const result = await adminStore.createTable(newTable)
-    
-    if (result) {
-      tables.value.push(result)
-      
-      newTable.number = ''
-      newTable.name = ''
-      newTable.capacity = 4
-      showAddTableModal.value = false
-    }
+    await adminStore.updateBusiness(business.value)
+    success.value = 'Negocio actualizado exitosamente'
   } catch (err) {
-    error.value = err.message || 'Error al crear mesa'
+    error.value = err.message || 'Error al actualizar negocio'
   } finally {
     isLoading.value = false
+    setTimeout(() => { success.value = ''; error.value = '' }, 3000)
   }
 }
 
-const openEditTableModal = (table) => {
-  selectedTable.value = { ...table }
-  showEditTableModal.value = true
-}
-
-const editTable = async () => {
-  if (!selectedTable.value) return
+const selectBusiness = async (selectedBusiness) => {
+  if (selectedBusiness.id === adminStore.activeBusinessId) return
   
   isLoading.value = true
-  error.value = ''
-  
   try {
-    await adminStore.updateTable(selectedTable.value)
-    
-    tables.value = tables.value.map(table => {
-      if (table.id === selectedTable.value.id) {
-        return selectedTable.value
-      }
-      return table
-    })
-    
-    showEditTableModal.value = false
-    selectedTable.value = null
+    await adminStore.selectActiveBusiness(selectedBusiness.id)
+    success.value = `Cambiado a: ${selectedBusiness.name}`
+    business.value = selectedBusiness
   } catch (err) {
-    error.value = err.message || 'Error al actualizar mesa'
+    error.value = err.message || 'Error al cambiar negocio'
   } finally {
     isLoading.value = false
+    setTimeout(() => { success.value = ''; error.value = '' }, 3000)
   }
 }
 
-const openDeleteTableModal = (table) => {
-  selectedTable.value = table
-  showDeleteTableModal.value = true
-}
-
-const deleteTable = async () => {
-  if (!selectedTable.value) return
-  
-  isLoading.value = true
-  error.value = ''
-  
-  try {
-    await adminStore.deleteTable(selectedTable.value.id)
-    
-    tables.value = tables.value.filter(table => table.id !== selectedTable.value.id)
-    
-    showDeleteTableModal.value = false
-    selectedTable.value = null
-  } catch (err) {
-    error.value = err.message || 'Error al eliminar mesa'
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const goBack = () => {
-  router.push({ name: 'admin' })
-}
-
-const logout = async () => {
-  await authStore.logout()
-  router.push('/login')
-}
-
-const changeActiveBusiness = async (e) => {
-  const id = Number(e.target.value)
-  if (!id || id === adminStore.activeBusinessId) return
-  isLoading.value = true
-  error.value = ''
-  success.value = ''
-  try {
-    await adminStore.selectActiveBusiness(id)
-    const refreshed = await adminStore.fetchBusinessData()
-    business.value = refreshed || business.value
-    success.value = 'Negocio activo actualizado'
-  } catch (err) {
-    error.value = err.message || 'No se pudo cambiar el negocio activo'
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const openDeleteBusinessModal = () => {
+const openDeleteBusinessModal = (businessToDelete) => {
+  deletingBusinessId.value = businessToDelete.id
+  showDeleteBusinessModal.value = true
   deleteConfirmText.value = ''
   deleteBusinessError.value = ''
-  // Resolver un ID inicial desde el store o el objeto local
-  deletingBusinessId.value = adminStore.activeBusinessId || adminStore.businessId || business.value?.id || null
-  showDeleteBusinessModal.value = true
 }
 
-const confirmDeleteBusiness = async () => {
-  if (deleteConfirmText.value.trim().toUpperCase() !== 'ELIMINAR') {
-    deleteBusinessError.value = 'Escribe ELIMINAR para confirmar.'
+const deleteBusiness = async () => {
+  if (deleteConfirmText.value !== 'ELIMINAR') {
+    deleteBusinessError.value = 'Debes escribir "ELIMINAR" exactamente'
     return
   }
+
+  if (!deletingBusinessId.value) return
+
   isLoading.value = true
   deleteBusinessError.value = ''
+
   try {
-    // Resolver ID desde store u objeto local; refrescar si no está
-    let id = adminStore.activeBusinessId || adminStore.businessId || business.value?.id || deletingBusinessId.value
-    if (!id) {
-      try { await adminStore.fetchBusinessData(true) } catch (e) {}
-      id = adminStore.activeBusinessId || adminStore.businessId || business.value?.id || deletingBusinessId.value
-    }
-    if (!id) {
-      deleteBusinessError.value = 'No se encontró el negocio activo.'
+    await adminStore.deleteBusiness(deletingBusinessId.value)
+    
+    // Si eliminamos el negocio activo, redirigir
+    if (deletingBusinessId.value === adminStore.activeBusinessId) {
+      router.push({ name: 'admin-onboard' })
       return
     }
-    deletingBusinessId.value = id
-    const res = await adminStore.deleteBusiness(id)
+
+    // Actualizar lista de negocios
+    businesses.value = businesses.value.filter(b => b.id !== deletingBusinessId.value)
     showDeleteBusinessModal.value = false
-    // Redirigir según haya quedado otro negocio activo o no
-    if (res?.redirected === 'admin') {
-      router.push({ name: 'admin' })
-    } else {
-      router.push({ name: 'admin-onboard' })
-    }
+    success.value = 'Negocio eliminado exitosamente'
   } catch (err) {
-    deleteBusinessError.value = err.message || 'No se pudo eliminar el negocio'
+    deleteBusinessError.value = err.message || 'Error al eliminar negocio'
   } finally {
     isLoading.value = false
+    setTimeout(() => { success.value = ''; deleteBusinessError.value = '' }, 3000)
   }
 }
 </script>
@@ -226,46 +118,30 @@ const confirmDeleteBusiness = async () => {
 <template>
   <div class="settings-container">
     <div class="settings-header">
-      <button class="back-button" @click="goBack">
-        ← Volver
-      </button>
-      <h1>Configuración</h1>
+      <h1 class="page-title">Configuración</h1>
+      <p class="page-subtitle">Administra la información de tu negocio</p>
     </div>
-    
-    <div v-if="isLoading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>Cargando configuración...</p>
-    </div>
-    
-    <div v-else-if="error" class="error-container">
-      <p>{{ error }}</p>
-      <BaseButton @click="$router.go(0)" variant="primary">
-        Reintentar
-      </BaseButton>
-    </div>
-    
-    <div v-else-if="business" class="settings-content">
-      <div v-if="success" class="success-message">
-        {{ success }}
+
+    <div v-if="error" class="alert alert-error">{{ error }}</div>
+    <div v-if="success" class="alert alert-success">{{ success }}</div>
+
+    <!-- Información del Negocio -->
+    <div class="settings-section">
+      <div class="section-header">
+        <h2>Información del Negocio</h2>
       </div>
-      
-      <div class="settings-section">
-        <h2>Información del negocio</h2>
-        <div v-if="businesses.length > 1" class="form-group mb-3">
-          <label for="active-business">Negocio activo</label>
-          <select id="active-business" class="form-select" :value="adminStore.activeBusinessId" @change="changeActiveBusiness">
-            <option v-for="b in businesses" :key="b.id" :value="b.id">{{ b.name }}</option>
-          </select>
-        </div>
-        
-        <form @submit.prevent="saveBusinessSettings" class="business-form">
+
+      <form @submit.prevent="updateBusiness" class="business-form">
+        <div class="form-grid">
           <div class="form-group">
-            <label for="business-name">Nombre del restaurante</label>
+            <label for="business-name">Nombre del Negocio*</label>
             <input 
               id="business-name"
               type="text" 
               v-model="business.name" 
-              required
+              required 
+              :disabled="isLoading"
+              class="form-input"
             />
           </div>
           
@@ -275,225 +151,163 @@ const confirmDeleteBusiness = async () => {
               id="business-address"
               type="text" 
               v-model="business.address" 
+              :disabled="isLoading"
+              class="form-input"
             />
           </div>
           
-          <div class="form-row">
-            <div class="form-group">
-              <label for="business-phone">Teléfono</label>
-              <input 
-                id="business-phone"
-                type="tel" 
-                v-model="business.phone" 
-              />
-            </div>
-            
-            <div class="form-group">
-              <label for="business-email">Email</label>
-              <input 
-                id="business-email"
-                type="email" 
-                v-model="business.email" 
-              />
-            </div>
+          <div class="form-group">
+            <label for="business-phone">Teléfono</label>
+            <input 
+              id="business-phone"
+              type="tel" 
+              v-model="business.phone" 
+              :disabled="isLoading"
+              class="form-input"
+            />
           </div>
           
           <div class="form-group">
-            <label for="business-description">Descripción</label>
-            <textarea 
-              id="business-description"
-              v-model="business.description" 
-              rows="3"
-            ></textarea>
+            <label for="business-email">Email</label>
+            <input 
+              id="business-email"
+              type="email" 
+              v-model="business.email" 
+              :disabled="isLoading"
+              class="form-input"
+            />
           </div>
-          
-          <div class="form-actions">
-            <BaseButton 
-              type="submit" 
-              variant="primary" 
-              :loading="isLoading"
-            >
-              Guardar cambios
-            </BaseButton>
-          </div>
-        </form>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="business-description">Descripción</label>
+          <textarea 
+            id="business-description"
+            v-model="business.description" 
+            rows="3" 
+            :disabled="isLoading"
+            class="form-textarea"
+          ></textarea>
+        </div>
+
+        <div class="form-actions">
+          <BaseButton type="submit" :loading="isLoading" variant="primary">
+            Guardar Cambios
+          </BaseButton>
+        </div>
+      </form>
+    </div>
+
+    <!-- Cambiar Negocio (solo si tiene múltiples) -->
+    <div v-if="businesses.length > 1" class="settings-section">
+      <div class="section-header">
+        <h2>Cambiar Negocio Activo</h2>
+        <p class="section-description">Selecciona cuál negocio quieres administrar</p>
       </div>
 
-      <div class="settings-section danger-zone">
-        <h2>Zona de Peligro</h2>
-        <div class="danger-actions">
-          <div class="danger-block">
-            <h3>Eliminar negocio</h3>
-            <p>
-              Esta acción eliminará el negocio "{{ business.name }}" y todos sus datos asociados
-              (mesas, menús, códigos QR, staff, llamadas, archivos, pivotes). Es irreversible.
-            </p>
-            <BaseButton @click="openDeleteBusinessModal" variant="danger">
-              Eliminar negocio
-            </BaseButton>
+      <div class="business-list">
+        <div 
+          v-for="biz in businesses" 
+          :key="biz.id"
+          class="business-card"
+          :class="{ active: biz.id === adminStore.activeBusinessId }"
+          @click="selectBusiness(biz)"
+        >
+          <div class="business-info">
+            <h3 class="business-name">{{ biz.name }}</h3>
+            <p class="business-details">{{ biz.address || 'Sin dirección' }}</p>
           </div>
-          <div class="danger-block">
-            <h3>Cerrar sesión</h3>
-            <p>Finaliza tu sesión actual de forma segura.</p>
-            <BaseButton @click="logout" variant="danger-outline">
-              Cerrar sesión
+          <div class="business-actions">
+            <BaseButton 
+              v-if="biz.id === adminStore.activeBusinessId"
+              variant="primary"
+              size="sm"
+              disabled
+            >
+              Activo
+            </BaseButton>
+            <BaseButton 
+              v-else
+              @click.stop="selectBusiness(biz)"
+              variant="outline-primary"
+              size="sm"
+              :loading="isLoading"
+            >
+              Seleccionar
+            </BaseButton>
+            <BaseButton 
+              @click.stop="openDeleteBusinessModal(biz)"
+              variant="outline-danger"
+              size="sm"
+              class="ml-2"
+            >
+              Eliminar
             </BaseButton>
           </div>
         </div>
       </div>
     </div>
-    
-    <BaseModal 
-      v-model="showAddTableModal" 
-      title="Añadir nueva mesa" 
-      size="md"
-    >
-      <form @submit.prevent="addTable" class="table-form">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="table-number">Número*</label>
-            <input 
-              id="table-number"
-              type="number" 
-              v-model="newTable.number" 
-              min="1"
-              required
-            />
-          </div>
-          
-          <div class="form-group">
-            <label for="table-capacity">Capacidad*</label>
-            <input 
-              id="table-capacity"
-              type="number" 
-              v-model="newTable.capacity" 
-              min="1"
-              required
-            />
-          </div>
-        </div>
-        
-        <div class="form-group">
-          <label for="table-name">Nombre (opcional)</label>
-          <input 
-            id="table-name"
-            type="text" 
-            v-model="newTable.name" 
-            placeholder="Ej: Terraza 1"
-          />
-        </div>
-      </form>
-      
-      <template #footer>
-        <BaseButton @click="showAddTableModal = false" variant="outline">
-          Cancelar
-        </BaseButton>
-        
-        <BaseButton @click="addTable" variant="primary" :loading="isLoading">
-          Añadir
-        </BaseButton>
-      </template>
-    </BaseModal>
-    
-    <BaseModal 
-      v-if="selectedTable"
-      v-model="showEditTableModal" 
-      title="Editar mesa" 
-      size="md"
-    >
-      <form @submit.prevent="editTable" class="table-form">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="edit-table-number">Número*</label>
-            <input 
-              id="edit-table-number"
-              type="number" 
-              v-model="selectedTable.number" 
-              min="1"
-              required
-            />
-          </div>
-          
-          <div class="form-group">
-            <label for="edit-table-capacity">Capacidad*</label>
-            <input 
-              id="edit-table-capacity"
-              type="number" 
-              v-model="selectedTable.capacity" 
-              min="1"
-              required
-            />
-          </div>
-        </div>
-        
-        <div class="form-group">
-          <label for="edit-table-name">Nombre (opcional)</label>
-          <input 
-            id="edit-table-name"
-            type="text" 
-            v-model="selectedTable.name" 
-            placeholder="Ej: Terraza 1"
-          />
-        </div>
-      </form>
-      
-      <template #footer>
-        <BaseButton @click="showEditTableModal = false" variant="outline">
-          Cancelar
-        </BaseButton>
-        
-        <BaseButton @click="editTable" variant="primary" :loading="isLoading">
-          Guardar
-        </BaseButton>
-      </template>
-    </BaseModal>
-    
-    <BaseModal 
-      v-if="selectedTable"
-      v-model="showDeleteTableModal" 
-      title="Eliminar mesa" 
-      size="sm"
-    >
-      <div class="confirm-content">
-        <p>¿Estás seguro de que deseas eliminar la mesa {{ selectedTable.number }}?</p>
-        <p class="confirm-warning">Esta acción no se puede deshacer.</p>
-      </div>
-      
-      <template #footer>
-        <BaseButton @click="showDeleteTableModal = false" variant="outline">
-          Cancelar
-        </BaseButton>
-        
-        <BaseButton @click="deleteTable" variant="danger" :loading="isLoading">
-          Eliminar
-        </BaseButton>
-      </template>
-    </BaseModal>
 
-    <!-- Modal de eliminación de negocio -->
+    <!-- Zona de Peligro -->
+    <div class="settings-section danger-zone">
+      <div class="section-header">
+        <h2>Zona de Peligro</h2>
+        <p class="section-description">Acciones que no se pueden deshacer</p>
+      </div>
+
+      <div class="danger-actions">
+        <div class="danger-item">
+          <div class="danger-info">
+            <h3>Eliminar Negocio</h3>
+            <p>Elimina permanentemente este negocio y todos sus datos asociados (mesas, menús, códigos QR, staff, llamadas, archivos, pivotes). Es irreversible.</p>
+          </div>
+          <BaseButton 
+            @click="openDeleteBusinessModal(business)"
+            variant="danger"
+            :loading="isLoading"
+          >
+            Eliminar Negocio
+          </BaseButton>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Eliminar Negocio -->
     <BaseModal 
       v-model="showDeleteBusinessModal" 
-      title="Eliminar negocio" 
-      size="sm"
-      :static-backdrop="true"
+      title="Eliminar Negocio" 
+      size="md"
     >
-      <div class="confirm-content">
-        <p>
-          Vas a eliminar el negocio <strong>{{ business?.name }}</strong> y todos sus datos.
-        </p>
-        <p class="confirm-warning">Esta acción es permanente e irreversible.</p>
-        <div class="form-group mt-3">
-          <label>Para confirmar, escribe <strong>ELIMINAR</strong>:</label>
-          <input type="text" v-model="deleteConfirmText" placeholder="ELIMINAR" />
+      <div class="delete-confirmation">
+        <div class="warning-message">
+          <svg class="warning-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 14.5C3.312 16.333 4.273 18 5.814 18z"></path>
+          </svg>
+          <div>
+            <h3>¿Estás absolutamente seguro?</h3>
+            <p>Esta acción no se puede deshacer. Esto eliminará permanentemente el negocio y todos los datos asociados.</p>
+          </div>
         </div>
-        <p v-if="deleteBusinessError" class="error-text">{{ deleteBusinessError }}</p>
+
+        <div class="confirmation-input">
+          <label>Escribe <strong>ELIMINAR</strong> para confirmar:</label>
+          <input 
+            type="text" 
+            v-model="deleteConfirmText" 
+            placeholder="ELIMINAR"
+            :disabled="isLoading"
+            class="form-input"
+          />
+          <p v-if="deleteBusinessError" class="error-message">{{ deleteBusinessError }}</p>
+        </div>
       </div>
+
       <template #footer>
         <BaseButton @click="showDeleteBusinessModal = false" variant="outline">
           Cancelar
         </BaseButton>
-        <BaseButton @click="confirmDeleteBusiness" variant="danger" :loading="isLoading">
-          Eliminar definitivamente
+        <BaseButton @click="deleteBusiness" variant="danger" :loading="isLoading">
+          Eliminar Negocio
         </BaseButton>
       </template>
     </BaseModal>
@@ -502,272 +316,267 @@ const confirmDeleteBusiness = async () => {
 
 <style scoped>
 .settings-container {
-  min-height: 100vh;
-  background-color: #f9fafb;
-  padding: 1.5rem;
-}
-
-.settings-header {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-}
-
-.back-button {
-  background: none;
-  border: none;
-  color: var(--primary-color);
-  font-weight: 500;
-  padding: 0.5rem 0;
-  cursor: pointer;
-  margin-bottom: 0.5rem;
-}
-
-.settings-header h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.loading-container, .error-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  max-width: 800px;
+  margin: 0 auto;
   padding: 2rem;
 }
 
-.loading-spinner {
-  width: 2rem;
-  height: 2rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 50%;
-  border-top-color: var(--primary-color);
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
+.settings-header {
+  margin-bottom: 2rem;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
 }
 
-.settings-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.success-message {
-  background-color: #dcfce7;
-  color: #166534;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  text-align: center;
-  margin-bottom: 1rem;
+.page-subtitle {
+  color: #6b7280;
+  font-size: 1rem;
 }
 
 .settings-section {
-  background-color: white;
-  border-radius: 0.5rem;
-  padding: 1.5rem;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-
-.settings-section h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+  overflow: hidden;
 }
 
 .section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.business-form, .table-form {
-  display: flex;
-  flex-direction: column;
+.section-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.section-description {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.business-form {
+  padding: 1.5rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  width: 100%;
 }
 
-.form-row {
-  display: flex;
-  gap: 1rem;
-}
-
-.form-row .form-group {
-  flex: 1;
+.form-group.full-width {
+  grid-column: 1 / -1;
 }
 
 .form-group label {
-  font-size: 0.875rem;
   font-weight: 500;
-}
-
-.form-group input, .form-group select, .form-group textarea {
-  padding: 0.625rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
+  color: #374151;
+  margin-bottom: 0.5rem;
   font-size: 0.875rem;
 }
 
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+.form-input, .form-textarea {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus, .form-textarea:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 1px var(--primary-color);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input:disabled, .form-textarea:disabled {
+  background-color: #f9fafb;
+  cursor: not-allowed;
 }
 
 .form-actions {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 1rem;
+  justify-content: flex-start;
 }
 
-.empty-tables {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem 0;
-  text-align: center;
+.business-list {
+  padding: 1.5rem;
 }
 
-.empty-tables p:first-child {
-  font-size: 1.125rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-}
-
-.empty-tables p:last-child {
-  color: #6b7280;
-}
-
-.tables-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
-}
-
-.table-card {
-  background-color: #f9fafb;
-  border-radius: 0.5rem;
-  padding: 1rem;
+.business-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.table-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.business-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.table-number {
-  width: 2.5rem;
-  height: 2.5rem;
-  background-color: var(--primary-color);
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.125rem;
+.business-card.active {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.business-info h3 {
   font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
 }
 
-.table-details {
-  display: flex;
-  flex-direction: column;
-}
-
-.table-name {
-  font-weight: 600;
-}
-
-.table-capacity {
-  font-size: 0.75rem;
+.business-details {
   color: #6b7280;
+  font-size: 0.875rem;
 }
 
-.table-actions {
+.business-actions {
   display: flex;
   gap: 0.5rem;
 }
 
-.edit-button, .delete-button {
-  background: none;
-  border: none;
-  font-size: 0.875rem;
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-}
-
-.edit-button {
-  color: var(--primary-color);
-}
-
-.edit-button:hover {
-  background-color: rgba(124, 108, 243, 0.1);
-}
-
-.delete-button {
-  color: var(--error-color);
-}
-
-.delete-button:hover {
-  background-color: #fee2e2;
-}
-
-.confirm-content {
-  text-align: center;
-  padding: 1rem 0;
-}
-
-.confirm-warning {
-  color: var(--error-color);
-  font-size: 0.875rem;
-  margin-top: 0.5rem;
-}
-
 .danger-zone {
-  border-top: 2px solid #f8d7da;
-  padding-top: 1.5rem;
-  margin-top: 2rem;
+  border: 2px solid #fecaca;
 }
 
-.danger-zone h2 {
-  color: #dc3545;
+.danger-zone .section-header {
+  background-color: #fef2f2;
+  border-bottom-color: #fecaca;
+}
+
+.danger-zone .section-header h2 {
+  color: #dc2626;
 }
 
 .danger-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1rem;
+  padding: 1.5rem;
 }
 
-.danger-block {
-  border: 1px solid #f5c2c7;
-  background: #fff;
-  border-radius: 8px;
+.danger-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.danger-info h3 {
+  font-weight: 600;
+  color: #dc2626;
+  margin-bottom: 0.5rem;
+}
+
+.danger-info p {
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.delete-confirmation {
   padding: 1rem;
 }
 
-.error-text {
-  color: var(--error-color);
+.warning-message {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #fef2f2;
+  border-radius: 0.5rem;
+}
+
+.warning-icon {
+  width: 2rem;
+  height: 2rem;
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+.warning-message h3 {
+  font-weight: 600;
+  color: #dc2626;
+  margin-bottom: 0.5rem;
+}
+
+.warning-message p {
+  color: #7f1d1d;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.confirmation-input label {
+  display: block;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.error-message {
+  color: #dc2626;
   font-size: 0.875rem;
   margin-top: 0.5rem;
 }
-</style> 
+
+.alert {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.alert-error {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.alert-success {
+  background-color: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+@media (max-width: 640px) {
+  .settings-container {
+    padding: 1rem;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .danger-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .business-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .business-actions {
+    justify-content: flex-end;
+  }
+}
+</style>

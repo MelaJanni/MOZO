@@ -396,8 +396,10 @@ export const useNotificationsStore = defineStore('notifications', {
                 
                 console.log('🔔 Admin notifications: Is new request?', isNewRequest)
                 
-                if (status === 'pending' || isNewRequest) {
-                  console.log('🔔 Admin notifications: Creating notification for', status === 'pending' ? 'PENDING' : 'NEW REQUEST')
+                // Only create notifications for new pending requests
+                // Do NOT notify admin about their own actions (confirmed/rejected requests)
+                if (status === 'pending' && isNewRequest) {
+                  console.log('🔔 Admin notifications: Creating notification for NEW PENDING REQUEST')
                   const note = {
                     id: `staff_req_${activity.last_request_id}_${updateTime}`,
                     type: 'staff_request',
@@ -412,6 +414,10 @@ export const useNotificationsStore = defineStore('notifications', {
                     created_at: new Date().toISOString()
                   }
                   this.addNewNotification(note)
+                } else if (status !== 'pending') {
+                  console.log('🔔 Admin notifications: Skipping notification - request already processed (status:', status, ')')
+                } else if (!isNewRequest) {
+                  console.log('🔔 Admin notifications: Skipping notification - not a new request')
                 }
                 
                 // Update our tracking time for future comparisons

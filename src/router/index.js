@@ -10,7 +10,6 @@ import RoleSelection from '@/views/auth/RoleSelection.vue'
 
 import WaiterDashboard from '@/views/Waiter/Dashboard.vue'
 import UserProfile from '@/views/Waiter/Profile.vue'
-import WaiterOnboarding from '@/views/Waiter/Onboarding.vue'
 import StaffInvitations from '@/views/StaffInvitations.vue'
 
 import AdminDashboard from '@/views/Admin/Dashboard.vue'
@@ -20,8 +19,6 @@ import AdminStaff from '@/views/Admin/Staff.vue'
 import AdminStaffDetail from '@/views/Admin/StaffDetail.vue'
 import AdminProfile from '@/views/Admin/Profile.vue'
 import AdminSettings from '@/views/Admin/Settings.vue'
-import AdminNotificationDebug from '@/views/Admin/NotificationDebug.vue'
-import AdminOnboarding from '@/views/Admin/Onboarding.vue'
 
 // Public views (no authentication required)
 import MenuTable from '@/views/Public/MenuTable.vue'
@@ -99,12 +96,6 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'waiter' }
     },
     {
-      path: '/waiter/onboard',
-      name: 'waiter-onboard',
-      component: WaiterOnboarding,
-      meta: { requiresAuth: true, role: 'waiter' }
-    },
-    {
       path: '/staff/invitations',
       name: 'staff-invitations',
       component: StaffInvitations,
@@ -118,27 +109,10 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
-      path: '/completeness',
-      name: 'completeness',
-      component: () => import('@/views/Completeness.vue'),
-      meta: { requiresAuth: true }
-    },
-    
-    {
       path: '/admin',
       name: 'admin',
       component: AdminDashboard,
       meta: { requiresAuth: true, role: 'admin' }
-    },
-    {
-      path: '/admin/onboard',
-      name: 'admin-onboard',
-      component: AdminOnboarding,
-      meta: { requiresAuth: true, role: 'admin' }
-    },
-    {
-      path: '/admin/home',
-      redirect: { name: 'admin' }
     },
     {
       path: '/admin/qr',
@@ -176,21 +150,6 @@ const router = createRouter({
       component: AdminSettings,
       meta: { requiresAuth: true, role: 'admin' }
     },
-    {
-      path: '/admin/notification-debug',
-      name: 'admin-notification-debug',
-      component: AdminNotificationDebug,
-      meta: { requiresAuth: true, role: 'admin' }
-    },
-    
-    // Public routes (no authentication required)
-    {
-      path: '/menu/mesa/:tableId',
-      name: 'menu-table',
-      component: MenuTable,
-      meta: { isPublic: true }
-    },
-    
     {
       path: '/:pathMatch(.*)*',
       redirect: '/'

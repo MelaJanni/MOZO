@@ -61,17 +61,6 @@ const deleteStaffMember = async () => {
 }
 const updateEmployeeData = async (field, value) => {
   if (!employee.value) return;
-  if (field === 'birth_date') {
-    const birth = new Date(value);
-    const today = new Date();
-    let ageYears = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) ageYears--;
-    if (ageYears < 16) {
-      error.value = 'El empleado debe ser mayor de 16 años';
-      return;
-    }
-  }
   isSaving.value = true;
   const backendField = fieldMap[field] || field;
   try {

@@ -7,34 +7,19 @@
   
   <!-- Dashboard usando estructura exacta de dashboard-mozo.html -->
   <div v-else class="min-h-screen bg-[var(--color-light)]">
+    <AppHeader @toggle-menu="ui.toggleOffCanvas()">
+      <template #right>
+        <button class="p-2 rounded-lg hover:bg-white/20 relative" type="button" @click="ui.toggleNotifSidebar()" aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.268 21a2 2 0 0 0 3.464 0"></path>
+            <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path>
+          </svg>
+          <span v-if="staffNotificationCount > 0" class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">{{ staffNotificationCount > 99 ? '99+' : staffNotificationCount }}</span>
+        </button>
+      </template>
+    </AppHeader>
     <div class="max-w-md mx-auto bg-white shadow-lg">
       <div class="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white">
-        <div class="flex items-center justify-between p-4">
-          <div class="flex items-center space-x-4">
-            <button
-              class="inline-flex items-center justify-center p-2 h-auto rounded-lg transition-all duration-200 text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:scale-95"
-              @click="openSheet"
-              type="button"
-              aria-label="Abrir menú"
-              aria-haspopup="dialog"
-              :aria-expanded="showSheet.toString()"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="4" x2="20" y1="12" y2="12"></line>
-                <line x1="4" x2="20" y1="6" y2="6"></line>
-                <line x1="4" x2="20" y1="18" y2="18"></line>
-              </svg>
-            </button>
-            <h1 class="text-xl font-bold font-[var(--font-primary)]">MOZÓ</h1>
-          </div>
-          <button class="text-white hover:bg-white/20 p-2 rounded-lg transition-colors relative" type="button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10.268 21a2 2 0 0 0 3.464 0"></path>
-              <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path>
-            </svg>
-            <span v-if="staffNotificationCount > 0" class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">{{ staffNotificationCount > 99 ? '99+' : staffNotificationCount }}</span>
-          </button>
-        </div>
         
         <div class="px-4 pb-4 space-y-3">
           <div class="bg-white/10 rounded-lg p-3 role-dropdown">
@@ -206,130 +191,9 @@
       </div>
     </div>
     
-    <!-- Offcanvas overlay con transición -->
-    <Transition name="sheet-fade">
-      <div v-if="showSheet"
-        data-slot="sheet-overlay"
-        :data-state="showSheet ? 'open' : 'closed'"
-        class="fixed inset-0 z-50 bg-black/50"
-        aria-hidden="true"
-        @click="closeSheet"
-      ></div>
-    </Transition>
-    
-    <!-- Offcanvas panel con transición -->
-    <Transition name="sheet-slide">
-      <div v-if="showSheet"
-        role="dialog"
-        aria-modal="true"
-        :data-state="showSheet ? 'open' : 'closed'"
-        data-slot="sheet-content"
-        class="fixed z-50 flex flex-col gap-4 shadow-lg ease-in-out inset-y-0 left-0 h-full sm:max-w-sm w-80 p-0 border-r border-[var(--border)] bg-white"
-        tabindex="-1"
-      >
-      <div class="h-full flex flex-col bg-white">
-        <div data-slot="sheet-header" class="flex flex-col gap-1.5 p-6 pb-4">
-          <div class="flex items-center justify-between">
-            <h2 data-slot="sheet-title" class="text-lg font-bold text-[var(--color-primary)] font-[var(--font-primary)]">Panel de Control</h2>
-            <button data-slot="button" class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] hover:text-accent-foreground gap-1.5 has-[>svg]:px-2.5 p-1 h-auto hover:bg-[var(--color-light)] rounded-lg" @click="closeSheet" type="button" aria-label="Cerrar">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
-                <path d="M18 6 6 18"></path>
-                <path d="m6 6 12 12"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div dir="ltr" data-slot="scroll-area" class="relative flex-1 px-6">
-          <div data-radix-scroll-area-viewport data-slot="scroll-area-viewport" class="size-full rounded-[inherit] focus-visible:ring-ring/50 transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1" style="overflow: hidden auto;">
-            <div style="min-width: 100%; display: table;">
-              <!-- Menú principal -->
-              <div class="mb-4">
-                <h4 class="text-xs font-semibold text-[var(--subtext-primary)] uppercase tracking-wider mb-3 font-[var(--font-secondary)]">Menú Principal</h4>
-                <nav class="space-y-2">
-                  <router-link to="/admin/qr" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left group hover:bg-[var(--color-light)] text-[var(--text-primary)]" :class="{ 'bg-[var(--color-light)]': isActive('/admin/qr') }" @click="closeSheet">
-                    <div class="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 bg-[var(--color-primary)]/10 text-[var(--color-primary)] group-hover:bg-[var(--color-primary)]/20">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
-                        <rect width="5" height="5" x="3" y="3" rx="1"></rect>
-                        <rect width="5" height="5" x="16" y="3" rx="1"></rect>
-                        <rect width="5" height="5" x="3" y="16" rx="1"></rect>
-                        <path d="M21 16h-3a2 2 0 0 0-2 2v3"></path>
-                        <path d="M21 21v.01"></path>
-                        <path d="M12 7v3a2 2 0 0 1-2 2H7"></path>
-                      </svg>
-                    </div>
-                    <div class="flex-1">
-                      <div class="flex items-center justify-between">
-                        <span class="font-medium font-[var(--font-primary)] text-[var(--text-primary)]">QR</span>
-                      </div>
-                      <p class="text-xs mt-1 font-[var(--font-secondary)] text-[var(--subtext-primary)]">Códigos QR y accesos</p>
-                    </div>
-                  </router-link>
-                  <router-link to="/admin/stats" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left group hover:bg-[var(--color-light)] text-[var(--text-primary)]" :class="{ 'bg-[var(--color-light)]': isActive('/admin/stats') }" @click="closeSheet">
-                    <div class="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 bg-[var(--color-primary)]/10 text-[var(--color-primary)] group-hover:bg-[var(--color-primary)]/20">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
-                        <path d="M3 3v16a2 2 0 0 0 2 2h16"></path>
-                        <path d="M18 17V9"></path>
-                        <path d="M13 17V5"></path>
-                        <path d="M8 17v-3"></path>
-                      </svg>
-                    </div>
-                    <div class="flex-1">
-                      <div class="flex items-center justify-between">
-                        <span class="font-medium font-[var(--font-primary)] text-[var(--text-primary)]">Estadísticas</span>
-                      </div>
-                      <p class="text-xs mt-1 font-[var(--font-secondary)] text-[var(--subtext-primary)]">Reportes y métricas</p>
-                    </div>
-                  </router-link>
-                  <router-link to="/admin/staff" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left group hover:bg-[var(--color-light)] text-[var(--text-primary)] relative" :class="{ 'bg-[var(--color-light)]': isActive('/admin/staff') }" @click="closeSheet">
-                    <div class="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 bg-[var(--color-primary)]/10 text-[var(--color-primary)] group-hover:bg-[var(--color-primary)]/20">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                      </svg>
-                    </div>
-                    <div class="flex-1">
-                      <div class="flex items-center justify-between">
-                        <span class="font-medium font-[var(--font-primary)] text-[var(--text-primary)]">Personal</span>
-                        <span v-if="staffNotificationCount > 0" data-slot="badge" class="inline-flex items-center justify-center rounded-md border px-2 py-0.5 font-medium w-fit whitespace-nowrap shrink-0 text-xs bg-[var(--color-primary)] text-white">{{ staffNotificationCount > 99 ? '99+' : staffNotificationCount }}</span>
-                      </div>
-                      <p class="text-xs mt-1 font-[var(--font-secondary)] text-[var(--subtext-primary)]">Gestión de empleados</p>
-                    </div>
-                  </router-link>
-                  <router-link to="/admin/settings" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left group hover:bg-[var(--color-light)] text-[var(--text-primary)]" :class="{ 'bg-[var(--color-light)]': isActive('/admin/settings') }" @click="closeSheet">
-                    <div class="w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 bg-[var(--color-primary)]/10 text-[var(--color-primary)] group-hover:bg-[var(--color-primary)]/20">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
-                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-                        <circle cx="12" cy="12" r="3"></circle>
-                      </svg>
-                    </div>
-                    <div class="flex-1">
-                      <div class="flex items-center justify-between">
-                        <span class="font-medium font-[var(--font-primary)] text-[var(--text-primary)]">Configuración</span>
-                      </div>
-                      <p class="text-xs mt-1 font-[var(--font-secondary)] text-[var(--subtext-primary)]">Ajustes del sistema</p>
-                    </div>
-                  </router-link>
-                </nav>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="p-6 pt-0">
-          <div class="bg-border shrink-0 h-px w-full mb-4"></div>
-          <button data-slot="button" class="inline-flex items-center whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 border bg-background hover:text-accent-foreground px-4 py-2 has-[>svg]:px-3 w-full justify-start gap-3 h-12 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300" type="button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" x2="9" y1="12" y2="12"></line>
-            </svg>
-            <span class="font-[var(--font-secondary)]">Cerrar Sesión</span>
-          </button>
-        </div>
-      </div>
-      </div>
-    </Transition>
+  <!-- Offcanvas global montado en App.vue -->
+  
+  <NotificationsSidebar v-model="ui.isNotifSidebarOpen" />
     
     <!-- Toast de notificaciones -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11" v-if="showToast">
@@ -353,16 +217,24 @@ import authService from '@/services/auth'
 import { useAdminStore } from '@/stores/admin'
 import { useNotificationsStore } from '@/stores/notifications'
 import BusinessSetup from '@/components/Admin/BusinessSetup.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useUiStore } from '@/stores/ui'
+import AppHeader from '@/components/layout/AppHeader.vue'
+import NotificationsSidebar from '@/components/layout/NotificationsSidebar.vue'
 // Importar versión del paquete para mostrar en el footer
 export default {
   name: 'AdminDashboardView',
   components: {
-    BusinessSetup
+  BusinessSetup,
+  AppHeader,
+  NotificationsSidebar
   },
   setup() {
     const router = useRouter()
     const adminStore = useAdminStore()
     const notificationsStore = useNotificationsStore()
+    const authStore = useAuthStore()
+  const ui = useUiStore()
     
   const businessCode = ref('')
     const selectedRole = ref('admin')
@@ -375,8 +247,18 @@ export default {
     const isLoadingBusinessSwitch = ref(false)
   const showRoleDropdown = ref(false)
   const appVersion = ref(typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0')
-  const showSheet = ref(false)
   let onDocumentClick
+    
+    const handleLogout = async () => {
+      try {
+        await authStore.logout()
+      } catch (e) {
+        // noop; continuamos con navegación aunque falle backend
+      } finally {
+  ui.closeOffCanvas()
+        router.replace({ name: 'login' })
+      }
+    }
     
     // Computed properties for business management
     const availableBusinesses = computed(() => adminStore.availableBusinesses || [])
@@ -602,15 +484,7 @@ export default {
         isLoadingBusinessSwitch.value = false
       }
     }
-    const isActive = (path) => router.currentRoute.value.path.startsWith(path)
-    const openSheet = () => {
-      showSheet.value = true
-      document.body.style.overflow = 'hidden'
-    }
-    const closeSheet = () => {
-      showSheet.value = false
-      document.body.style.overflow = ''
-    }
+  const isActive = (path) => router.currentRoute.value.path.startsWith(path)
   onMounted(async () => {
       await loadBusinessData()
       // Inicializar notificaciones en tiempo real después de cargar datos del negocio
@@ -671,7 +545,7 @@ export default {
       }
       document.addEventListener('click', onDocumentClick)
   // Cerrar con Escape
-  const onKeydown = (e) => { if (e.key === 'Escape') closeSheet() }
+  const onKeydown = (e) => { if (e.key === 'Escape') ui.closeOffCanvas() }
   window.addEventListener('keydown', onKeydown)
   // Guardar para limpiar
   onDocumentClick._offcanvasKey = onKeydown
@@ -718,20 +592,19 @@ export default {
   showRoleDropdown,
   showDebug,
   appVersion,
-  showSheet,
   isActive,
   copyBusinessCode,
   copyBusinessId,
   regenerateInvitation,
-  openSheet,
-  closeSheet,
+  ui,
       toggleBusinessDropdown,
       toggleRoleDropdown,
       sendTestNotification,
       sendTestNotificationToSpecificWaiter,
       handleRoleChange,
       switchBusiness,
-      onBusinessCreated
+      onBusinessCreated,
+      handleLogout
     }
   }
 }

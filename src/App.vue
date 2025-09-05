@@ -98,9 +98,8 @@ onUnmounted(() => {
 
 <template>
   <div class="app-container">
-  <Navbar v-if="showNavigationUI && canShowNavigation" />
-  <OffCanvasNavbar v-if="showNavigationUI && canShowNavigation" />
-    
+  <!-- Ocultar la barra global en el dashboard del mozo para evitar doble header -->
+  <Navbar v-if="showNavigationUI && canShowNavigation && route.name !== 'waiter-dashboard'" />    
     <main :class="{ 'with-navbar': showNavigationUI && route.name !== 'admin' }">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
@@ -109,13 +108,16 @@ onUnmounted(() => {
       </router-view>
     </main>
 
+  <!-- Offcanvas global compartido (Admin/Mozo) -->
+  <OffCanvasNavbar />
+
     <!-- Footer global -->
-    <footer v-if="showNavigationUI && canShowNavigation" class="app-footer">
+    <!-- <footer v-if="showNavigationUI && canShowNavigation" class="app-footer">
       <div class="footer-content">
         <span class="app-name">MozoApp</span>
         <span class="version">{{ getFormattedVersion() }}</span>
       </div>
-    </footer>
+    </footer> -->
 
   </div>
 </template>
@@ -140,11 +142,6 @@ onUnmounted(() => {
 
 main {
   flex: 1;
-}
-
-main.with-navbar {
-  padding-top: 60px;
-  padding-bottom: 50px;
 }
 
 .app-footer {

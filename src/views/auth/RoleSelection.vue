@@ -91,10 +91,20 @@ const lastSelectedRole = ref('')
 
 // Cargar el último rol seleccionado
 const loadLastSelectedRole = () => {
+  // Obtener el ID del usuario actual para verificar que el rol guardado le pertenece
+  const currentUserId = authStore.user?.id
   const savedRole = localStorage.getItem('mozo_last_selected_role')
-  if (savedRole && (savedRole === 'admin' || savedRole === 'waiter')) {
+  const savedUserId = localStorage.getItem('mozo_last_selected_user_id')
+  
+  // Solo usar el rol guardado si es del mismo usuario
+  if (savedRole && (savedRole === 'admin' || savedRole === 'waiter') && savedUserId === String(currentUserId)) {
     lastSelectedRole.value = savedRole
-    console.log('🔄 Último rol recordado:', savedRole)
+    console.log('🔄 Último rol recordado para usuario actual:', savedRole)
+  } else if (savedUserId !== String(currentUserId)) {
+    // Limpiar rol de usuario anterior
+    localStorage.removeItem('mozo_last_selected_role')
+    localStorage.removeItem('mozo_last_selected_user_id')
+    console.log('🧹 Limpiado rol de usuario anterior')
   }
 }
 
@@ -130,9 +140,10 @@ const selectRole = async (role) => {
     console.error('RoleSelection - Error completo:', err);
   }
   
-  // Guardar el rol seleccionado para la próxima vez
+  // Guardar el rol seleccionado para la próxima vez con el ID del usuario
   localStorage.setItem('mozo_last_selected_role', role);
-  console.log('💾 Rol guardado para próxima sesión:', role);
+  localStorage.setItem('mozo_last_selected_user_id', String(authStore.user?.id || ''));
+  console.log('💾 Rol guardado para próxima sesión:', role, 'Usuario ID:', authStore.user?.id);
   
   console.log('RoleSelection - Actualizando estado local con setSelectedRole');
   authStore.setSelectedRole(role);
@@ -150,6 +161,7 @@ const logout = async () => {
     localStorage.removeItem('mozo_remember_email')
     localStorage.removeItem('mozo_remember_checked') 
     localStorage.removeItem('mozo_last_selected_role')
+    localStorage.removeItem('mozo_last_selected_user_id')
     router.push({ name: 'login' })
   } catch (err) {
     router.push({ name: 'login' })
@@ -177,88 +189,298 @@ onMounted(() => {
 })
 </script>
 <style scoped>
-.role-container {
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+/* Variables CSS */
+:root {
+  --color-primary: #6366f1;
+  --color-primary-dark: #4f46e5;
+  --color-accent: #8b5cf6;
+  --color-light: #f8fafc;
+  --color-gradient-start: #6366f1;
+  --color-gradient-end: #8b5cf6;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --font-primary: 'Poppins', sans-serif;
+  --font-secondary: 'Inter', sans-serif;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Contenedor principal */
+.container {
   min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem 1rem;
+  font-family: var(--font-secondary);
+}
+
+.role-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 2rem;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 3rem 2rem;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.role-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-gradient-start) 0%, var(--color-gradient-end) 100%);
+}
+
+/* Logo y header */
+.logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 1rem;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 1.5rem;
+  object-fit: cover;
+}
+
+.text-center h1 {
+  font-family: var(--font-primary);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.025em;
+}
+
+.text-primary.small {
+  color: var(--color-primary) !important;
+  font-weight: 600;
+  font-size: 0.875rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--bs-light);
-  padding: 1rem;
-}
-.role-card {
-  background-color: white;
-  border-radius: 1.5rem;
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.10);
-  max-width: 420px;
-  text-align: center;
-}
-.logo {
-  width: 70px;
-  height: 70px;
-  margin-bottom: 1rem;
-}
-.role-option.static {
-  border: 2px solid #a084e8;
-  border-radius: 1.2rem;
-  padding: 2.2rem 1rem 1.2rem 1rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: #faf8ff;
-  margin-bottom: 1rem;
-  width: 100%;
-  max-width: 250px;
-}
-.role-option.static:hover {
-  background: #f0eaff;
-  border-color: #7c4dff;
-  box-shadow: 0 0 0 2px #a084e8;
-  transform: translateY(-3px) scale(1.03);
+  gap: 0.5rem;
 }
 
+.text-muted.small {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* Opciones de rol mejoradas */
+.role-option.static {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 1.5rem;
+  padding: 2.5rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.role-option.static::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--color-gradient-start) 0%, var(--color-gradient-end) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 0;
+}
+
+.role-option.static > * {
+  position: relative;
+  z-index: 1;
+}
+
+.role-option.static:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: var(--shadow-lg);
+}
+
+.role-option.static:hover::before {
+  opacity: 0.1;
+}
+
+.role-option.static:hover .role-icon {
+  color: var(--color-primary);
+  transform: scale(1.1);
+}
+
+.role-option.static:hover h3 {
+  color: var(--color-primary);
+}
+
+/* Rol preferido */
 .role-option.static.preferred {
-  border-color: #9f54fd;
-  background: linear-gradient(135deg, #faf8ff 0%, #f3edff 100%);
-  box-shadow: 0 4px 12px rgba(159, 84, 253, 0.2);
+  border-color: var(--color-primary);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+}
+
+.role-option.static.preferred::before {
+  opacity: 0.1;
+}
+
+.role-option.static.preferred .role-icon {
+  color: var(--color-primary);
+}
+
+.role-option.static.preferred h3 {
+  color: var(--color-primary);
 }
 
 .role-option.static.preferred:hover {
-  border-color: #7b2cbf;
-  background: linear-gradient(135deg, #f3edff 0%, #ede0ff 100%);
-  transform: translateY(-5px) scale(1.05);
+  transform: translateY(-10px) scale(1.03);
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.2);
 }
 
+/* Loading state */
 .role-option.static.loading {
   pointer-events: none;
-  opacity: 0.8;
+  opacity: 0.7;
 }
 
 .loading-spinner {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100px;
+  min-height: 120px;
 }
 
-.preferred-badge {
-  display: block;
-  color: #9f54fd;
-  font-weight: 600;
-  margin-top: 8px;
-  font-size: 0.75rem;
+.spinner-border {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-width: 0.25rem;
 }
 
-.text-muted.small {
-  font-size: 0.85rem;
-  margin-top: 4px;
-}
+/* Iconos y texto */
 .role-icon {
-  font-size: 2.8rem;
-  color: #a084e8;
+  font-size: 3rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
 }
+
+.role-option h3 {
+  font-family: var(--font-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  transition: color 0.3s ease;
+}
+
+/* Badge preferido */
+.preferred-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 1rem;
+  margin-top: 1rem;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+/* Botón de logout mejorado */
 .btn-outline-secondary {
-  border-radius: 0.7rem;
-  font-size: 1.1rem;
-  padding: 0.7rem 2.2rem;
+  background: white;
+  border: 2px solid #e2e8f0;
+  color: var(--text-secondary);
+  font-family: var(--font-secondary);
+  font-weight: 500;
+  border-radius: 1rem;
+  padding: 0.875rem 2rem;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-outline-secondary:hover {
+  border-color: var(--text-secondary);
+  background: var(--text-secondary);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Responsive design */
+@media (max-width: 576px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .role-card {
+    padding: 2rem 1.5rem;
+    border-radius: 1.5rem;
+  }
+  
+  .text-center h1 {
+    font-size: 1.75rem;
+  }
+  
+  .role-option.static {
+    padding: 2rem 1rem;
+  }
+  
+  .role-icon {
+    font-size: 2.5rem;
+  }
+  
+  .logo {
+    width: 70px;
+    height: 70px;
+  }
+}
+
+/* Animaciones adicionales */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.role-card {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.role-option.static {
+  animation: fadeInUp 0.6s ease-out;
+  animation-delay: 0.1s;
+  opacity: 0;
+  animation-fill-mode: forwards;
+}
+
+.role-option.static:nth-child(2) {
+  animation-delay: 0.2s;
 }
 </style>

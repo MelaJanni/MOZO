@@ -1,0 +1,178 @@
+/* Dashboard Mozo - Theme overrides (no JS/HTML changes)
+   Mejora de contraste, bordes y profundidad sin romper funcionalidades
+*/
+
+:root {
+  /* Ajustes de paleta (ligeramente más profundas) */
+  --color-primary: #7c3aed; /* violeta 600 */
+  --color-primary-dark: #6d28d9; /* violeta 700 */
+  --color-primary-darker: #5b21b6; /* violeta 800 */
+  --color-accent: #a855f7; /* acento violeta */
+  --color-accent-light: #e9d5ff; /* violeta claro */
+  --color-dark: #0b0b12; /* fondo oscuro base para overlays */
+  --color-light: #faf7ff; /* fondo general ligeramente más cálido */
+
+  /* Variables consumidas por el CSS compilado */
+  --primary: var(--color-primary);
+  --accent: var(--color-accent);
+  /* Bordes un poco más visibles (antes ~20% alfa) */
+  --border: #7c3aed4d; /* 30% alpha */
+
+  /* Sidebar/base tokens */
+  --sidebar: #ffffff; /* panel limpio */
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--color-primary);
+}
+
+/* Fondo general con un leve degradado para evitar planitud */
+body {
+  background: radial-gradient(1200px 800px at -10% -10%, #ffffff 0%, #f6f1ff 40%, #f4f0ff 55%, #faf7ff 100%);
+}
+
+/* Overlay del sheet con blur sutil para dar profundidad */
+[data-slot="sheet-overlay"] {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background-color: color-mix(in srgb, var(--color-dark) 35%, transparent) !important;
+}
+
+/* Panel del sheet: borde, sombra y un fondo con leve gradiente */
+[data-slot="sheet-content"] {
+  background: linear-gradient(180deg, #ffffff 0%, #fbf9ff 60%, #f8f5ff 100%);
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  box-shadow: 0 10px 24px rgba(12, 10, 20, 0.14), 0 2px 6px rgba(12, 10, 20, 0.06);
+  border-radius: 16px;
+}
+
+/* Enlaces/elementos destacados con color primario: mejorar hover/focus rings */
+:where(a, button, [role="button"]) {
+  outline-offset: 2px;
+}
+:where(a, button, [role="button"]):focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 35%, transparent);
+}
+
+/* Badges con primario/acento un poco más vivos y legibles */
+.badge, .badge-primary {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 92%, white) 0%, var(--primary) 100%);
+  color: #fff;
+}
+.badge-accent {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 92%, white) 0%, var(--accent) 100%);
+  color: #fff;
+}
+
+/* Tarjetas/contenedores comunes: borde y sombra sutiles */
+.card, .panel, .widget, .stat, .tile {
+  background: #fff;
+  border: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
+  box-shadow: 0 6px 18px rgba(12, 10, 20, 0.08);
+  border-radius: 14px;
+}
+
+/* Botones principales y de acento: degradado suave sin cambiar clases */
+.button-primary, .btn-primary, .primary, [data-variant="primary"] {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 96%, white) 0%, var(--primary) 100%);
+  color: var(--primary-foreground, #fff);
+}
+.button-accent, .btn-accent, .accent, [data-variant="accent"] {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 96%, white) 0%, var(--accent) 100%);
+  color: var(--accent-foreground, #fff);
+}
+
+/* Estados hover un poco más contrastados, sin tocar la semántica */
+.button-primary:hover, .btn-primary:hover, [data-variant="primary"]:hover {
+  filter: saturate(1.05) brightness(1.02);
+}
+.button-accent:hover, .btn-accent:hover, [data-variant="accent"]:hover {
+  filter: saturate(1.05) brightness(1.02);
+}
+
+/* Separadores y líneas: visibles pero sutiles */
+hr, .divider, .separator, .bordered {
+  border-color: color-mix(in oklab, var(--border) 85%, transparent) !important;
+}
+
+/* Títulos con leve realce de color primario */
+.text-title, .heading-primary {
+  color: color-mix(in oklab, var(--primary) 90%, black);
+}
+
+/* =====================
+   WRAP/RESPONSIVE GROUPS
+   ===================== */
+/* Evitar que los grupos largos queden en una sola fila */
+.quick-actions,
+.tabs-container,
+.dropdown-cards,
+.notifications-actions,
+.mesas-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  row-gap: 12px;
+  white-space: normal; /* por si algún padre impone nowrap */
+}
+
+/* Compatibilidad con layouts tipo bootstrap */
+.row { flex-wrap: wrap; }
+
+/* Hacer que los hijos se distribuyan en 2 columnas en móviles y 3/4 en pantallas medianas/grandes */
+.quick-actions > *,
+.tabs-container > *,
+.dropdown-cards > *,
+.notifications-actions > * {
+  flex: 0 1 auto;
+}
+
+@media (max-width: 640px) {
+  .quick-actions > *,
+  .tabs-container > *,
+  .dropdown-cards > *,
+  .notifications-actions > * {
+    flex: 1 1 calc(50% - 12px);
+    min-width: 160px;
+  }
+}
+
+@media (max-width: 420px) {
+  .quick-actions > *,
+  .tabs-container > *,
+  .dropdown-cards > *,
+  .notifications-actions > * {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}
+
+/* ===== Fix de layout: evitar una sola fila en la página del mozo ===== */
+.waiter-dashboard-root .dashboard-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+.waiter-dashboard-root .dashboard-content > * {
+  flex: 1 1 320px; /* permite que se parta en varias filas */
+  min-width: 280px;
+}
+
+/* Tabs al centro y contenedor a ancho completo */
+.tabs-container {
+  width: 100%;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .waiter-dashboard-root .dashboard-content {
+    gap: 20px;
+  }
+}
+
+/* ===== Utilidades de compatibilidad (Bootstrap-like) ===== */
+.d-flex { display: flex; }
+.justify-content-center { justify-content: center; }
+.align-items-center { align-items: center; }
+.col-12 { width: 100%; }
+.px-0 { padding-left: 0 !important; padding-right: 0 !important; }
+.row { display: flex; }

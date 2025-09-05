@@ -24,48 +24,99 @@
     <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
   </svg>
 
-  <div class="app">
+  <div class="min-h-screen bg-gray-50 p-4">
     <!-- Tabs -->
-    <div class="segmented">
-      <button :class="['seg-btn', activeTab === 'personal' && 'active']" @click="activeTab = 'personal'">Personal</button>
-      <button :class="['seg-btn', activeTab === 'laboral' && 'active']" @click="activeTab = 'laboral'">Laboral</button>
-      <button :class="['seg-btn', activeTab === 'cuenta' && 'active']" @click="activeTab = 'cuenta'">Cuenta</button>
+    <div class="flex gap-2 p-1.5 bg-white border border-gray-200 rounded-2xl shadow-sm mb-4">
+      <button 
+        :class="[
+          'flex-1 h-10 rounded-xl font-semibold text-sm transition-all duration-200',
+          activeTab === 'personal' 
+            ? 'bg-purple-50 text-gray-900 shadow-sm' 
+            : 'text-gray-600 hover:text-purple-600'
+        ]" 
+        @click="activeTab = 'personal'"
+      >
+        Personal
+      </button>
+      <button 
+        :class="[
+          'flex-1 h-10 rounded-xl font-semibold text-sm transition-all duration-200',
+          activeTab === 'laboral' 
+            ? 'bg-purple-50 text-gray-900 shadow-sm' 
+            : 'text-gray-600 hover:text-purple-600'
+        ]" 
+        @click="activeTab = 'laboral'"
+      >
+        Laboral
+      </button>
+      <button 
+        :class="[
+          'flex-1 h-10 rounded-xl font-semibold text-sm transition-all duration-200',
+          activeTab === 'cuenta' 
+            ? 'bg-purple-50 text-gray-900 shadow-sm' 
+            : 'text-gray-600 hover:text-purple-600'
+        ]" 
+        @click="activeTab = 'cuenta'"
+      >
+        Cuenta
+      </button>
     </div>
 
     <!-- ========== PERSONAL ========== -->
-    <section v-if="activeTab === 'personal'">
-      <div class="avatar-wrap" @click="triggerAvatarUpload" role="button" aria-label="Cambiar foto">
-        <input ref="fileInput" type="file" accept="image/*" class="hidden-file" @change="onFileChange" />
-        <div v-if="!user.avatar" class="avatar-square placeholder">
-          <svg class="i md"><use href="#i-camera"/></svg>
+    <section v-if="activeTab === 'personal'" class="space-y-6">
+      <div class="flex justify-center cursor-pointer" @click="triggerAvatarUpload" role="button" aria-label="Cambiar foto">
+        <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onFileChange" />
+        <div v-if="!user.avatar" class="w-32 h-32 bg-white border border-gray-200 rounded-2xl flex items-center justify-center shadow-lg">
+          <svg class="w-8 h-8 text-purple-400"><use href="#i-camera"/></svg>
         </div>
-        <img v-else :src="user.avatar" alt="Foto de perfil" class="avatar-square" />
+        <img v-else :src="user.avatar" alt="Foto de perfil" class="w-32 h-32 rounded-2xl object-cover bg-white border border-gray-200 shadow-lg" />
       </div>
-      <h2 class="display-name">{{ user.name || 'Tu nombre' }}</h2>
+      <h2 class="text-xl font-bold text-center text-gray-900 break-words">{{ user.name || 'Tu nombre' }}</h2>
 
-      <div class="group">
-        <label>Fecha de nacimiento</label>
-        <div class="input has-icon clickable" @click="openBirth">
-          <svg class="i sm left"><use href="#i-calendar"/></svg>
-          <input ref="birthRef" type="date" v-model="user.birth_date" placeholder="dd/mm/aaaa"/>
+      <div class="space-y-1">
+        <label class="block text-sm font-medium text-gray-700">Fecha de nacimiento</label>
+        <div class="relative" @click="openBirth">
+          <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"><use href="#i-calendar"/></svg>
+          <input 
+            ref="birthRef" 
+            type="date" 
+            v-model="user.birth_date" 
+            placeholder="dd/mm/aaaa"
+            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+          />
         </div>
       </div>
-      <div class="group">
-          <label>Estatura</label>
-          <div class="input has-icon with-suffix">
-            <svg class="i sm left"><use href="#i-ruler"/></svg>
-            <input v-model="user.height" type="number" inputmode="decimal" placeholder="1.75" />
-            <span class="suffix">m</span>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Estatura</label>
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"><use href="#i-ruler"/></svg>
+            <input 
+              v-model="user.height" 
+              type="number" 
+              inputmode="decimal" 
+              placeholder="1.75"
+              class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+            />
+            <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">m</span>
           </div>
         </div>
-        <div class="group">
-          <label>Peso</label>
-          <div class="input has-icon with-suffix">
-            <svg class="i sm left"><use href="#i-weight"/></svg>
-            <input v-model="user.weight" type="number" inputmode="decimal" placeholder="70" />
-            <span class="suffix">kg</span>
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Peso</label>
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"><use href="#i-weight"/></svg>
+            <input 
+              v-model="user.weight" 
+              type="number" 
+              inputmode="decimal" 
+              placeholder="70"
+              class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+            />
+            <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">kg</span>
           </div>
         </div>
+      </div>
 
       <div class="group">
         <label>Sexo</label>
@@ -207,6 +258,42 @@
         </article>
       </div>
 
+      <!-- Solicitudes Pendientes -->
+      <div v-if="pendingRequests.length > 0">
+        <h3 class="h3 mt">Solicitudes Pendientes</h3>
+        <div class="cards">
+          <article class="card pending-request" v-for="request in pendingRequests" :key="request.id">
+            <header class="card-hd">
+              <div class="tt">
+                <svg class="i"><use href="#i-clock"/></svg>
+                <span class="place">{{ request.business_name }}</span>
+              </div>
+              <span class="pill pending">Pendiente</span>
+            </header>
+
+            <div class="row">
+              <div class="col-12 col-md-8">
+                <div class="request-info">
+                  <div class="request-detail">
+                    <svg class="i sm"><use href="#i-user"/></svg>
+                    <span class="muted">Solicitud enviada {{ formatRequestDate(request.created_at) }}</span>
+                  </div>
+                  <div class="request-detail" v-if="request.message">
+                    <svg class="i sm"><use href="#i-text"/></svg>
+                    <span class="muted">{{ request.message }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="request-status">
+                  <span class="status-text">Esperando respuesta del administrador</span>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
       <h3 class="h3 mt">Negocios Asociados Hoy</h3>
       <div class="cards">
         <article class="card business" v-for="business in associatedBusinesses" :key="business.id">
@@ -286,7 +373,7 @@
       <div class="group">
         <label>Nueva contraseña</label>
         <div class="input with-icon">
-          <input :type="show.next ? 'text' : 'password'" v-model="passwords.new" placeholder="Mínimo 8 caracteres" autocomplete="new-password"/>
+          <input :type="show.next ? 'text' : 'password'" v-model="passwords.new" placeholder="Min. 8 caracteres, mayúscula y número" autocomplete="new-password"/>
           <button class="icon-btn" type="button" @click="show.next = !show.next">
             <svg class="i sm"><use :href="show.next ? '#i-eye-off' : '#i-eye'"/></svg>
           </button>
@@ -488,6 +575,7 @@ const user = ref({
 
 const workHistory = ref([])
 const associatedBusinesses = ref([])
+const pendingRequests = ref([])
 
 const passwords = ref({
   current: '',
@@ -625,7 +713,10 @@ const copyCode = async (code) => {
 
 const isPasswordValid = computed(() => {
   if (!passwords.value.new) return true
-  return passwords.value.new.length >= 8
+  const hasMinLength = passwords.value.new.length >= 8
+  const hasUppercase = /[A-Z]/.test(passwords.value.new)
+  const hasNumber = /\d/.test(passwords.value.new)
+  return hasMinLength && hasUppercase && hasNumber
 })
 
 const doPasswordsMatch = computed(() => {
@@ -1037,6 +1128,55 @@ const leaveBusiness = async (businessId, businessName) => {
   }
 }
 
+const formatRequestDate = (dateString) => {
+  if (!dateString) return 'fecha desconocida'
+  
+  try {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffInHours = (now - date) / (1000 * 60 * 60)
+    
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor((now - date) / (1000 * 60))
+      return `hace ${diffInMinutes} minutos`
+    } else if (diffInHours < 24) {
+      return `hace ${Math.floor(diffInHours)} horas`
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24)
+      return `hace ${diffInDays} días`
+    }
+  } catch (err) {
+    return 'fecha inválida'
+  }
+}
+
+const loadPendingRequests = async () => {
+  try {
+    const userId = authStore.user?.id
+    if (!userId) return
+    
+    // Importar el servicio de staff realtime
+    const { startStaffRealtimeForUser } = await import('@/services/staffRealtime')
+    
+    // Escuchar cambios en las solicitudes del usuario
+    await startStaffRealtimeForUser(userId, (data) => {
+      if (data && data.current_request) {
+        const request = data.current_request
+        if (request.status === 'pending') {
+          pendingRequests.value = [request]
+        } else {
+          pendingRequests.value = []
+        }
+      } else {
+        pendingRequests.value = []
+      }
+    })
+  } catch (err) {
+    console.error('❌ Error loading pending requests:', err)
+    pendingRequests.value = []
+  }
+}
+
 const deleteAccount = async () => {
   if (deleteConfirmation.value !== 'ELIMINAR') return
   
@@ -1057,6 +1197,7 @@ const deleteAccount = async () => {
 
 onMounted(() => {
   loadUserData()
+  loadPendingRequests()
 })
 
 const route = useRoute()
@@ -1082,8 +1223,8 @@ watch(error, (newVal) => {
 })
 </script>
 
-<style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+<style>
+/* Solo mantener estilos mínimos necesarios */
 
 :root{
   --primary:#9f54fd; --primary-dark:#7b2cbf;
@@ -1370,5 +1511,52 @@ span, p, div{
   margin: 10px 0 20px 0;
 }
 
+/* Pending Requests Styles */
+.card.pending-request {
+  border-color: #fbbf24;
+  background: linear-gradient(135deg, #fef3c7 0%, #ffffff 100%);
+}
+
+.pill.pending {
+  color: #92400e;
+  border-color: #fde68a;
+  background: #fef3c7;
+}
+
+.request-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.request-detail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.request-status {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.status-text {
+  font-size: 13px;
+  color: #92400e;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .request-status {
+    align-items: flex-start;
+    text-align: left;
+    margin-top: 12px;
+  }
+}
 
 </style>

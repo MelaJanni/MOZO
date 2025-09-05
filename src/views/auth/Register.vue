@@ -76,7 +76,7 @@
             <input 
               v-model="password" 
               :type="showPassword?'text':'password'" 
-              placeholder="Mínimo 8 caracteres" 
+              placeholder="Min. 8 caracteres, mayúscula y número" 
               autocomplete="new-password"
               :disabled="loading"
             />
@@ -90,7 +90,7 @@
             </button>
           </div>
           <div v-if="!isPasswordValid && password" class="validation-error">
-            La contraseña debe tener al menos 8 caracteres
+            La contraseña debe tener al menos 8 caracteres, una mayúscula y un número
           </div>
         </div>
 
@@ -185,7 +185,10 @@ export default {
     })
     
     const isPasswordValid = computed(() => {
-      return password.value.length >= 8
+      const hasMinLength = password.value.length >= 8
+      const hasUppercase = /[A-Z]/.test(password.value)
+      const hasNumber = /\d/.test(password.value)
+      return hasMinLength && hasUppercase && hasNumber
     })
     
     const doPasswordsMatch = computed(() => {

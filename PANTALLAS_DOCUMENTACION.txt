@@ -1,0 +1,476 @@
+DOCUMENTACIÓN DE PANTALLAS - APLICACIÓN MOZO
+==================================================
+
+SISTEMA DE GESTIÓN RESTAURANTERO INTEGRAL
+Funciones, Acciones y Validaciones por Pantalla
+
+==================================================
+📱 SECCIÓN DE AUTENTICACIÓN
+==================================================
+
+🔐 LOGIN (/login)
+─────────────────
+FUNCIÓN: Pantalla de inicio de sesión para acceso al sistema
+ACCIONES DISPONIBLES:
+• Iniciar sesión con email y contraseña
+• Iniciar sesión con Google (nativo/web)
+• Mostrar/ocultar contraseña
+• Recordar credenciales (checkbox)
+• Navegar a registro
+• Navegar a recuperación de contraseña
+• Auto-completado de credenciales guardadas
+
+VALIDACIONES:
+• Formato de email válido
+• Campos requeridos (email, contraseña)
+• Deshabilitación durante carga
+• Manejo de tokens OAuth2
+• Validación de código de invitación en URL
+
+---
+
+🔐 REGISTRO (/register)
+─────────────────────
+FUNCIÓN: Creación de nuevas cuentas de usuario
+ACCIONES DISPONIBLES:
+• Registro con formulario manual
+• Registro con Google (nativo/web)
+• Mostrar/ocultar contraseñas
+• Navegar a login
+• Auto-procesamiento de códigos de invitación
+
+VALIDACIONES:
+• Email: formato válido obligatorio
+• Contraseña: mínimo 8 caracteres
+• Confirmación de contraseña: debe coincidir exactamente
+• Nombre completo: campo requerido
+• Validación en tiempo real con mensajes de error
+• Deshabilitación durante proceso de registro
+
+---
+
+🔐 OLVIDE MI CONTRASEÑA (/forgot-password)
+─────────────────────────────────────────
+FUNCIÓN: Recuperación de contraseñas olvidadas
+ACCIONES DISPONIBLES:
+• Enviar enlace de recuperación por email
+• Volver a pantalla de login
+
+VALIDACIONES:
+• Email: formato válido requerido
+• Estado de éxito con mensaje confirmatorio
+• Manejo de errores del servidor
+
+---
+
+🔐 RESTABLECER CONTRASEÑA (/reset-password)
+──────────────────────────────────────────
+FUNCIÓN: Cambio de contraseña mediante token de recuperación
+ACCIONES DISPONIBLES:
+• Establecer nueva contraseña
+• Confirmar nueva contraseña
+• Volver a login tras éxito
+
+VALIDACIONES:
+• Token de restablecimiento válido en URL
+• Contraseña: mínimo 8 caracteres
+• Confirmación debe coincidir con nueva contraseña
+• Email pre-rellenado desde parámetros URL
+• Validación de expiración del token
+
+---
+
+🎭 SELECCIÓN DE ROL (/role-selection)
+───────────────────────────────────
+FUNCIÓN: Elegir rol de trabajo (Admin/Mozo)
+ACCIONES DISPONIBLES:
+• Seleccionar rol "Dueño" (Admin)
+• Seleccionar rol "Mozo" (Waiter)
+• Auto-selección del último rol usado
+• Cerrar sesión
+
+VALIDACIONES:
+• Recordar último rol seleccionado
+• Manejo de cambio manual de rol (parámetro ?change=true)
+• Estados de carga individuales por rol
+• Redirección automática según rol elegido
+
+---
+
+🔄 CALLBACK OAUTH (/auth/callback)
+────────────────────────────────
+FUNCIÓN: Procesamiento de autenticación Google
+ACCIONES DISPONIBLES:
+• Procesamiento automático de códigos OAuth
+• Comunicación con ventanas padre (popups)
+• Redirección tras autenticación exitosa
+
+VALIDACIONES:
+• Validación de código de autorización
+• Manejo de errores OAuth
+• Soporte para códigos de invitación
+• Detección de popups vs ventanas normales
+
+==================================================
+👨‍💼 SECCIÓN ADMINISTRADOR
+==================================================
+
+🏠 DASHBOARD ADMIN (/admin)
+─────────────────────────
+FUNCIÓN: Panel principal de administración del negocio
+ACCIONES DISPONIBLES:
+• Ver resumen del negocio (mesas, menús, QRs)
+• Cambiar entre múltiples negocios propios
+• Copiar ID del negocio
+• Copiar código de invitación para staff
+• Regenerar código de invitación
+• Navegación rápida a QR, Estadísticas, Staff, Configuración
+• Ver solicitudes de staff pendientes
+
+VALIDACIONES:
+• Verificación de setup completado del negocio
+• Validación de propiedad de múltiples negocios
+• Contador de notificaciones de staff
+• Estados de carga para cambio de negocio
+
+---
+
+🏠 HOME ADMIN (/admin/home)
+─────────────────────────
+FUNCIÓN: Página principal con navegación del administrador
+ACCIONES DISPONIBLES:
+• Selector de negocio (dropdown si tiene múltiples)
+• Acceso a gestión de QR y mesas
+• Acceso a estadísticas
+• Acceso a gestión de staff
+• Acceso a configuración
+• Vista de resumen estadístico
+
+VALIDACIONES:
+• Verificación de setup de negocio completado
+• Validación antes de acciones principales
+
+---
+
+📋 CONFIGURACION ADMIN (/admin/settings)
+──────────────────────────────────────
+FUNCIÓN: Gestión completa de configuración del negocio
+ACCIONES DISPONIBLES:
+• Editar información del negocio (nombre, dirección, teléfono, email, descripción)
+• Cambiar entre negocios (si administra múltiples)
+• Eliminar negocio completo (acción peligrosa)
+• Gestionar mesas básicas (crear, editar, eliminar)
+• Cerrar sesión
+
+VALIDACIONES:
+• Nombre del negocio: campo requerido
+• Eliminación de negocio: requiere escribir "ELIMINAR" exactamente
+• Número de mesa: entero positivo
+• Capacidad de mesa: entero positivo
+• Confirmación para acciones destructivas
+
+---
+
+👥 GESTIÓN DE STAFF (/admin/staff)
+─────────────────────────────────
+FUNCIÓN: Sistema completo de gestión de empleados
+ACCIONES DISPONIBLES:
+• Ver solicitudes de trabajo (pendientes y archivadas)
+• Aprobar, rechazar, archivar solicitudes individuales
+• Operaciones masivas (aprobar todo, archivar todo)
+• Invitar staff por email con selección de rol
+• Buscar en lista de empleados actuales
+• Eliminar/desvincular empleados
+• Enviar invitaciones a candidatos aprobados
+• Alternar vista entre pendientes y archivados
+
+VALIDACIONES:
+• Email: formato válido para invitaciones
+• Confirmación para eliminar empleados
+• Validación de selección de rol en invitaciones
+• Paginación para listas grandes
+• Estados de carga para acciones asíncronas
+
+---
+
+👤 DETALLE DE STAFF (/admin/staff/:id)
+────────────────────────────────────
+FUNCIÓN: Vista detallada y gestión individual de empleado
+ACCIONES DISPONIBLES:
+• Ver perfil completo del empleado
+• Editar datos laborales (posición, salario, notas, educación)
+• Ver y agregar reseñas de rendimiento
+• Contactar por WhatsApp o email
+• Desvincular empleado del negocio
+• Enviar notificaciones push (implementación limitada)
+
+VALIDACIONES:
+• Edad: mínimo 16 años (validación de fecha de nacimiento)
+• Salario: números positivos únicamente
+• Desvinculación: requiere escribir "DESVINCULAR" exactamente
+• Validación de datos de contacto antes de enlaces WhatsApp/email
+
+---
+
+📱 GESTIÓN QR Y MENÚS (/admin/qr)
+───────────────────────────────
+FUNCIÓN: Sistema integral de QR y gestión de menús
+ACCIONES DISPONIBLES:
+PESTAÑA MESAS:
+• Crear, editar, eliminar mesas
+• Generar y regenerar códigos QR individuales
+• Selección múltiple de mesas
+• Descargar QRs (PDF, PNG, SVG, ZIP)
+• Enviar QRs por email
+• Compartir QRs individuales
+• Vista previa de QRs
+
+PESTAÑA MENÚS:
+• Subir menús en PDF (límite 50MB)
+• Establecer menú por defecto
+• Renombrar menús existentes
+• Descargar menús
+• Eliminar menús
+• Vista previa de menús
+
+VALIDACIONES:
+• Número de mesa: entero positivo
+• Archivos de menú: solo PDF, máximo 50MB
+• Email válido para envío de QRs
+• Confirmación para eliminaciones
+• Verificación de duplicados de número de mesa
+
+---
+
+📊 ESTADÍSTICAS (/admin/stats)
+────────────────────────────
+FUNCIÓN: Panel de estadísticas (próximamente)
+ACCIONES DISPONIBLES:
+• Mensaje "próximamente"
+
+VALIDACIONES:
+• Ninguna (funcionalidad no implementada)
+
+---
+
+🔧 DEBUG NOTIFICACIONES (/admin/notification-debug)
+─────────────────────────────────────────────────
+FUNCIÓN: Panel de pruebas para notificaciones FCM
+ACCIONES DISPONIBLES:
+• Probar notificaciones en segundo plano
+• Programar notificaciones con delay (15 segundos)
+• Ver lista de notificaciones actuales
+• Inicializar sistema FCM y solicitar permisos
+
+VALIDACIONES:
+• Ninguna (interfaz de debug)
+
+---
+
+🚀 ONBOARDING ADMIN (/admin/onboarding)
+─────────────────────────────────────
+FUNCIÓN: Asistente de configuración inicial para nuevos administradores
+ACCIONES DISPONIBLES:
+• Crear perfil de nuevo negocio
+• Llenar información del negocio (nombre, dirección, teléfono, email, descripción)
+
+VALIDACIONES:
+• Nombre del negocio: campo requerido
+• Dirección: campo requerido
+• Email: formato válido
+• Límites de caracteres (nombre/dirección: 255, teléfono: 20, descripción: 500)
+
+---
+
+👤 PERFIL ADMIN (/admin/profile)
+──────────────────────────────
+FUNCIÓN: Gestión del perfil personal del administrador
+ACCIONES DISPONIBLES:
+• Editar nombre para mostrar, información del negocio, posición, detalles de contacto
+• Subir y cambiar imagen de avatar
+• Cambiar contraseña de la cuenta
+• Eliminar cuenta completa (con confirmación)
+
+VALIDACIONES:
+• Avatar: límite de 5MB de tamaño de archivo
+• Contraseña: mínimo 8 caracteres
+• Confirmación de contraseña: debe coincidir
+• Eliminación de cuenta: requiere escribir "ELIMINAR" exactamente
+
+==================================================
+🍽️ SECCIÓN MOZO
+==================================================
+
+🏠 DASHBOARD MOZO (/waiter)
+─────────────────────────
+FUNCIÓN: Panel principal para mozos con gestión de mesas y negocios
+ACCIONES DISPONIBLES:
+ESTADO SIN NEGOCIO:
+• Ingresar código de invitación
+• Ver invitaciones pendientes
+
+DASHBOARD PRINCIPAL:
+• Ver información personal y hora actual
+• Selector de negocio (dropdown)
+• Selector de perfil de mesas
+• Ver mesas asignadas
+• Cambiar disponibilidad (en línea/fuera de línea)
+• Gestionar solicitudes de llamado de clientes
+• Marcar como leída notificaciones
+
+MODALS DE GESTIÓN:
+• Agregar nuevo negocio
+• Gestión de mesas y zonas
+• Debug de IP
+• Control anti-spam
+
+VALIDACIONES:
+• Códigos de invitación válidos
+• Verificación de asociación a negocio
+• Control de estados en línea/fuera de línea
+• Validación de perfiles de mesa
+• Sistema anti-spam para solicitudes de llamado
+
+---
+
+👤 PERFIL MOZO (/waiter/profile)
+──────────────────────────────
+FUNCIÓN: Gestión completa del perfil profesional del mozo
+ACCIONES DISPONIBLES:
+PESTAÑA PERSONAL:
+• Editar avatar (subida de imagen)
+• Información personal (fecha nacimiento, altura, peso, género, ubicación, teléfono, biografía)
+
+PESTAÑA TRABAJO:
+• Gestionar detalles de empleo
+• Alternar disponibilidad laboral
+• Agregar/quitar habilidades profesionales
+• Gestionar historial laboral (agregar, editar, eliminar experiencias)
+• Ver negocios asociados
+• Abandonar negocios
+
+PESTAÑA CUENTA:
+• Actualizar email y nombre de la cuenta
+• Cambiar contraseña
+• Eliminar cuenta permanentemente
+
+VALIDACIONES:
+• Avatar: límite de 2MB
+• Contraseña: mínimo 8 caracteres fuerte
+• Confirmación de contraseña: coincidencia exacta
+• Eliminación de cuenta: escribir "ELIMINAR" exactamente
+• Validación de fechas para experiencia laboral
+• Campos de información personal opcionales pero validados si se completan
+
+==================================================
+🌐 SECCIÓN PÚBLICA
+==================================================
+
+🍽️ MENÚ DE MESA (/table/:businessId/:tableId)
+───────────────────────────────────────────
+FUNCIÓN: Visualizador público de menú para clientes en mesas
+ACCIONES DISPONIBLES:
+• Ver menú del restaurante (formato PDF)
+• Llamar al mozo mediante botón integrado
+• Ver información del negocio
+
+VALIDACIONES:
+• ID de mesa válido en parámetros URL
+• ID de negocio válido en parámetros URL
+• Verificación de existencia de menú
+
+==================================================
+🔗 SECCIONES DE INVITACIÓN
+==================================================
+
+👥 UNIRSE AL STAFF (/join-staff)
+──────────────────────────────
+FUNCIÓN: Página de aceptación de invitaciones laborales
+ACCIONES DISPONIBLES:
+• Aceptar invitaciones laborales mediante token de enlace
+• Login/registro si no está autenticado
+
+VALIDACIONES:
+• Validación de token de invitación
+• Requerimiento de autenticación
+• Validación de ID de usuario
+• Integración con Firebase Realtime Database para notificaciones admin
+
+---
+
+✉️ INVITACIONES DE STAFF (/staff/invitations)
+────────────────────────────────────────────
+FUNCIÓN: Panel de gestión de invitaciones laborales
+ACCIONES DISPONIBLES:
+• Ver invitaciones de trabajo pendientes
+• Aceptar o declinar invitaciones
+• Ver detalles de invitación y estado de expiración
+
+VALIDACIONES:
+• Validación de tokens de invitación
+• Verificación de expiración (límite de 7 días)
+• Estados de invitación (pendiente, aceptada, expirada)
+
+==================================================
+🔒 CARACTERÍSTICAS DE SEGURIDAD GLOBALES
+==================================================
+
+• Verificaciones de autenticación en todas las rutas protegidas
+• Validación y sanitización de entrada en todos los formularios
+• Restricciones de subida de archivos (tamaño y tipo)
+• Diálogos de confirmación para acciones destructivas
+• Sistema de invitaciones basado en tokens seguros
+• Manejo de sesiones y tokens de acceso
+• Protección CSRF implícita
+• Validación de roles y permisos
+
+==================================================
+💫 CARACTERÍSTICAS DE EXPERIENCIA USUARIO
+==================================================
+
+• Estados de carga y pantallas de esqueleto
+• Manejo de errores con retroalimentación clara
+• Diseño responsive para móvil y escritorio
+• Notificaciones toast para acciones
+• Funcionalidad de portapapeles
+• Búsqueda y paginación donde sea apropiado
+• Diálogos modales para interacciones complejas
+• Actualizaciones de UI optimistas
+• Navegación intuitiva entre secciones
+• Persistencia de preferencias de usuario (rol, credenciales)
+
+==================================================
+📊 GESTIÓN DE DATOS
+==================================================
+
+• Gestión de estado reactivo con Pinia stores
+• Integración API con manejo de errores robusto
+• Actualizaciones en tiempo real donde sea apropiado
+• Validación de formularios con retroalimentación en tiempo real
+• Sincronización de datos entre componentes
+• Almacenamiento local para preferencias y datos temporales
+• Integración con Firebase para notificaciones en tiempo real
+• Optimización de rendimiento con carga diferida
+
+==================================================
+🛠️ TECNOLOGÍAS Y HERRAMIENTAS
+==================================================
+
+• Vue.js 3 con Composition API
+• Pinia para gestión de estado
+• Vue Router para navegación
+• Tailwind CSS para estilos
+• Firebase Cloud Messaging para notificaciones
+• Google OAuth2 para autenticación social
+• Capacitor para funcionalidad nativa
+• SweetAlert2 para diálogos elegantes
+• Componentes reutilizables personalizados
+• Sistema de iconos SVG personalizado (MozoIcon)
+
+==================================================
+
+ÚLTIMA ACTUALIZACIÓN: Noviembre 2024
+VERSIÓN DE DOCUMENTACIÓN: 1.0
+ESTADO: Completo y actualizado
+
+==================================================

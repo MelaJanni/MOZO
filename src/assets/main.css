@@ -63,9 +63,11 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   border-radius: var(--border-radius);
-  padding: 0.5rem 1rem;
-  font-weight: 500;
+  padding: 0.45rem 0.9rem;
+  line-height: 1.1;
+  font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s, transform 0.1s;
   border: none;
@@ -81,6 +83,9 @@ body {
   background-color: var(--secondary-color);
   color: white;
 }
+/* Icon spacing in buttons */
+.btn i, .btn svg { margin-right: 6px; }
+.btn i:last-child, .btn svg:last-child { margin-right: 0; }
 
 .form-group {
   margin-bottom: 1rem;
@@ -197,3 +202,276 @@ button, .btn, h1, h2, h3, h4, h5, h6, .tab-btn {
   box-shadow: 0 6px 20px rgba(159,84,253,0.15), 0 0 0 3px rgba(159,84,253,0.25);
   border: none;
 }
+
+/* =====================
+   Waiter Dashboard layout fixes
+   Evitar que todo el contenido quede en una sola fila
+   ===================== */
+.waiter-dashboard-root .dashboard-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+.waiter-dashboard-root .dashboard-content > * {
+  flex: 1 1 320px;
+  min-width: 280px;
+}
+
+/* Grupos que deben envolver de forma natural */
+.quick-actions,
+.tabs-container,
+.dropdown-cards,
+.notifications-actions,
+.mesas-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  row-gap: 12px;
+  white-space: normal;
+}
+
+/* Centrar tabs y permitir wrap */
+.tabs-container {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Compatibilidad con clases tipo bootstrap usadas en el template */
+.row { flex-wrap: wrap; }
+
+/* Hijos de grupos: permitir columnas responsivas */
+.quick-actions > *,
+.tabs-container > *,
+.dropdown-cards > *,
+.notifications-actions > * {
+  flex: 0 1 auto;
+}
+
+@media (max-width: 640px) {
+  .quick-actions > *,
+  .tabs-container > *,
+  .dropdown-cards > *,
+  .notifications-actions > * {
+    flex: 1 1 calc(50% - 12px);
+    min-width: 160px;
+  }
+}
+
+@media (max-width: 420px) {
+  .quick-actions > *,
+  .tabs-container > *,
+  .dropdown-cards > *,
+  .notifications-actions > * {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}
+
+/* =====================
+   Bootstrap → Tailwind compat shims (mínimos usados)
+   ===================== */
+/* Grid */
+.row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.w-100 { width: 100% !important; }
+.col { flex: 1 1 0; min-width: 0; }
+.col-12 { flex: 0 0 100%; max-width: 100%; }
+.col-4 { flex: 0 0 33.3333%; max-width: 33.3333%; }
+
+/* Display */
+.d-flex { display: flex !important; }
+.d-block { display: block !important; }
+.d-none { display: none !important; }
+
+/* Flex alignment */
+.justify-content-between { justify-content: space-between !important; }
+.justify-content-center { justify-content: center !important; }
+.align-items-center { align-items: center !important; }
+.align-items-start { align-items: flex-start !important; }
+.align-items-end { align-items: flex-end !important; }
+
+/* Spacing (subset usado en vistas) */
+.px-0 { padding-left: 0 !important; padding-right: 0 !important; }
+.pt-0 { padding-top: 0 !important; }
+.py-0 { padding-top: 0 !important; padding-bottom: 0 !important; }
+.mt-3 { margin-top: 1rem !important; }
+.mb-3 { margin-bottom: 1rem !important; }
+.mb-4 { margin-bottom: 1.5rem !important; }
+.my-3 { margin-top: 1rem !important; margin-bottom: 1rem !important; }
+.me-1 { margin-right: 0.25rem !important; }
+.ms-1 { margin-left: 0.25rem !important; }
+.mx-auto { margin-left: auto !important; margin-right: auto !important; }
+
+/* Position helpers */
+.position-relative { position: relative !important; }
+.position-absolute { position: absolute !important; }
+
+/* Text helpers */
+.text-center { text-align: center !important; }
+
+/* Cards/containers commonly used */
+.container, .container-fluid { width: 100%; margin-left: auto; margin-right: auto; }
+
+/* Buttons (compat hover/focus) */
+.btn { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+.btn-primary:hover { filter: brightness(0.95); }
+.btn-secondary:hover { filter: brightness(0.95); }
+.btn:active { transform: translateY(1px); }
+
+/* ============ Add Business Modal polish ============ */
+.add-business-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+.add-business-content { width: 100%; max-width: 560px; background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.12); padding: 24px; }
+.add-business-content .modal-subtitle { color: var(--subtext-primary); text-align: center; }
+.invitation-section { border: 1px solid #eee; border-radius: 12px; padding: 16px; }
+.invitation-section .invitation-label { font-weight: 600; text-align: center; margin-bottom: 8px; color: var(--text-primary); }
+.invitation-section .invitation-inputs { display: grid; gap: 8px; }
+.invitation-section .invitation-input { 
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  outline: none;
+  background: #fafafa;
+}
+.invitation-section .invitation-input::placeholder { color: #9ca3af; }
+.invitation-section .invitation-input:focus { background: #fff; box-shadow: 0 0 0 3px rgba(159,84,253,0.2); border-color: var(--color-accent-light); }
+.invitation-section .invitation-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+.invitation-section .btn-primary, .invitation-section .btn-secondary { min-width: 110px; }
+.invitation-section .btn-sm { padding: 6px 10px; font-size: 0.9rem; border-radius: 10px; }
+
+/* ============ Modal base (para todos los modales) ============ */
+.modal-overlay { position: fixed; inset: 0; background: rgba(17,24,39,0.5); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+.modal-content { width: 100%; max-width: 720px; background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); overflow: hidden; }
+.modal-content.large { max-width: 960px; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #f3f4f6; }
+.modal-header h3 { margin: 0; font-weight: 700; color: var(--text-primary); }
+.modal-body { padding: 16px; }
+.close-btn, .modal-close-btn { border: none; background: transparent; color: #6b7280; border-radius: 10px; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.close-btn:hover, .modal-close-btn:hover { background: #f3f4f6; color: #111827; }
+.modal-close-abs { position: absolute; right: 8px; top: 8px; }
+
+/* ============ Header Usuario ============ */
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  position: relative;
+}
+.header-user .user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  box-shadow: 0 6px 16px rgba(159,84,253,0.3);
+}
+.header-user .user-name { margin: 0; font-weight: 600; color: var(--text-primary); }
+.header-user .user-time { margin: 0; color: var(--subtext-primary); font-size: 0.9rem; }
+.notification-badge {
+  position: absolute; right: 12px; top: 12px;
+  background: #ef4444; color: #fff; border-radius: 9999px;
+  padding: 2px 8px; font-size: 12px; font-weight: 600;
+  box-shadow: 0 6px 16px rgba(239,68,68,0.35);
+}
+
+/* ============ Dropdown Cards (negocio y perfiles) ============ */
+.dropdown-cards .row__width { width: 100%; max-width: 720px; margin: 0 auto; }
+.dropdown-card {
+  display: flex; align-items: center; gap: 12px;
+  background: #fff; padding: 14px; border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  cursor: pointer;
+}
+.dropdown-card:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,0.08); }
+.dropdown-card .dropdown-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--color-accent-light), #fff);
+  color: var(--color-primary);
+}
+.dropdown-card .dropdown-content { flex: 1; }
+.dropdown-card .dropdown-title { margin: 0; font-weight: 600; color: var(--text-primary); }
+.dropdown-card .dropdown-subtitle { margin: 0; color: var(--subtext-primary); font-size: 0.9rem; }
+.dropdown-card .dropdown-arrow { color: var(--subtext-primary); }
+
+/* ============ Tabs Notificaciones ============ */
+.tabs-container { margin-top: 8px; }
+.tab-item {
+  background: #fff; border: none; border-radius: 9999px;
+  padding: 10px 16px; font-weight: 600; color: var(--subtext-primary);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
+}
+.tab-item.active { color: var(--text-primary); box-shadow: 0 8px 18px rgba(159,84,253,0.18); background: linear-gradient(180deg, var(--color-accent-light), #fff 60%); }
+.tab-item .tab-badge { margin-left: 8px; background: var(--color-primary); color: #fff; border-radius: 9999px; padding: 2px 8px; font-size: 12px; }
+.tab-item.bloqueadas { background: #fff5f5; }
+
+/* ============ Notification cards ============ */
+.notifications-section { display: block; }
+.notification-card {
+  width: 100%; background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+.notification-card.urgent { border-left: 6px solid #f59e0b; }
+.notification-card.completed { opacity: 0.9; }
+.notification-title { margin: 0; font-weight: 700; color: var(--text-primary); }
+.notification-time { margin: 0; color: var(--subtext-primary); }
+.notification-message { margin: 6px 0 12px 0; color: var(--text-primary); }
+.notification-actions { display: flex; gap: 8px; }
+.notification-actions .btn-silenciar,
+.notification-actions .btn-recibido,
+.notification-actions .btn-bloquear-ip {
+  border: none; border-radius: 12px; padding: 10px 12px; font-weight: 600; cursor: pointer;
+}
+.btn-silenciar { background: #f3f4f6; color: #111827; }
+.btn-recibido { background: var(--color-primary); color: #fff; }
+.btn-bloquear-ip { background: #fee2e2; color: #991b1b; }
+
+/* Empty state */
+.empty-state-notifications { text-align: center; padding: 24px; color: var(--subtext-primary); }
+.empty-state-notifications .empty-icon { font-size: 42px; margin-bottom: 8px; }
+
+/* ============ IPs bloqueadas ============ */
+.ip-blocked-card { background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); margin-bottom: 12px; }
+.ip-title { font-weight: 700; color: var(--text-primary); }
+.ip-time { color: var(--subtext-primary); }
+.ip-reason, .ip-address { color: var(--text-primary); }
+
+/* ============ BottomSheet items ============ */
+.bs-add-btn { width: 100%; border: none; border-radius: 12px; padding: 12px; background: var(--color-primary); color: #fff; font-weight: 600; }
+.bs-list { display: grid; gap: 8px; }
+.bs-item { width: 100%; display: flex; align-items: center; justify-content: space-between; border: none; background: #fff; padding: 12px; border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06); }
+.bs-item .left { display: flex; gap: 10px; align-items: center; }
+.bs-item .bs-ico { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--color-accent-light), #fff); color: var(--color-primary); display: inline-flex; align-items: center; justify-content: center; }
+.bs-item .bs-name { font-weight: 600; color: var(--text-primary); }
+.bs-item .bs-sub { color: var(--subtext-primary); font-size: 0.9rem; }
+.bs-item.active { box-shadow: 0 8px 18px rgba(159,84,253,0.18); }
+.bs-loading { display: inline-flex; align-items: center; gap: 8px; color: var(--subtext-primary); }
+.bs-empty { text-align: center; padding: 16px; color: var(--subtext-primary); }
+.bs-empty .empty-icon { font-size: 28px; margin-bottom: 8px; }
+
+/* ============ Footer ============ */
+.app-footer { margin-top: 16px; padding: 12px 0; color: var(--subtext-primary); }
+.app-footer .footer-content { display: flex; justify-content: center; align-items: center; gap: 12px; font-size: 0.9rem; }
+.app-footer .app-name { font-weight: 700; color: var(--text-primary); }
+
+/* ============ Missing Bootstrap btn shims ============ */
+.btn-warning { background: #f59e0b; color: #111827; }
+.btn-sm { padding: 6px 10px; font-size: 0.875rem; border-radius: 10px; }
+
+/* ============ Needs Business Card ============ */
+.needs-business-card { text-align: center; padding: 24px; }
+.needs-business-card .nb-hero { width: 64px; height: 64px; margin: 0 auto 8px; border-radius: 16px; background: linear-gradient(135deg, var(--color-accent-light), #fff); color: var(--color-primary); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(159,84,253,0.2); }
+.needs-business-card .nb-title { margin: 8px 0; color: var(--text-primary); }
+.needs-business-card .nb-sub { color: var(--subtext-primary); margin: 0 auto; max-width: 520px; }
+.needs-business-card .nb-actions { margin-top: 14px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.needs-business-wrap { display: flex; justify-content: center; }
+.needs-business-wrap .mozo-card { max-width: 520px; width: 100%; }
+.needs-business-card .nb-actions .btn { width: 100%; max-width: 320px; }
